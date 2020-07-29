@@ -10,6 +10,7 @@ done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 gene="$1"
+step="$2"
 
 if [ -z "$gene" ]
 then
@@ -18,5 +19,28 @@ then
 	exit
 fi
 
-# 1. Get gene IDs from all databases
-$DIR/GetGenesFromAllDataBases.sh $gene
+if [ -z "$step" ]
+then
+	step=0
+fi
+
+echo "Reconstruct phylogeny for $gene."
+echo ""
+
+case $step in
+0)
+	# Note if you want to rerun this step you must delete the files in \$gene\Hits\
+	echo "0. Obtaining gene IDs from all databases."
+	echo "   Searching for sequences in NCBI databases remotely, takes some time."
+	echo "   Therefore, just skip if files in $DIR/$gene/Hits/ already exist."
+	$DIR/GetGenesFromAllDataBases.sh $gene
+	echo "0. Gene IDs from all databases have been obtained."
+	;&
+1)
+	echo "1. Combine the gene IDs for each database into one file, remove duplicates."
+	$DIR/CombineHitsForEachDatabase.sh $gene
+	echo "1. Gene IDs for each database were combined into one file, duplicates were removed."
+	;;
+*)
+	echo "Step $step is not a valid step."
+esac
