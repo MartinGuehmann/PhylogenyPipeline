@@ -17,3 +17,6 @@ then
 	echo "./RunAll.sh GeneName"
 	exit
 fi
+
+# 1. Get gene IDs from all databases
+$DIR/GetGenesFromAllDataBases.sh $gene
