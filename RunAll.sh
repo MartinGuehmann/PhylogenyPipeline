@@ -34,12 +34,17 @@ case $step in
 	echo "   Searching for sequences in NCBI databases remotely, takes some time."
 	echo "   Therefore, just skip if files in $DIR/$gene/Hits/ already exist."
 	$DIR/GetGenesFromAllDataBases.sh $gene
-	echo "0. Gene IDs from all databases have been obtained."
+	echo "0. Gene IDs from all databases were obtained."
 	;&
 1)
 	echo "1. Combine the gene IDs for each database into one file, remove duplicates."
 	$DIR/CombineHitsForEachDatabase.sh $gene
 	echo "1. Gene IDs for each database were combined into one file, duplicates were removed."
+	;&
+2)
+	echo "2. Combine the gene IDs for each database into one file, remove duplicates."
+	$DIR/CombineHitsFromAllNCBIDatabases.sh $gene
+	echo "2. Gene IDs for each database were combined into one file, duplicates were removed."
 	;;
 *)
 	echo "Step $step is not a valid step."
