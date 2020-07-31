@@ -45,6 +45,11 @@ case $step in
 	echo "2. Combine the gene IDs for each database into one file, remove duplicates."
 	$DIR/CombineHitsFromAllNCBIDatabases.sh $gene
 	echo "2. Gene IDs for each database were combined into one file, duplicates were removed."
+	;&
+3)
+	echo "3. Extract sequences from the databases."
+	$DIR/ExtractSequences.sh $gene
+	echo "3. Sequences from the database were extracted."
 	;;
 *)
 	echo "Step $step is not a valid step."
