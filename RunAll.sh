@@ -50,6 +50,11 @@ case $step in
 	echo "3. Extract sequences from the databases."
 	$DIR/ExtractSequences.sh $gene
 	echo "3. Sequences from the database were extracted."
+	;&
+4)
+	echo "4. Make non redundant databases."
+	$DIR/MakeNonRedundant.sh $gene
+	echo "4. Non reduntant database were made."
 	;;
 *)
 	echo "Step $step is not a valid step."
