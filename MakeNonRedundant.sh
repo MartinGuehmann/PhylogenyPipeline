@@ -19,6 +19,7 @@ fi
 
 numTreads=$(nproc)
 sequences="$DIR/$gene/Sequences"
+sequencesToKeep="$DIR/$gene/MustKeepSequences"
 nrSequenceFile="$sequences/NonRedundantSequences.fasta"
 nrSequenceFile90="$sequences/NonRedundantSequences90.fasta"
 
@@ -33,6 +34,17 @@ seqFiles=$sequences/*.fasta
 seqkit rmdup -s -j $numTreads $seqFiles > $nrSequenceFile
 
 cd-hit -i $nrSequenceFile -o $nrSequenceFile90 -c 0.9 -M 0 -d 0 -T $numTreads
+
+if [ -d $sequencesToKeep ]
+then
+	for fastaFile in $sequencesToKeep/*.fasta
+	do
+		if [ -f $fastaFile ]
+		then
+			cat $fastaFile >> $nrSequenceFile90
+		fi
+	done
+fi
 
 # Record the statistics of all files, including the one we have just created.
 # The expression in $seqFiles is re-evaluated.
