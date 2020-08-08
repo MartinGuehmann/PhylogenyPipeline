@@ -57,6 +57,11 @@ case $step in
 	echo "4. Make non redundant databases."
 	$DIR/MakeNonRedundant.sh $gene
 	echo "4. Non reduntant database were made."
+	;&
+5)
+	echo "5. Align sequences with PASTA."
+	$DIR/AlignWithPASTA.sh $gene
+	echo "5. Sequences aligned with PASTA."
 	;;
 *)
 	echo "Step $step is not a valid step."
