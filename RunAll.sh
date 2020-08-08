@@ -14,14 +14,16 @@ step="$2"
 
 if [ -z "$gene" ]
 then
-	echo "You must give a GeneName, for instance:"
-	echo "./RunAll.sh GeneName"
+	echo "You must give a GeneName and a StepNumber, for instance:"
+	echo "./RunAll.sh GeneName StepNumber"
 	exit
 fi
 
 if [ -z "$step" ]
 then
-	step=0
+	echo "You must give a GeneName and a StepNumber, for instance:"
+	echo "./RunAll.sh GeneName StepNumber"
+	exit
 fi
 
 echo "Reconstruct phylogeny for $gene."
