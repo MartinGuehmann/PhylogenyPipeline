@@ -59,9 +59,9 @@ case $step in
 	echo "4. Non reduntant database were made."
 	;&
 5)
-	echo "5. Align sequences with PASTA."
-	$DIR/AlignWithPASTA.sh $gene
-	echo "5. Sequences aligned with PASTA."
+	echo "5. Align sequences with regressive T-Coffee."
+	$DIR/AlignWithTCoffee.sh $gene
+	echo "5. Sequences aligned with regressive T-Coffee."
 	;;
 *)
 	echo "Step $step is not a valid step."
