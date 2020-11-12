@@ -17,8 +17,26 @@ then
 	exit
 fi
 
+memFile="$DIR/$gene/MemArgForClans.txt"
+javaMem="-Xmx176G"
+
+if [ -f $memFile ]
+then
+	while read line
+	do
+		if [[ "#" == "${line:0:1}" ]]
+		then
+			continue
+		fi
+
+		javaMem=$line
+		break
+
+	done < $memFile
+fi
+
 numThreads=$(nproc)             # Get the number of the currently available processing units to this process, which maybe less than the number of online processors
 clansDir="$DIR/$gene/Clans"
 clansFile="$clansDir/NonRedundantSequences90.clans"
 
-java -Xmx176G -XX:ActiveProcessorCount=$numThreads -jar "$DIR/../clans/clans.jar" -cpu $numThreads -load $clansFile -saveto $clansFile -rounds 5000
+java $javaMem -XX:ActiveProcessorCount=$numThreads -jar "$DIR/../clans/clans.jar" -cpu $numThreads -load $clansFile -saveto $clansFile -rounds 5000
