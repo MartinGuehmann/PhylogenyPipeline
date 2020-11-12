@@ -62,11 +62,16 @@ case $step in
 	echo "5. Prepare sequences for CLANS."
 	$DIR/MakeClansFile.sh $gene
 	echo "5. Sequences have been prepared for CLANS."
+	;&
+6)
+	echo "6. Cluster sequences with CLANS."
+	$DIR/ClusterWithClans.sh $gene
+	echo "6. Sequences have been clustered with CLANS."
 	;;
-#6)
-#	echo "5. Align sequences with regressive T-Coffee."
+#7)
+#	echo "7. Align sequences with regressive T-Coffee."
 #	$DIR/AlignWithTCoffee.sh $gene
-#	echo "5. Sequences aligned with regressive T-Coffee."
+#	echo "7. Sequences aligned with regressive T-Coffee."
 #	;;
 *)
 	echo "Step $step is not a valid step."
