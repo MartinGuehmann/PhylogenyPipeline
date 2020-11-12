@@ -9,6 +9,7 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 gene="$1"
+rounds="5000"
 
 if [ -z "$gene" ]
 then
@@ -39,4 +40,4 @@ numThreads=$(nproc)             # Get the number of the currently available proc
 clansDir="$DIR/$gene/Clans"
 clansFile="$clansDir/NonRedundantSequences90.clans"
 
-java $javaMem -XX:ActiveProcessorCount=$numThreads -jar "$DIR/../clans/clans.jar" -cpu $numThreads -load $clansFile -saveto $clansFile -rounds 5000
+java $javaMem -XX:ActiveProcessorCount=$numThreads -jar "$DIR/../clans/clans.jar" -cpu $numThreads -load $clansFile -saveto $clansFile -rounds $rounds
