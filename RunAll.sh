@@ -67,11 +67,16 @@ case $step in
 	echo "6. Cluster sequences with CLANS."
 	$DIR/ClusterWithClans.sh $gene
 	echo "6. Sequences have been clustered with CLANS."
+	;&
+7)
+	echo "7. Create newick tree from CLANS file with neighbor joining for pruning."
+	$DIR/MakeTreeForPruning.sh $gene
+	echo "7. Newick tree from CLANS file with neighbor joining for pruning created."
 	;;
-#7)
-#	echo "7. Align sequences with regressive T-Coffee."
+#8)
+#	echo "8. Align sequences with regressive T-Coffee."
 #	$DIR/AlignWithTCoffee.sh $gene
-#	echo "7. Sequences aligned with regressive T-Coffee."
+#	echo "8. Sequences aligned with regressive T-Coffee."
 #	;;
 *)
 	echo "Step $step is not a valid step."
