@@ -72,11 +72,16 @@ case $step in
 	echo "7. Create newick tree from CLANS file with neighbor joining for pruning."
 	$DIR/MakeTreeForPruning.sh $gene
 	echo "7. Newick tree from CLANS file with neighbor joining for pruning created."
+	;&
+8)
+	echo "8. Make tree with sequences of interest."
+	$DIR/MakeTreeWithSequencesOfInterest.sh $gene
+	echo "8. Tree with sequences of interest made."
 	;;
-#8)
-#	echo "8. Align sequences with regressive T-Coffee."
+#9)
+#	echo "9. Align sequences with regressive T-Coffee."
 #	$DIR/AlignWithTCoffee.sh $gene
-#	echo "8. Sequences aligned with regressive T-Coffee."
+#	echo "9. Sequences aligned with regressive T-Coffee."
 #	;;
 *)
 	echo "Step $step is not a valid step."
