@@ -75,7 +75,7 @@ case $step in
 	;&
 8)
 	echo "8. Extract sequences of interest."
-	$DIR/MakeTreeWithSequencesOfInterest.sh $gene
+	$DIR/ExtractSequencesOfInterest.sh $gene
 	echo "8. Sequences of interest extracted."
 	;;
 #9)
