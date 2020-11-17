@@ -17,17 +17,19 @@ then
 	exit
 fi
 
+SequencesOfInterestDir="$DIR/$gene/SequencesOfInterest"
+mkdir -p $SequencesOfInterestDir
+
 TreeForPruningDir="$DIR/$gene/TreeForPruning"
 TreeForPruning="$TreeForPruningDir/TreeForPruning.newick"
-TreeWithSequencesOfInterest="$TreeForPruningDir/TreeWithSequencesOfInterest.newick"
-SequencesOfInterest="$TreeForPruningDir/SequencesOfInterest.fasta"
+TreeWithSequencesOfInterest="$SequencesOfInterestDir/TreeWithSequencesOfInterest.newick"
+SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 treeLabels="$TreeForPruningDir/LabelsOfInterest.txt"
 BaitDir="$DIR/$gene/BaitSequences/"
 AdditionalSequences="$DIR/$gene/AdditionalSequencesOfInterest/"
 
 
 LeavesOfSubTreeToKeep=""
-addSeqFiles=""
 
 declare -a seqFiles=( $BaitDir*.fasta )
 

@@ -74,9 +74,9 @@ case $step in
 	echo "7. Newick tree from CLANS file with neighbor joining for pruning created."
 	;&
 8)
-	echo "8. Make tree with sequences of interest."
+	echo "8. Extract sequences of interest."
 	$DIR/MakeTreeWithSequencesOfInterest.sh $gene
-	echo "8. Tree with sequences of interest made."
+	echo "8. Sequences of interest extracted."
 	;;
 #9)
 #	echo "9. Align sequences with regressive T-Coffee."
