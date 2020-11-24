@@ -17,15 +17,28 @@ then
 	exit
 fi
 
+skipClans="$2"
+if [ -z "$skipClans" ]
+then
+	skipClans=0
+fi
+
+sequences="$DIR/$gene/SequencesOfInterest"
+inputSequences="$sequences/SequencesOfInterest.fasta"
+
+if [[ $skipClans != 0 ]]
+then
+	sequences="$DIR/$gene/Sequences"
+	inputSequences="$sequences/NonRedundantSequences90.fasta"
+fi
+
 numTreads=$(nproc)
-sequences="$DIR/$gene/Sequences"
-nrSequenceFile90="$sequences/NonRedundantSequences90.fasta"
 alignments="$DIR/$gene/Alignments"
 outFile="$alignments/Alignment.fasta"
 outTree="$alignments/Tree.mbed"
 
 mkdir -p $alignments
 
-#run_pasta.py -i $nrSequenceFile90 -d protein -o $alignments -k --keepalignmenttemps
-#t_coffee -i $nrSequenceFile90 -d protein -o $alignments -thread 0
-t_coffee -reg -seq $nrSequenceFile90 -nseq 100 -tree mbed -method mafftginsi_msa -outfile $outFile -outtree $outTree -thread 0
+#run_pasta.py -i $inputSequences -d protein -o $alignments -k --keepalignmenttemps
+#t_coffee -i $inputSequences -d protein -o $alignments -thread 0
+t_coffee -reg -seq $inputSequences -nseq 100 -tree mbed -method mafftginsi_msa -outfile $outFile -outtree $outTree -thread 0

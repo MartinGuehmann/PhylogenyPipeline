@@ -77,12 +77,12 @@ case $step in
 	echo "8. Extract sequences of interest."
 	$DIR/ExtractSequencesOfInterest.sh $gene
 	echo "8. Sequences of interest extracted."
+	;&
+9)
+	echo "9. Align sequences with regressive T-Coffee."
+	$DIR/AlignWithTCoffee.sh $gene
+	echo "9. Sequences aligned with regressive T-Coffee."
 	;;
-#9)
-#	echo "9. Align sequences with regressive T-Coffee."
-#	$DIR/AlignWithTCoffee.sh $gene
-#	echo "9. Sequences aligned with regressive T-Coffee."
-#	;;
 *)
 	echo "Step $step is not a valid step."
 esac
