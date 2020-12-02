@@ -8,6 +8,7 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
   [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
 gene="$1"
 step="$2"
@@ -15,15 +16,17 @@ last="$3"
 
 if [ -z "$gene" ]
 then
+	echo "GeneName missing"
 	echo "You must give a GeneName and a StepNumber, for instance:"
-	echo "./RunAll.sh GeneName StepNumber"
+	echo "./$thisScript GeneName StepNumber"
 	exit
 fi
 
 if [ -z "$step" ]
 then
+	echo "StepNumber missing"
 	echo "You must give a GeneName and a StepNumber, for instance:"
-	echo "./RunAll.sh GeneName StepNumber"
+	echo "./$thisScript GeneName StepNumber"
 	exit
 fi
 
