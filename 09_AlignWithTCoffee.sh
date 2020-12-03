@@ -40,6 +40,4 @@ outTree="$alignments/Tree.mbed"
 
 mkdir -p $alignments
 
-#run_pasta.py -i $inputSequences -d protein -o $alignments -k --keepalignmenttemps
-#t_coffee -i $inputSequences -d protein -o $alignments -thread 0
 t_coffee -reg -seq $inputSequences -nseq 100 -tree mbed -method mafftginsi_msa -outfile $outFile -outtree $outTree -thread 0
