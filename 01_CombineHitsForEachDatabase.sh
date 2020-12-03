@@ -36,7 +36,7 @@ declare -a DataBases=(
 
 for DB in "${DataBases[@]}"
 do
-	$DIR/GetGenes.sh $gene $DB &
+	$DIR/01a_CombineHits.sh $gene $DB &
 done
 
 wait # Wait on all the instances of GetGenes.sh having finished
