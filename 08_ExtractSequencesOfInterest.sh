@@ -25,6 +25,7 @@ TreeForPruningDir="$DIR/$gene/TreeForPruning"
 TreeForPruning="$TreeForPruningDir/TreeForPruning.newick"
 TreeWithSequencesOfInterest="$SequencesOfInterestDir/TreeWithSequencesOfInterest.newick"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
+SequencesOfInterestShuffled="$SequencesOfInterestDir/SequencesOfInterestShuffled.fasta"
 treeLabels="$TreeForPruningDir/LabelsOfInterest.txt"
 BaitDir="$DIR/$gene/BaitSequences/"
 AdditionalSequences="$DIR/$gene/AdditionalSequencesOfInterest/"
@@ -87,3 +88,8 @@ then
 else
 	echo "WARNING: Sequence lost during extraction, costum sequences might contain underscores that could not be detected."
 fi
+
+seqkit shuffle -2 -j $numTreads $SequencesOfInterest > $SequencesOfInterestShuffled
+
+# Warns that output directoy is not empty, but it is supposed to be non-empty
+seqkit split2 -j $numTreads -s 1000 -O $SequencesOfInterestDir $SequencesOfInterestShuffled
