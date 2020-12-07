@@ -10,6 +10,7 @@ done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 gene="$1"
+inputSequences="$2"
 
 if [ -z "$gene" ]
 then
@@ -18,25 +19,28 @@ then
 	exit
 fi
 
-skipClans="$2"
+skipClans="$3"
 if [ -z "$skipClans" ]
 then
 	skipClans=0
 fi
 
-sequences="$DIR/$gene/SequencesOfInterest"
-inputSequences="$sequences/SequencesOfInterest.fasta"
+
+sequences="$DIR/$gene/Sequences"
 
 if [[ $skipClans != 0 ]]
 then
-	sequences="$DIR/$gene/Sequences"
 	inputSequences="$sequences/NonRedundantSequences90.fasta"
+elif [[ -z "$inputSequences" ]]
+then
+	inputSequences="$sequences/SequencesOfInterest.fasta"
 fi
 
-numTreads=$(nproc)
+#numTreads=$(nproc)
+base=$(basename $inputSequences .fasta)
 alignments="$DIR/$gene/Alignments"
-outFile="$alignments/Alignment.fasta"
-outTree="$alignments/Tree.mbed"
+outFile="$alignments/$base.alignment.fasta"
+outTree="$alignments/$base.tree.mbed"
 
 mkdir -p $alignments
 

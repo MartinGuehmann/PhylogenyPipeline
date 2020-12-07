@@ -29,6 +29,10 @@ then
 	exit
 fi
 
+SequencesOfInterestDir="$DIR/$gene/SequencesOfInterest"
+SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
+SequencesOfInterestParts="$SequencesOfInterestDir/SequencesOfInterestShuffled.part_"
+
 case $step in
 #0)
 #	Depends on the server of NCBI, thus quite slow and thus a cluster is not useful
@@ -60,7 +64,14 @@ case $step in
 	qsub $DIR/08_PBS-Pro-ExtractSequencesOfInterest.sh $DIR $gene
 	;;
 9)
-	qsub $DIR/09_PBS-Pro-AlignWithTCoffee.sh $DIR $gene
+	for fastaFile in "$SequencesOfInterestParts"*.fasta
+	do
+		if [ -f $fastaFile ]
+		then
+			qsub $DIR/09_PBS-Pro-AlignWithTCoffee.sh $DIR $gene $fastaFile
+		fi
+	done
+	qsub $DIR/09_PBS-Pro-AlignWithTCoffee.sh $DIR $gene $SequencesOfInterest
 	;;
 
 # Adjust lastStep if you add more steps here

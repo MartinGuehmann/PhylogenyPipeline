@@ -13,6 +13,8 @@ DIR="$1"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 gene="$2"
 
+seqsToAlign="$3"
+
 if [ -z "$gene" ]
 then
 	echo "You must give a GeneName, for instance:"
@@ -21,5 +23,5 @@ then
 fi
 
 date
-time "$DIR/../RunAll.sh" "$gene" "9"
+time "$DIR/../RunAll.sh" "$gene" "9" "9" "$seqsToAlign"
 date
