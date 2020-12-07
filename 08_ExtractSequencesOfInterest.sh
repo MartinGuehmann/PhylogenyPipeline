@@ -90,12 +90,14 @@ else
 fi
 
 seqkit shuffle -2 -j $numTreads $SequencesOfInterest > $SequencesOfInterestShuffled
-sed -i "s/[],[]//g" $SequencesOfInterestShuffled
-sed -i "s/[)(]//g" $SequencesOfInterestShuffled
-sed -i "s/ /_/g" $SequencesOfInterestShuffled
-sed -i "s/\//_/g" $SequencesOfInterestShuffled
-sed -i "s/:/_/g" $SequencesOfInterestShuffled
-sed -i "s/;//g" $SequencesOfInterestShuffled
+
+# The IDs getting to long for t_coffee so outcomment this
+#sed -i "s/[],[]//g" $SequencesOfInterestShuffled
+#sed -i "s/[)(]//g" $SequencesOfInterestShuffled
+#sed -i "s/ /_/g" $SequencesOfInterestShuffled
+#sed -i "s/\//_/g" $SequencesOfInterestShuffled
+#sed -i "s/:/_/g" $SequencesOfInterestShuffled
+#sed -i "s/;//g" $SequencesOfInterestShuffled
 
 # Warns that output directoy is not empty, but it is supposed to be non-empty
 seqkit split2 -j $numTreads -s 1000 -O $SequencesOfInterestDir $SequencesOfInterestShuffled
