@@ -7,10 +7,7 @@
 # any PBS directive below that is ignored.
 # No modules to load
 
-DIR="$1"
-
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
-gene="$2"
 
 if [ -z "$gene" ]
 then

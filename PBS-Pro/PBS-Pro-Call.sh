@@ -29,49 +29,49 @@ then
 	exit
 fi
 
-SequencesOfInterestDir="$DIR/$gene/SequencesOfInterest"
+SequencesOfInterestDir="$DIR/../$gene/SequencesOfInterest"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 SequencesOfInterestParts="$SequencesOfInterestDir/SequencesOfInterestShuffled.part_"
 
 case $step in
 #0)
 #	Depends on the server of NCBI, thus quite slow and thus a cluster is not useful
-#	qsub $DIR/00_PBS-Pro-GetGenesFromAllDataBases.sh $DIR $gene
+#	qsub -v "DIR=$DIR, gene=$gene" "$DIR/00_PBS-Pro-GetGenesFromAllDataBases.sh"
 #	;;
 1)
-	qsub $DIR/01_PBS-Pro-CombineHitsForEachDatabase.sh $DIR $gene
+	qsub -v "DIR=$DIR, gene=$gene" "$DIR/01_PBS-Pro-CombineHitsForEachDatabase.sh"
 	;;
 2)
-	qsub $DIR/02_PBS-Pro-CombineHitsFromAllNCBIDatabases.sh $DIR $gene
+	qsub -v "DIR=$DIR, gene=$gene" "$DIR/02_PBS-Pro-CombineHitsFromAllNCBIDatabases.sh"
 	;;
 #3)
 #	Efetch is missing for that, anyway this can be done on a laptop
-#	qsub $DIR/03_PBS-Pro-ExtractSequences.sh $DIR $gene
+#	qsub -v "DIR=$DIR, gene=$gene" "$DIR/03_PBS-Pro-ExtractSequences.sh"
 #	;;
 4)
-	qsub $DIR/04_PBS-Pro-MakeNonRedundant.sh $DIR $gene
+	qsub -v "DIR=$DIR, gene=$gene" "$DIR/04_PBS-Pro-MakeNonRedundant.sh"
 	;;
 5)
-	qsub $DIR/05_PBS-Pro-MakeClansFile.sh $DIR $gene
+	qsub -v "DIR=$DIR, gene=$gene" "$DIR/05_PBS-Pro-MakeClansFile.sh"
 	;;
 6)
-	qsub $DIR/06_PBS-Pro-ClusterWithClans.sh $DIR $gene
+	qsub -v "DIR=$DIR, gene=$gene" "$DIR/06_PBS-Pro-ClusterWithClans.sh"
 	;;
 7)
-	qsub $DIR/07_PBS-Pro-MakeTreeForPruning.sh $DIR $gene
+	qsub -v "DIR=$DIR, gene=$gene" "$DIR/07_PBS-Pro-MakeTreeForPruning.sh"
 	;;
 8)
-	qsub $DIR/08_PBS-Pro-ExtractSequencesOfInterest.sh $DIR $gene
+	qsub -v "DIR=$DIR, gene=$gene" "$DIR/08_PBS-Pro-ExtractSequencesOfInterest.sh"
 	;;
 9)
 	for fastaFile in "$SequencesOfInterestParts"*.fasta
 	do
 		if [ -f $fastaFile ]
 		then
-			qsub $DIR/09_PBS-Pro-AlignWithTCoffee.sh $DIR $gene $fastaFile
+			qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$fastaFile" "$DIR/09_PBS-Pro-AlignWithTCoffee.sh"
 		fi
 	done
-	qsub $DIR/09_PBS-Pro-AlignWithTCoffee.sh $DIR $gene $SequencesOfInterest
+	qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest" "$DIR/09_PBS-Pro-AlignWithTCoffee.sh"
 	;;
 
 # Adjust lastStep if you add more steps here

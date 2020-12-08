@@ -8,10 +8,7 @@
 # Load modules
 #efetch from e-utilities is missing
 
-DIR="$1"
-
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
-gene="$2"
 
 if [ -z "$gene" ]
 then

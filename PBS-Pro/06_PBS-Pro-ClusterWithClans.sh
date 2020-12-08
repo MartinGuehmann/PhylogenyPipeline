@@ -8,10 +8,7 @@
 # Load modules
 module add lang/java/1.8.0_201
 
-DIR="$1"
-
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
-gene="$2"
 
 if [ -z "$gene" ]
 then
