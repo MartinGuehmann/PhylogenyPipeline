@@ -5,7 +5,8 @@
 
 # Go to the first program line,
 # any PBS directive below that is ignored.
-# No modules to load
+# Load modules
+# cd-hit missing
 
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
