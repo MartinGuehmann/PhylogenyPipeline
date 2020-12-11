@@ -29,9 +29,13 @@ then
 	exit
 fi
 
+partSequences="SequencesOfInterestShuffled.part_"
 SequencesOfInterestDir="$DIR/../$gene/SequencesOfInterest"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
-SequencesOfInterestParts="$SequencesOfInterestDir/SequencesOfInterestShuffled.part_"
+SequencesOfInterestParts="$SequencesOfInterestDir/$partSequences"
+AlignmentDir="$DIR/../$gene/Alignments"
+AlignmentParts="$AlignmentDir/$partSequences"
+AlignmentLastBit=".alignment.fasta.raxml.reduced.phy"
 
 case $step in
 #0)
@@ -72,6 +76,15 @@ case $step in
 		fi
 	done
 	qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest" "$DIR/09_PBS-Pro-AlignWithTCoffee.sh"
+	;;
+10)
+	for phyFile in "$AlignmentParts"*"$AlignmentLastBit"
+	do
+		if [ -f $phyFile ]
+		then
+			qsub -v "DIR=$DIR, gene=$gene, alignmentToUse=$phyFile" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh"
+		fi
+	done
 	;;
 
 # Adjust lastStep if you add more steps here

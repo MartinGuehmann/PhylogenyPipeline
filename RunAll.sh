@@ -13,7 +13,7 @@ thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 gene="$1"
 step="$2"
 last="$3"
-seqsToAlign="$4"
+seqsToAlignOrAlignment="$4"
 
 if [ -z "$gene" ]
 then
@@ -31,12 +31,16 @@ then
 	exit
 fi
 
+partSequences="SequencesOfInterestShuffled.part_"
 SequencesOfInterestDir="$DIR/$gene/SequencesOfInterest"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
-SequencesOfInterestParts="$SequencesOfInterestDir/SequencesOfInterestShuffled.part_"
+SequencesOfInterestParts="$SequencesOfInterestDir/$partSequences"
+AlignmentDir="$DIR/$gene/Alignments"
+AlignmentParts="$AlignmentDir/$partSequences"
+AlignmentLastBit=".alignment.fasta.raxml.reduced.phy"
 
 # Note this must be set to the last available step
-lastStep="9"
+lastStep="10"
 
 if [ -z "$last" ]
 then
@@ -104,7 +108,7 @@ do
 		;;
 	9)
 		echo "9. Align sequences with regressive T-Coffee."
-		if [ -z "$seqsToAlign" ]
+		if [ -z "$seqsToAlignOrAlignment" ]
 		then
 			for fastaFile in "$SequencesOfInterestParts"*.fasta
 			do
@@ -115,9 +119,25 @@ do
 			done
 			$DIR/09_AlignWithTCoffee.sh "$gene" "$SequencesOfInterest"
 		else
-			$DIR/09_AlignWithTCoffee.sh "$gene" "$seqsToAlign"
+			$DIR/09_AlignWithTCoffee.sh "$gene" "$seqsToAlignOrAlignment"
 		fi
 		echo "9. Sequences aligned with regressive T-Coffee."
+		;;
+	10)
+		echo "10. Build trees with IQ-Tree."
+		if [ -z "$seqsToAlignOrAlignment" ]
+		then
+			for phyFile in "$AlignmentParts"*"$AlignmentLastBit"
+			do
+				if [ -f $phyFile ]
+				then
+					$DIR/10_MakeTreeWithIQ-Tree.sh "$phyFile"
+				fi
+			done
+		else
+			$DIR/10_MakeTreeWithIQ-Tree.sh "$seqsToAlignOrAlignment"
+		fi
+		echo "10. Trees built with IQ-Tree."
 		;;
 
 	# Adjust lastStep if you add more steps here
