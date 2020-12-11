@@ -29,6 +29,7 @@ SequencesOfInterestShuffled="$SequencesOfInterestDir/SequencesOfInterestShuffled
 treeLabels="$TreeForPruningDir/LabelsOfInterest.txt"
 BaitDir="$DIR/$gene/BaitSequences/"
 AdditionalSequences="$DIR/$gene/AdditionalSequencesOfInterest/"
+seqsPerChunk="900"
 
 
 LeavesOfSubTreeToKeep=""
@@ -99,5 +100,12 @@ seqkit shuffle -2 -j $numTreads $SequencesOfInterest > $SequencesOfInterestShuff
 #sed -i "s/:/_/g" $SequencesOfInterestShuffled
 #sed -i "s/;//g" $SequencesOfInterestShuffled
 
+numSeqs=$(grep -c '>' $SequencesOfInterestShuffled)
+
+restSeqChunk=$(($numSeqs % $seqsPerChunk))
+numSeqChunks=$(($numSeqs / $seqsPerChunk))
+
+numSeqsCorrPerChunk=$(($seqsPerChunk + 1 + $restSeqChunk / $numSeqChunks))
+
 # Warns that output directoy is not empty, but it is supposed to be non-empty
-seqkit split2 -j $numTreads -s 1000 -O $SequencesOfInterestDir $SequencesOfInterestShuffled
+seqkit split2 -j $numTreads -s $numSeqsCorrPerChunk -O $SequencesOfInterestDir $SequencesOfInterestShuffled
