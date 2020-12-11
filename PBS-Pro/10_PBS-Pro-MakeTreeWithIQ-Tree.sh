@@ -6,7 +6,7 @@
 # Go to the first program line,
 # any PBS directive below that is ignored.
 # Load modules
-module load apps/tcoffee/13.45.0
+module add apps/iqtree/2.0.6
 
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
