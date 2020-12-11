@@ -36,7 +36,7 @@ then
 	inputSequences="$sequences/SequencesOfInterest.fasta"
 fi
 
-#numTreads=$(nproc)
+numTreads=$(nproc)
 base=$(basename $inputSequences .fasta)
 alignments="$DIR/$gene/Alignments"
 outFile="$alignments/$base.alignment.fasta"
@@ -45,3 +45,4 @@ outTree="$alignments/$base.tree.mbed"
 mkdir -p $alignments
 
 MAX_N_PID_4_TCOFFEE=520000 t_coffee -reg -seq $inputSequences -nseq 100 -tree mbed -method mafftginsi_msa -outfile $outFile -outtree $outTree -thread 0
+raxml-ng --msa "$outFile" --threads $numTreads --model LG+G --check
