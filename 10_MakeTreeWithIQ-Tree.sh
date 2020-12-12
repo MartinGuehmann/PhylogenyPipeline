@@ -21,4 +21,4 @@ fi
 
 numTreads=$(nproc)
 
-time iqtree2 -s "$inputAlignment" -B 1000 --abayes --alrt 1000 -m TEST -nt AUTO -ntmax 24 --boot-trees
+iqtree2 -s "$inputAlignment" -B 1000 --abayes --alrt 1000 -m TEST -nt AUTO -ntmax 24 --boot-trees

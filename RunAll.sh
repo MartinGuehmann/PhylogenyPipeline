@@ -38,9 +38,10 @@ SequencesOfInterestParts="$SequencesOfInterestDir/$partSequences"
 AlignmentDir="$DIR/$gene/Alignments"
 AlignmentParts="$AlignmentDir/$partSequences"
 AlignmentLastBit=".alignment.fasta.raxml.reduced.phy"
+UFBootPart="$AlignmentLastBit.ufboot"
 
 # Note this must be set to the last available step
-lastStep="10"
+lastStep="11"
 
 if [ -z "$last" ]
 then
@@ -138,6 +139,22 @@ do
 			$DIR/10_MakeTreeWithIQ-Tree.sh "$seqsToAlignOrAlignment"
 		fi
 		echo "10. Trees built with IQ-Tree."
+		;;
+	11)
+		echo "11. Remove rogue sequences with RogueNaRok."
+		if [ -z "$seqsToAlignOrAlignment" ]
+		then
+			for ufbootFile in "$AlignmentParts"*"$UFBootPart"
+			do
+				if [ -f $ufbootFile ]
+				then
+					$DIR/11_RemoveRogues.sh "$gene" "$ufbootFile"
+				fi
+			done
+		else
+			$DIR/11_RemoveRogues.sh "$gene" "$seqsToAlignOrAlignment"
+		fi
+		echo "11. Rogue sequences removed with RogueNaRok."
 		;;
 
 	# Adjust lastStep if you add more steps here

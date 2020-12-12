@@ -86,6 +86,9 @@ case $step in
 		fi
 	done
 	;;
+11)
+	qsub -v "DIR=$DIR, gene=$gene" "$DIR/11_PBS-Pro-RemoveRogues.sh"
+	;;
 
 # Adjust lastStep if you add more steps here
 *)
