@@ -151,6 +151,7 @@ do
 					$DIR/11_RemoveRogues.sh "$gene" "$ufbootFile"
 				fi
 			done
+			$DIR/11a_ExtractNonRogues.sh "$gene"
 		else
 			$DIR/11_RemoveRogues.sh "$gene" "$seqsToAlignOrAlignment"
 		fi
