@@ -33,6 +33,11 @@ partSequences="SequencesOfInterestShuffled.part_"
 SequencesOfInterestDir="$DIR/../$gene/SequencesOfInterest"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 SequencesOfInterestParts="$SequencesOfInterestDir/$partSequences"
+
+RogueFreeSequencesDir="$DIR/../$gene/RogueFreeTrees"
+RogueFreeSequences="$RogueFreeSequencesDir/SequencesOfInterest.roked.fasta"
+RogueFreeSequencesParts="$RogueFreeSequencesDir/$partSequences"
+
 AlignmentDir="$DIR/../$gene/Alignments"
 AlignmentParts="$AlignmentDir/$partSequences"
 AlignmentLastBit=".alignment.fasta.raxml.reduced.phy"
@@ -88,6 +93,16 @@ case $step in
 	;;
 11)
 	qsub -v "DIR=$DIR, gene=$gene" "$DIR/11_PBS-Pro-RemoveRogues.sh"
+	;;
+12)
+	for fastaFile in "$RogueFreeSequencesParts"*.roked.fasta
+	do
+		if [ -f $fastaFile ]
+		then
+			qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$fastaFile" "$DIR/12_PBS-Pro-AlignRogueFreeWithTCoffee.sh"
+		fi
+	done
+	qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$RogueFreeSequences" "$DIR/12_PBS-Pro-AlignRogueFreeWithTCoffee.sh"
 	;;
 
 # Adjust lastStep if you add more steps here

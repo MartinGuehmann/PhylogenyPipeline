@@ -11,6 +11,8 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 gene="$1"
 inputSequences="$2"
+alignmentDir="$3"
+skipClans="$4"
 
 if [ -z "$gene" ]
 then
@@ -19,12 +21,15 @@ then
 	exit
 fi
 
-skipClans="$3"
+if [ -z "$alignmentDir" ]
+then
+	alignmentDir="$DIR/$gene/Alignments"
+fi
+
 if [ -z "$skipClans" ]
 then
 	skipClans=0
 fi
-
 
 sequences="$DIR/$gene/Sequences"
 
@@ -38,11 +43,10 @@ fi
 
 numTreads=$(nproc)
 base=$(basename $inputSequences .fasta)
-alignments="$DIR/$gene/Alignments"
-outFile="$alignments/$base.alignment.fasta"
-outTree="$alignments/$base.tree.mbed"
+outFile="$alignmentDir/$base.alignment.fasta"
+outTree="$alignmentDir/$base.tree.mbed"
 
-mkdir -p $alignments
+mkdir -p $alignmentDir
 
 MAX_N_PID_4_TCOFFEE=520000 t_coffee -reg -seq $inputSequences -nseq 100 -tree mbed -method mafftginsi_msa -outfile $outFile -outtree $outTree -thread 0
 raxml-ng --msa "$outFile" --threads $numTreads --model LG+G --check

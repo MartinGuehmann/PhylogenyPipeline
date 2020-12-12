@@ -35,13 +35,20 @@ partSequences="SequencesOfInterestShuffled.part_"
 SequencesOfInterestDir="$DIR/$gene/SequencesOfInterest"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 SequencesOfInterestParts="$SequencesOfInterestDir/$partSequences"
+
+RogueFreeSequencesDir="$DIR/$gene/RogueFreeTrees"
+RogueFreeSequences="$RogueFreeSequencesDir/SequencesOfInterest.roked.fasta"
+RogueFreeSequencesParts="$RogueFreeSequencesDir/$partSequences"
+
+RogueFreeAlignmentDir="$DIR/$gene/RogueFreeAlignments"
+
 AlignmentDir="$DIR/$gene/Alignments"
 AlignmentParts="$AlignmentDir/$partSequences"
 AlignmentLastBit=".alignment.fasta.raxml.reduced.phy"
 UFBootPart="$AlignmentLastBit.ufboot"
 
 # Note this must be set to the last available step
-lastStep="11"
+lastStep="12"
 
 if [ -z "$last" ]
 then
@@ -156,6 +163,23 @@ do
 			$DIR/11_RemoveRogues.sh "$gene" "$seqsToAlignOrAlignment"
 		fi
 		echo "11. Rogue sequences removed with RogueNaRok."
+		;;
+	12)
+		echo "12. Align rogue free sequences with regressive T-Coffee."
+		if [ -z "$seqsToAlignOrAlignment" ]
+		then
+			for fastaFile in "$RogueFreeSequencesParts"*.roked.fasta
+			do
+				if [ -f $fastaFile ]
+				then
+					$DIR/09_AlignWithTCoffee.sh "$gene" "$fastaFile" "$RogueFreeAlignmentDir"
+				fi
+			done
+			$DIR/09_AlignWithTCoffee.sh "$gene" "$RogueFreeSequences" "$RogueFreeAlignmentDir"
+		else
+			$DIR/09_AlignWithTCoffee.sh "$gene" "$seqsToAlignOrAlignment" "$RogueFreeAlignmentDir"
+		fi
+		echo "12. Rogue free Sequences aligned with regressive T-Coffee."
 		;;
 
 	# Adjust lastStep if you add more steps here
