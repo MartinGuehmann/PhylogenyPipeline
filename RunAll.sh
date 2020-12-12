@@ -41,6 +41,7 @@ RogueFreeSequences="$RogueFreeSequencesDir/SequencesOfInterest.roked.fasta"
 RogueFreeSequencesParts="$RogueFreeSequencesDir/$partSequences"
 
 RogueFreeAlignmentDir="$DIR/$gene/RogueFreeAlignments"
+RogueFreeAlignmentParts="$RogueFreeAlignmentDir/$partSequences"
 
 AlignmentDir="$DIR/$gene/Alignments"
 AlignmentParts="$AlignmentDir/$partSequences"
@@ -48,7 +49,7 @@ AlignmentLastBit=".alignment.fasta.raxml.reduced.phy"
 UFBootPart="$AlignmentLastBit.ufboot"
 
 # Note this must be set to the last available step
-lastStep="12"
+lastStep="13"
 
 if [ -z "$last" ]
 then
@@ -180,6 +181,22 @@ do
 			$DIR/09_AlignWithTCoffee.sh "$gene" "$seqsToAlignOrAlignment" "$RogueFreeAlignmentDir"
 		fi
 		echo "12. Rogue free Sequences aligned with regressive T-Coffee."
+		;;
+	13)
+		echo "13. Build rogue free trees with IQ-Tree."
+		if [ -z "$seqsToAlignOrAlignment" ]
+		then
+			for phyFile in "$RogueFreeAlignmentParts"*"$AlignmentLastBit"
+			do
+				if [ -f $phyFile ]
+				then
+					$DIR/10_MakeTreeWithIQ-Tree.sh "$phyFile"
+				fi
+			done
+		else
+			$DIR/10_MakeTreeWithIQ-Tree.sh "$seqsToAlignOrAlignment"
+		fi
+		echo "13. Rogue free Trees built with IQ-Tree."
 		;;
 
 	# Adjust lastStep if you add more steps here

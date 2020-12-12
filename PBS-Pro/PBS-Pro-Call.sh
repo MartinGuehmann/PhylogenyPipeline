@@ -38,6 +38,9 @@ RogueFreeSequencesDir="$DIR/../$gene/RogueFreeTrees"
 RogueFreeSequences="$RogueFreeSequencesDir/SequencesOfInterest.roked.fasta"
 RogueFreeSequencesParts="$RogueFreeSequencesDir/$partSequences"
 
+RogueFreeAlignmentDir="$DIR/../$gene/RogueFreeAlignments"
+RogueFreeAlignmentParts="$RogueFreeAlignmentDir/$partSequences"
+
 AlignmentDir="$DIR/../$gene/Alignments"
 AlignmentParts="$AlignmentDir/$partSequences"
 AlignmentLastBit=".alignment.fasta.raxml.reduced.phy"
@@ -103,6 +106,15 @@ case $step in
 		fi
 	done
 	qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$RogueFreeSequences" "$DIR/12_PBS-Pro-AlignRogueFreeWithTCoffee.sh"
+	;;
+13)
+	for phyFile in "$RogueFreeAlignmentParts"*"$AlignmentLastBit"
+	do
+		if [ -f $phyFile ]
+		then
+			qsub -v "DIR=$DIR, gene=$gene, alignmentToUse=$phyFile" "$DIR/13_PBS-Pro-MakeRogueFreeTreeWithIQ-Tree.sh"
+		fi
+	done
 	;;
 
 # Adjust lastStep if you add more steps here
