@@ -41,6 +41,10 @@ RogueFreeSequencesParts="$RogueFreeSequencesDir/$partSequences"
 RogueFreeAlignmentDir="$DIR/../$gene/RogueFreeAlignments"
 RogueFreeAlignmentParts="$RogueFreeAlignmentDir/$partSequences"
 
+AliFMASADir="$DIR/../$gene/AliFMASA"
+AliFMASAParts="$AlignmentDir/$partSequences"
+AliFMASALastBit=".aliFMASA.fasta.raxml.reduced.phy"
+
 AlignmentDir="$DIR/../$gene/Alignments"
 AlignmentParts="$AlignmentDir/$partSequences"
 AlignmentLastBit=".alignment.fasta.raxml.reduced.phy"
@@ -84,9 +88,24 @@ case $step in
 		fi
 	done
 	qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest" "$DIR/09_PBS-Pro-AlignWithTCoffee.sh"
+	for fastaFile in "$SequencesOfInterestParts"*.fasta
+	do
+		if [ -f $fastaFile ]
+		then
+			qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$fastaFile" "$DIR/09_PBS-Pro-AlignWithFMASA.sh"
+		fi
+	done
+	qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest" "$DIR/09_PBS-Pro-AlignWithFMASA.sh"
 	;;
 10)
 	for phyFile in "$AlignmentParts"*"$AlignmentLastBit"
+	do
+		if [ -f $phyFile ]
+		then
+			qsub -v "DIR=$DIR, gene=$gene, alignmentToUse=$phyFile" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh"
+		fi
+	done
+	for phyFile in "$AliFMASAParts"*"$AliFMASALastBit"
 	do
 		if [ -f $phyFile ]
 		then

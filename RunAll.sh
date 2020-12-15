@@ -43,6 +43,11 @@ RogueFreeSequencesParts="$RogueFreeSequencesDir/$partSequences"
 RogueFreeAlignmentDir="$DIR/$gene/RogueFreeAlignments"
 RogueFreeAlignmentParts="$RogueFreeAlignmentDir/$partSequences"
 
+AliFMASAtDir="$DIR/$gene/AliFMASA"
+AliFMASAParts="$AliFMASADir/$partSequences"
+AliFMASALastBit=".aliFMASA.fasta.raxml.reduced.phy"
+UFBootFMASAPart="$AliFMASALastBit.ufboot"
+
 AlignmentDir="$DIR/$gene/Alignments"
 AlignmentParts="$AlignmentDir/$partSequences"
 AlignmentLastBit=".alignment.fasta.raxml.reduced.phy"
@@ -131,12 +136,34 @@ do
 			$DIR/09_AlignWithTCoffee.sh "$gene" "$seqsToAlignOrAlignment"
 		fi
 		echo "9. Sequences aligned with regressive T-Coffee."
+		echo "9. Align sequences with FAMSA."
+		if [ -z "$seqsToAlignOrAlignment" ]
+		then
+			for fastaFile in "$SequencesOfInterestParts"*.fasta
+			do
+				if [ -f $fastaFile ]
+				then
+					$DIR/09_AlignWithFAMSA.sh "$gene" "$fastaFile"
+				fi
+			done
+			$DIR/09_AlignWithFAMSA.sh "$gene" "$SequencesOfInterest"
+		else
+			$DIR/09_AlignWithFAMSA.sh "$gene" "$seqsToAlignOrAlignment"
+		fi
+		echo "9. Sequences aligned with FAMSA."
 		;;
 	10)
 		echo "10. Build trees with IQ-Tree."
 		if [ -z "$seqsToAlignOrAlignment" ]
 		then
 			for phyFile in "$AlignmentParts"*"$AlignmentLastBit"
+			do
+				if [ -f $phyFile ]
+				then
+					$DIR/10_MakeTreeWithIQ-Tree.sh "$phyFile"
+				fi
+			done
+			for phyFile in "$AliFAMSAParts"*"$AliFAMSALastBit"
 			do
 				if [ -f $phyFile ]
 				then
@@ -153,6 +180,13 @@ do
 		if [ -z "$seqsToAlignOrAlignment" ]
 		then
 			for ufbootFile in "$AlignmentParts"*"$UFBootPart"
+			do
+				if [ -f $ufbootFile ]
+				then
+					$DIR/11_RemoveRogues.sh "$gene" "$ufbootFile"
+				fi
+			done
+			for ufbootFile in "$AliFMASAParts"*"$UFBootFMASAPart"
 			do
 				if [ -f $ufbootFile ]
 				then
