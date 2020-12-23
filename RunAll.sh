@@ -14,6 +14,8 @@ gene="$1"
 step="$2"
 last="$3"
 seqsToAlignOrAlignment="$4"
+iteration="$5"
+aligner="$6"
 
 if [ -z "$gene" ]
 then
@@ -29,6 +31,16 @@ then
 	echo "You must give a GeneName and a StepNumber, for instance:"
 	echo "./$thisScript GeneName StepNumber"
 	exit
+fi
+
+if [ -z "$iteration" ]
+then
+	iteration="0"
+fi
+
+if [ -z "$aligner" ]
+then
+	aligner="FAMSA"
 fi
 
 partSequences="SequencesOfInterestShuffled.part_"
@@ -131,9 +143,9 @@ do
 					$DIR/09_AlignWithTCoffee.sh "$gene" "$fastaFile"
 				fi
 			done
-			$DIR/09_AlignWithTCoffee.sh "$gene" "$SequencesOfInterest"
+			$DIR/09_AlignWithRegTCoffee.sh "$gene" "$SequencesOfInterest"
 		else
-			$DIR/09_AlignWithTCoffee.sh "$gene" "$seqsToAlignOrAlignment"
+			$DIR/09_AlignWithRegTCoffee.sh "$gene" "$seqsToAlignOrAlignment"
 		fi
 		echo "9. Sequences aligned with regressive T-Coffee."
 		echo "9. Align sequences with FAMSA."
