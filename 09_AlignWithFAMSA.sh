@@ -23,7 +23,7 @@ fi
 
 if [ -z "$alignmentDir" ]
 then
-	alignmentDir="$DIR/$gene/AliFMASA"
+	alignmentDir="$DIR/$gene/AliFAMSA"
 fi
 
 if [ -z "$skipClans" ]
@@ -43,8 +43,8 @@ fi
 
 numTreads=$(nproc)
 base=$(basename $inputSequences .fasta)
-outFile="$alignmentDir/$base.aliFMASA.fasta"
-outTree="$alignmentDir/$base.treeFMASA.newick"
+outFile="$alignmentDir/$base.aliFAMSA.fasta"
+outTree="$alignmentDir/$base.treeFAMSA.newick"
 
 mkdir -p $alignmentDir
 

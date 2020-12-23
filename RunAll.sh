@@ -43,10 +43,10 @@ RogueFreeSequencesParts="$RogueFreeSequencesDir/$partSequences"
 RogueFreeAlignmentDir="$DIR/$gene/RogueFreeAlignments"
 RogueFreeAlignmentParts="$RogueFreeAlignmentDir/$partSequences"
 
-AliFMASAtDir="$DIR/$gene/AliFMASA"
-AliFMASAParts="$AliFMASADir/$partSequences"
-AliFMASALastBit=".aliFMASA.fasta.raxml.reduced.phy"
-UFBootFMASAPart="$AliFMASALastBit.ufboot"
+AliFAMSAtDir="$DIR/$gene/AliFAMSA"
+AliFAMSAParts="$AliFAMSADir/$partSequences"
+AliFAMSALastBit=".aliFAMSA.fasta.raxml.reduced.phy"
+UFBootFAMSAPart="$AliFAMSALastBit.ufboot"
 
 AlignmentDir="$DIR/$gene/Alignments"
 AlignmentParts="$AlignmentDir/$partSequences"
@@ -186,7 +186,7 @@ do
 					$DIR/11_RemoveRogues.sh "$gene" "$ufbootFile"
 				fi
 			done
-			for ufbootFile in "$AliFMASAParts"*"$UFBootFMASAPart"
+			for ufbootFile in "$AliFAMSAParts"*"$UFBootFAMSAPart"
 			do
 				if [ -f $ufbootFile ]
 				then
