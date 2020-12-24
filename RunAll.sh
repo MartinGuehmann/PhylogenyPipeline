@@ -38,9 +38,23 @@ then
 	iteration="0"
 fi
 
+defaultAligner="FAMSA"
+
 if [ -z "$aligner" ]
 then
-	aligner="FAMSA"
+	aligner="$defaultAligner"
+fi
+
+alignFileStart="$DIR/09_AlignWith"
+bashExtension="sh"
+alignerFile="$alignFileStart$aligner.$bashExtension"
+
+if [ -z "$alignerFile" ]
+then
+	echo "Aligner file for $aligner does not exit."
+	echo "Use default aligner $defaultAligner instead."
+	aligner=$defaultAligner
+	alignerFile="$alignFileStart$aligner.$bashExtension"
 fi
 
 partSequences="SequencesOfInterestShuffled.part_"
@@ -60,9 +74,9 @@ AliFAMSAParts="$AliFAMSADir/$partSequences"
 AliFAMSALastBit=".aliFAMSA.fasta.raxml.reduced.phy"
 UFBootFAMSAPart="$AliFAMSALastBit.ufboot"
 
-AlignmentDir="$DIR/$gene/Alignments"
+AlignmentDir="$DIR/$gene/Alignments.$aligner"
 AlignmentParts="$AlignmentDir/$partSequences"
-AlignmentLastBit=".alignment.fasta.raxml.reduced.phy"
+AlignmentLastBit=".alignment.$aligner.fasta.raxml.reduced.phy"
 UFBootPart="$AlignmentLastBit.ufboot"
 
 # Note this must be set to the last available step
@@ -133,36 +147,21 @@ do
 		echo "8. Sequences of interest extracted."
 		;;
 	9)
-		echo "9. Align sequences with regressive T-Coffee."
+		echo "9. Align sequences with $aligner."
 		if [ -z "$seqsToAlignOrAlignment" ]
 		then
 			for fastaFile in "$SequencesOfInterestParts"*.fasta
 			do
 				if [ -f $fastaFile ]
 				then
-					$DIR/09_AlignWithTCoffee.sh "$gene" "$fastaFile"
+					"$alignerFile" "$gene" "$fastaFile" "$AlignmentDir"
 				fi
 			done
-			$DIR/09_AlignWithRegTCoffee.sh "$gene" "$SequencesOfInterest"
+			"$alignerFile" "$gene" "$SequencesOfInterest" "$AlignmentDir"
 		else
-			$DIR/09_AlignWithRegTCoffee.sh "$gene" "$seqsToAlignOrAlignment"
+			$alignerFile "$gene" "$seqsToAlignOrAlignment" "$AlignmentDir"
 		fi
-		echo "9. Sequences aligned with regressive T-Coffee."
-		echo "9. Align sequences with FAMSA."
-		if [ -z "$seqsToAlignOrAlignment" ]
-		then
-			for fastaFile in "$SequencesOfInterestParts"*.fasta
-			do
-				if [ -f $fastaFile ]
-				then
-					$DIR/09_AlignWithFAMSA.sh "$gene" "$fastaFile"
-				fi
-			done
-			$DIR/09_AlignWithFAMSA.sh "$gene" "$SequencesOfInterest"
-		else
-			$DIR/09_AlignWithFAMSA.sh "$gene" "$seqsToAlignOrAlignment"
-		fi
-		echo "9. Sequences aligned with FAMSA."
+		echo "9. Sequences aligned with $aligner."
 		;;
 	10)
 		echo "10. Build trees with IQ-Tree."

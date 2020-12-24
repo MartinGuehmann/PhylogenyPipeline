@@ -12,39 +12,32 @@ thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 gene="$1"
 inputSequences="$2"
 alignmentDir="$3"
-skipClans="$4"
 
 if [ -z "$gene" ]
 then
 	echo "You must give a GeneName, for instance:"
-	echo "./$thisScript GeneName"
+	echo "./$thisScript GeneName InputSequences AlignmentDirectory"
+	exit
+fi
+
+if [[ -z "$inputSequences" ]]
+then
+	echo "You must give a file with InputSequences, for instance:"
+	echo "./$thisScript GeneName InputSequences AlignmentDirectory"
 	exit
 fi
 
 if [ -z "$alignmentDir" ]
 then
-	alignmentDir="$DIR/$gene/Alignments"
-fi
-
-if [ -z "$skipClans" ]
-then
-	skipClans=0
-fi
-
-sequences="$DIR/$gene/Sequences"
-
-if [[ $skipClans != 0 ]]
-then
-	inputSequences="$sequences/NonRedundantSequences90.fasta"
-elif [[ -z "$inputSequences" ]]
-then
-	inputSequences="$sequences/SequencesOfInterest.fasta"
+	echo "You must give a file with InputSequences, for instance:"
+	echo "./$thisScript GeneName InputSequences AlignmentDirectory"
+	exit
 fi
 
 numTreads=$(nproc)
 base=$(basename $inputSequences .fasta)
-outFile="$alignmentDir/$base.alignment.fasta"
-outTree="$alignmentDir/$base.tree.mbed"
+outFile="$alignmentDir/$base.alignment.RegTCoffee.fasta"
+outTree="$alignmentDir/$base.tree.RegTCoffee.newick"
 
 mkdir -p $alignmentDir
 

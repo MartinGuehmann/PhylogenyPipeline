@@ -12,6 +12,8 @@ thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
 gene="$1"
 step="$2"
+iteration="$3"
+aligner="$4"
 
 if [ -z "$gene" ]
 then
@@ -27,6 +29,30 @@ then
 	echo "You must give a GeneName and a StepNumber, for instance:"
 	echo "./$thisScript GeneName StepNumber"
 	exit
+fi
+
+if [ -z "$iteration" ]
+then
+	iteration="0"
+fi
+
+defaultAligner="FAMSA"
+
+if [ -z "$aligner" ]
+then
+	aligner="$defaultAligner"
+fi
+
+alignFileStart="$DIR/09_AlignWith"
+bashExtension="sh"
+alignerFile="$alignFileStart$aligner.$bashExtension"
+
+if [ -z "$alignerFile" ]
+then
+	echo "Aligner file for $aligner does not exit."
+	echo "Use default aligner $defaultAligner instead."
+	aligner=$defaultAligner
+	alignerFile="$alignFileStart$aligner.$bashExtension"
 fi
 
 partSequences="SequencesOfInterestShuffled.part_"
@@ -45,9 +71,9 @@ AliFAMSADir="$DIR/../$gene/AliFAMSA"
 AliFAMSAParts="$AliFAMSADir/$partSequences"
 AliFAMSALastBit=".aliFAMSA.fasta.raxml.reduced.phy"
 
-AlignmentDir="$DIR/../$gene/Alignments"
+AlignmentDir="$DIR/../$gene/Alignments.$aligner"
 AlignmentParts="$AlignmentDir/$partSequences"
-AlignmentLastBit=".alignment.fasta.raxml.reduced.phy"
+AlignmentLastBit=".alignment.$aligner.raxml.reduced.phy"
 
 case $step in
 #0)
@@ -84,18 +110,10 @@ case $step in
 	do
 		if [ -f $fastaFile ]
 		then
-			qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$fastaFile" "$DIR/09_PBS-Pro-AlignWithTCoffee.sh"
+			qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$fastaFile" "$alignerFile"
 		fi
 	done
-	qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest" "$DIR/09_PBS-Pro-AlignWithTCoffee.sh"
-	for fastaFile in "$SequencesOfInterestParts"*.fasta
-	do
-		if [ -f $fastaFile ]
-		then
-			qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$fastaFile" "$DIR/09_PBS-Pro-AlignWithTCoffee.sh"
-		fi
-	done
-	qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest" "$DIR/09_PBS-Pro-AlignWithTCoffee.sh"
+	qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest" "$alignerFile"
 	;;
 10)
 	for phyFile in "$AlignmentParts"*"$AlignmentLastBit"

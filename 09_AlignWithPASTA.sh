@@ -10,20 +10,33 @@ done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 gene="$1"
+inputSequences="$2"
+alignmentDir="$3"
 
 if [ -z "$gene" ]
 then
 	echo "You must give a GeneName, for instance:"
-	echo "./$thisScript GeneName"
+	echo "./$thisScript GeneName InputSequences AlignmentDirectory"
 	exit
 fi
 
-numTreads=$(nproc)
-sequences="$DIR/$gene/Sequences"
-nrSequenceFile90="$sequences/NonRedundantSequences90.fasta"
-alignments="$DIR/$gene/Alignments"
+if [[ -z "$inputSequences" ]]
+then
+	echo "You must give a file with InputSequences, for instance:"
+	echo "./$thisScript GeneName InputSequences AlignmentDirectory"
+	exit
+fi
 
-mkdir -p $alignments
+if [ -z "$alignmentDir" ]
+then
+	echo "You must give a file with InputSequences, for instance:"
+	echo "./$thisScript GeneName InputSequences AlignmentDirectory"
+	exit
+fi
 
-run_pasta.py -i $nrSequenceFile90 -d protein -o $alignments -k --keepalignmenttemps
+#numTreads=$(nproc)
+
+mkdir -p $alignmentDir
+
+run_pasta.py -i $inputSequences -d protein -o $alignmentDir -k --keepalignmenttemps
 
