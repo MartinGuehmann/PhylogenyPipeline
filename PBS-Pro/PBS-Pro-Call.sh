@@ -43,7 +43,7 @@ then
 	aligner="$defaultAligner"
 fi
 
-alignFileStart="$DIR/09_AlignWith"
+alignFileStart="$DIR/09_PBS-Pro-AlignWith"
 bashExtension="sh"
 alignerFile="$alignFileStart$aligner.$bashExtension"
 
@@ -110,29 +110,29 @@ case $step in
 	do
 		if [ -f $fastaFile ]
 		then
-			qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$fastaFile" "$alignerFile"
+			qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$fastaFile, iteration=$iteration" "$alignerFile"
 		fi
 	done
-	qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest" "$alignerFile"
+	qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest, iteration=$iteration" "$alignerFile"
 	;;
 10)
 	for phyFile in "$AlignmentParts"*"$AlignmentLastBit"
 	do
 		if [ -f $phyFile ]
 		then
-			qsub -v "DIR=$DIR, gene=$gene, alignmentToUse=$phyFile" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh"
+			qsub -v "DIR=$DIR, gene=$gene, alignmentToUse=$phyFile, iteration=$iteration" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh"
 		fi
 	done
 	for phyFile in "$AliFAMSAParts"*"$AliFAMSALastBit"
 	do
 		if [ -f $phyFile ]
 		then
-			qsub -v "DIR=$DIR, gene=$gene, alignmentToUse=$phyFile" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh"
+			qsub -v "DIR=$DIR, gene=$gene, alignmentToUse=$phyFile, iteration=$iteration" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh"
 		fi
 	done
 	;;
 11)
-	qsub -v "DIR=$DIR, gene=$gene" "$DIR/11_PBS-Pro-RemoveRogues.sh"
+	qsub -v "DIR=$DIR, gene=$gene" iteration="$iteration" "$DIR/11_PBS-Pro-RemoveRogues.sh"
 	;;
 12)
 	for fastaFile in "$RogueFreeSequencesParts"*.roked.fasta
