@@ -71,7 +71,7 @@ AliFAMSADir="$DIR/../$gene/AliFAMSA"
 AliFAMSAParts="$AliFAMSADir/$partSequences"
 AliFAMSALastBit=".aliFAMSA.fasta.raxml.reduced.phy"
 
-AlignmentDir="$DIR/../$gene/Alignments.$aligner"
+AlignmentDir="$DIR/../$gene/Alignments.$aligner.RogueIter_$iteration"
 AlignmentParts="$AlignmentDir/$partSequences"
 AlignmentLastBit=".alignment.$aligner.raxml.reduced.phy"
 
