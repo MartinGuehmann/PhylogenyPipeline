@@ -58,7 +58,7 @@ then
 fi
 
 partSequences="SequencesOfInterestShuffled.part_"
-SequencesOfInterestDir="$DIR/$gene/SequencesOfInterest.RogueIter.$iteration"
+SequencesOfInterestDir="$DIR/$gene/SequencesOfInterest.RogueIter_$iteration"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 SequencesOfInterestParts="$SequencesOfInterestDir/$partSequences"
 

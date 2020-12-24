@@ -18,7 +18,7 @@ then
 	exit
 fi
 
-SequencesOfInterestDir="$DIR/$gene/SequencesOfInterest.RogueIter.0"
+SequencesOfInterestDir="$DIR/$gene/SequencesOfInterest.RogueIter_0"
 mkdir -p $SequencesOfInterestDir
 
 TreeForPruningDir="$DIR/$gene/TreeForPruning"
@@ -89,8 +89,8 @@ then
 else
 	echo "WARNING: Sequence lost during extraction, costum sequences might contain underscores that could not be detected."
 fi
-
-seqkit shuffle -2 -j $numTreads $SequencesOfInterest > $SequencesOfInterestShuffled
+ 
+seqkit shuffle -2 -j "$numTreads" "$SequencesOfInterest" > "$SequencesOfInterestShuffled"
 
 # The IDs getting to long for t_coffee so outcomment this
 #sed -i "s/[],[]//g" $SequencesOfInterestShuffled
