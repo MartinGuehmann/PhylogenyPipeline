@@ -18,7 +18,7 @@ then
 	exit
 fi
 
-SequencesOfInterestDir="$DIR/$gene/SequencesOfInterest"
+SequencesOfInterestDir="$DIR/$gene/SequencesOfInterest.RogueIter.0"
 mkdir -p $SequencesOfInterestDir
 
 TreeForPruningDir="$DIR/$gene/TreeForPruning"
