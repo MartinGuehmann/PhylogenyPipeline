@@ -67,13 +67,10 @@ RogueFreeSequencesParts="$RogueFreeSequencesDir/$partSequences"
 RogueFreeAlignmentDir="$DIR/../$gene/RogueFreeAlignments"
 RogueFreeAlignmentParts="$RogueFreeAlignmentDir/$partSequences"
 
-AliFAMSADir="$DIR/../$gene/AliFAMSA"
-AliFAMSAParts="$AliFAMSADir/$partSequences"
-AliFAMSALastBit=".aliFAMSA.fasta.raxml.reduced.phy"
-
 AlignmentDir="$DIR/../$gene/Alignments.$aligner.RogueIter_$iteration"
 AlignmentParts="$AlignmentDir/$partSequences"
-AlignmentLastBit=".alignment.$aligner.raxml.reduced.phy"
+AlignmentLastBit=".alignment.$aligner.fasta.raxml.reduced.phy"
+AllSeqs="$AlignmentDir/SequencesOfInterest$AlignmentLastBit"
 
 case $step in
 #0)
@@ -120,19 +117,13 @@ case $step in
 	do
 		if [ -f $phyFile ]
 		then
-			qsub -v "DIR=$DIR, gene=$gene, alignmentToUse=$phyFile, iteration=$iteration" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh"
+			qsub -v "DIR=$DIR, gene=$gene, alignmentToUse=$phyFile, iteration=$iteration, aligner=$aligner" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh"
 		fi
 	done
-	for phyFile in "$AliFAMSAParts"*"$AliFAMSALastBit"
-	do
-		if [ -f $phyFile ]
-		then
-			qsub -v "DIR=$DIR, gene=$gene, alignmentToUse=$phyFile, iteration=$iteration" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh"
-		fi
-	done
+	qsub -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh"
 	;;
 11)
-	qsub -v "DIR=$DIR, gene=$gene" iteration="$iteration" "$DIR/11_PBS-Pro-RemoveRogues.sh"
+	qsub -v "DIR=$DIR, gene=$gene iteration=$iteration" "$DIR/11_PBS-Pro-RemoveRogues.sh"
 	;;
 12)
 	for fastaFile in "$RogueFreeSequencesParts"*.roked.fasta

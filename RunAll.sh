@@ -69,14 +69,10 @@ RogueFreeSequencesParts="$RogueFreeSequencesDir/$partSequences"
 RogueFreeAlignmentDir="$DIR/$gene/RogueFreeAlignments"
 RogueFreeAlignmentParts="$RogueFreeAlignmentDir/$partSequences"
 
-AliFAMSAtDir="$DIR/$gene/AliFAMSA"
-AliFAMSAParts="$AliFAMSADir/$partSequences"
-AliFAMSALastBit=".aliFAMSA.fasta.raxml.reduced.phy"
-UFBootFAMSAPart="$AliFAMSALastBit.ufboot"
-
 AlignmentDir="$DIR/$gene/Alignments.$aligner.RogueIter_$iteration"
 AlignmentParts="$AlignmentDir/$partSequences"
 AlignmentLastBit=".alignment.$aligner.fasta.raxml.reduced.phy"
+AllSeqs="$AlignmentDir/SequencesOfInterest$AlignmentLastBit"
 UFBootPart="$AlignmentLastBit.ufboot"
 
 # Note this must be set to the last available step
@@ -174,13 +170,7 @@ do
 					$DIR/10_MakeTreeWithIQ-Tree.sh "$phyFile"
 				fi
 			done
-			for phyFile in "$AliFAMSAParts"*"$AliFAMSALastBit"
-			do
-				if [ -f $phyFile ]
-				then
-					$DIR/10_MakeTreeWithIQ-Tree.sh "$phyFile"
-				fi
-			done
+			$DIR/10_MakeTreeWithIQ-Tree.sh "$AllSeqs"
 		else
 			$DIR/10_MakeTreeWithIQ-Tree.sh "$seqsToAlignOrAlignment"
 		fi
