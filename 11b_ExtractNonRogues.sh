@@ -34,18 +34,8 @@ numTreads=$(nproc)
 seqsOfInterest="$seqsOfInterestDir/SequencesOfInterest.fasta"
 baseRogueNaRokDropped="$rogueFreeTreesDir/RogueNaRok_droppedRogues.SequencesOfInterestShuffled.part_"
 rogueNaRokDropped="$rogueFreeTreesDir/RogueNaRok_droppedRogues.SequencesOfInterestShuffled.csv"
-droppedFinal="$rogueFreeTreesDir/SequencesOfInterest.dropped.fasta"
+droppedFinal="$rogueFreeTreesDir/SequencesOfInterest.droppedAll.fasta"
 nextSeqsOfInterest="$rogueFreeTreesDir/SequencesOfInterest.fasta"
-
-if [ -f $droppedFinal ]
-then
-	mv $droppedFinal "$rogueFreeTreesDir/SequencesOfInterestAll.dropped.fasta"
-fi
-
-if [ -f $nextSeqsOfInterest ]
-then
-	mv $nextSeqsOfInterest "$rogueFreeTreesDir/SequencesOfInterestAll.fasta"
-fi
 
 cat "$baseRogueNaRokDropped"*".csv" > "$rogueNaRokDropped"
 
