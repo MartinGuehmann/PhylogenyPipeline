@@ -10,7 +10,8 @@ done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 gene="$1"
-inputTrees="$2"
+aligner="$2"
+iteration="$3"
 
 if [ -z "$gene" ]
 then
@@ -19,14 +20,36 @@ then
 	exit
 fi
 
-seqsOfInterest="$DIR/$gene/SequencesOfInterest/SequencesOfInterest.fasta"
-rogueFreeTreesDir="$DIR/$gene/RogueFreeTrees"
+if [ $iteration == 0 ]
+then
+	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest.RogueIter_$iteration"
+else
+	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest.$aligner.RogueIter_$iteration"
+fi
+
+rogueFreeTreesDir="$DIR/$gene/SequencesOfInterest.$aligner.RogueIter_$((iteration + 1))"
+
 
 numTreads=$(nproc)
+seqsOfInterest="$seqsOfInterestDir/SequencesOfInterest.fasta"
 baseRogueNaRokDropped="$rogueFreeTreesDir/RogueNaRok_droppedRogues.SequencesOfInterestShuffled.part_"
 rogueNaRokDropped="$rogueFreeTreesDir/RogueNaRok_droppedRogues.SequencesOfInterestShuffled.csv"
+droppedFinal="$rogueFreeTreesDir/SequencesOfInterest.dropped.fasta"
+nextSeqsOfInterest="$rogueFreeTreesDir/SequencesOfInterest.fasta"
 
-cat "$baseRogueNaRokDropped"*".csv" > $rogueNaRokDropped
+if [ -f $droppedFinal ]
+then
+	mv $droppedFinal "$rogueFreeTreesDir/SequencesOfInterestAll.dropped.fasta"
+fi
 
-seqkit grep -f "$rogueNaRokDropped" -j $numTreads "$seqsOfInterest" > "$rogueFreeTreesDir/SequencesOfInterest.dropped.fasta"
-seqkit grep -v -f "$rogueNaRokDropped" -j $numTreads "$seqsOfInterest" > "$rogueFreeTreesDir/SequencesOfInterest.roked.fasta"
+if [ -f $nextSeqsOfInterest ]
+then
+	mv $nextSeqsOfInterest "$rogueFreeTreesDir/SequencesOfInterestAll.fasta"
+fi
+
+cat "$baseRogueNaRokDropped"*".csv" > "$rogueNaRokDropped"
+
+seqkit grep -f "$rogueNaRokDropped" -j $numTreads "$seqsOfInterest" > "$droppedFinal"
+seqkit grep -v -f "$rogueNaRokDropped" -j $numTreads "$seqsOfInterest" > "$nextSeqsOfInterest"
+
+seqkit stats "$rogueFreeTreesDir/"*".fasta" > "$rogueFreeTreesDir/Statistics.txt"

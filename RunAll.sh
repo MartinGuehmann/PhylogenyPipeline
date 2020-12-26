@@ -74,6 +74,7 @@ AlignmentParts="$AlignmentDir/$partSequences"
 AlignmentLastBit=".alignment.$aligner.fasta.raxml.reduced.phy"
 AllSeqs="$AlignmentDir/SequencesOfInterest$AlignmentLastBit"
 UFBootPart="$AlignmentLastBit.ufboot"
+AllSeqsUFBoot="$AllSeqs.ufboot"
 
 # Note this must be set to the last available step
 lastStep="13"
@@ -180,21 +181,16 @@ do
 		echo "11. Remove rogue sequences with RogueNaRok."
 		if [ -z "$seqsToAlignOrAlignment" ]
 		then
+			$DIR/11a_PrepareForRemovingRogues.sh "$gene" "$aligner" "$iteration"
 			for ufbootFile in "$AlignmentParts"*"$UFBootPart"
 			do
 				if [ -f $ufbootFile ]
 				then
-					$DIR/11_RemoveRogues.sh "$gene" "$ufbootFile"
+					$DIR/11_RemoveRogues.sh "$gene" "$ufbootFile" "$aligner" "$iteration"
 				fi
 			done
-			for ufbootFile in "$AliFAMSAParts"*"$UFBootFAMSAPart"
-			do
-				if [ -f $ufbootFile ]
-				then
-					$DIR/11_RemoveRogues.sh "$gene" "$ufbootFile"
-				fi
-			done
-			$DIR/11a_ExtractNonRogues.sh "$gene"
+			$DIR/11_RemoveRogues.sh "$gene" $AllSeqsUFBoot "$aligner" "$iteration"
+			$DIR/11a_ExtractNonRogues.sh "$gene" "$aligner" "$iteration"
 		else
 			$DIR/11_RemoveRogues.sh "$gene" "$seqsToAlignOrAlignment"
 		fi
