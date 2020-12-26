@@ -77,7 +77,7 @@ UFBootPart="$AlignmentLastBit.ufboot"
 AllSeqsUFBoot="$AllSeqs.ufboot"
 
 # Note this must be set to the last available step
-lastStep="13"
+lastStep="11"
 
 if [ -z "$last" ]
 then
@@ -195,39 +195,6 @@ do
 			$DIR/11_RemoveRogues.sh "$gene" "$seqsToAlignOrAlignment"
 		fi
 		echo "11. Rogue sequences removed with RogueNaRok."
-		;;
-	12)
-		echo "12. Align rogue free sequences with regressive T-Coffee."
-		if [ -z "$seqsToAlignOrAlignment" ]
-		then
-			for fastaFile in "$RogueFreeSequencesParts"*.roked.fasta
-			do
-				if [ -f $fastaFile ]
-				then
-					$DIR/09_AlignWithTCoffee.sh "$gene" "$fastaFile" "$RogueFreeAlignmentDir"
-				fi
-			done
-			$DIR/09_AlignWithTCoffee.sh "$gene" "$RogueFreeSequences" "$RogueFreeAlignmentDir"
-		else
-			$DIR/09_AlignWithTCoffee.sh "$gene" "$seqsToAlignOrAlignment" "$RogueFreeAlignmentDir"
-		fi
-		echo "12. Rogue free Sequences aligned with regressive T-Coffee."
-		;;
-	13)
-		echo "13. Build rogue free trees with IQ-Tree."
-		if [ -z "$seqsToAlignOrAlignment" ]
-		then
-			for phyFile in "$RogueFreeAlignmentParts"*"$AlignmentLastBit"
-			do
-				if [ -f $phyFile ]
-				then
-					$DIR/10_MakeTreeWithIQ-Tree.sh "$phyFile"
-				fi
-			done
-		else
-			$DIR/10_MakeTreeWithIQ-Tree.sh "$seqsToAlignOrAlignment"
-		fi
-		echo "13. Rogue free Trees built with IQ-Tree."
 		;;
 
 	# Adjust lastStep if you add more steps here
