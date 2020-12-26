@@ -123,7 +123,7 @@ case $step in
 	qsub -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh"
 	;;
 11)
-	qsub -v "DIR=$DIR, gene=$gene iteration=$iteration" "$DIR/11_PBS-Pro-RemoveRogues.sh"
+	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration" "$DIR/11_PBS-Pro-RemoveRogues.sh"
 	;;
 12)
 	for fastaFile in "$RogueFreeSequencesParts"*.roked.fasta
