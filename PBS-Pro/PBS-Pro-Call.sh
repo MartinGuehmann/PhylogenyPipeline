@@ -9,6 +9,7 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
+shopt -s extglob
 
 gene="$1"
 step="$2"
@@ -67,13 +68,6 @@ partSequences="SequencesOfInterestShuffled.part_"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 SequencesOfInterestParts="$SequencesOfInterestDir/$partSequences"
 
-RogueFreeSequencesDir="$DIR/../$gene/RogueFreeTrees"
-RogueFreeSequences="$RogueFreeSequencesDir/SequencesOfInterest.roked.fasta"
-RogueFreeSequencesParts="$RogueFreeSequencesDir/$partSequences"
-
-RogueFreeAlignmentDir="$DIR/../$gene/RogueFreeAlignments"
-RogueFreeAlignmentParts="$RogueFreeAlignmentDir/$partSequences"
-
 AlignmentDir="$DIR/../$gene/Alignments.$aligner.RogueIter_$iteration"
 AlignmentParts="$AlignmentDir/$partSequences"
 AlignmentLastBit=".alignment.$aligner.fasta.raxml.reduced.phy"
@@ -110,7 +104,7 @@ case $step in
 	qsub -v "DIR=$DIR, gene=$gene" "$DIR/08_PBS-Pro-ExtractSequencesOfInterest.sh"
 	;;
 9)
-	for fastaFile in "$SequencesOfInterestParts"*.fasta
+	for fastaFile in "$SequencesOfInterestParts"+([0-9])".fasta"
 	do
 		if [ -f $fastaFile ]
 		then

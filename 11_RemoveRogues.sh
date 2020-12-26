@@ -47,4 +47,4 @@ rm -f "$rogueFreeTreesDir/RogueNaRok_info.$base"
 grep -o -f "$seqsOfInterestIDs" $baseRogueNaRokDropped > "$baseRogueNaRokDroppedCSV"
 
 seqkit grep -f "$baseRogueNaRokDroppedCSV" -j $numTreads "$seqsOfInterestDir/$base.fasta" > "$rogueFreeTreesDir/$base.dropped.fasta"
-seqkit grep -v -f "$baseRogueNaRokDroppedCSV" -j $numTreads "$seqsOfInterestDir/$base.fasta" > "$rogueFreeTreesDir/$base.roked.fasta"
+seqkit grep -v -f "$baseRogueNaRokDroppedCSV" -j $numTreads "$seqsOfInterestDir/$base.fasta" > "$rogueFreeTreesDir/$base.fasta"
