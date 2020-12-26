@@ -55,8 +55,15 @@ then
 	alignerFile="$alignFileStart$aligner.$bashExtension"
 fi
 
+
+if [ $iteration == 0 ]
+then
+	SequencesOfInterestDir="$DIR/../$gene/SequencesOfInterest.RogueIter_$iteration"
+else
+	SequencesOfInterestDir="$DIR/../$gene/SequencesOfInterest.$aligner.RogueIter_$iteration"
+fi
+
 partSequences="SequencesOfInterestShuffled.part_"
-SequencesOfInterestDir="$DIR/../$gene/SequencesOfInterest.RogueIter_$iteration"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 SequencesOfInterestParts="$SequencesOfInterestDir/$partSequences"
 
@@ -123,26 +130,7 @@ case $step in
 	qsub -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh"
 	;;
 11)
-	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration" "$DIR/11_PBS-Pro-RemoveRogues.sh"
-	;;
-12)
-	for fastaFile in "$RogueFreeSequencesParts"*.roked.fasta
-	do
-		if [ -f $fastaFile ]
-		then
-			qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$fastaFile" "$DIR/12_PBS-Pro-AlignRogueFreeWithTCoffee.sh"
-		fi
-	done
-	qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$RogueFreeSequences" "$DIR/12_PBS-Pro-AlignRogueFreeWithTCoffee.sh"
-	;;
-13)
-	for phyFile in "$RogueFreeAlignmentParts"*"$AlignmentLastBit"
-	do
-		if [ -f $phyFile ]
-		then
-			qsub -v "DIR=$DIR, gene=$gene, alignmentToUse=$phyFile" "$DIR/13_PBS-Pro-MakeRogueFreeTreeWithIQ-Tree.sh"
-		fi
-	done
+	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner" "$DIR/11_PBS-Pro-RemoveRogues.sh"
 	;;
 
 # Adjust lastStep if you add more steps here

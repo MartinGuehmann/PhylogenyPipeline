@@ -13,9 +13,9 @@ thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 gene="$1"
 step="$2"
 last="$3"
-seqsToAlignOrAlignment="$4"
-iteration="$5"
-aligner="$6"
+iteration="$4"
+aligner="$5"
+seqsToAlignOrAlignment="$6"
 
 if [ -z "$gene" ]
 then
@@ -57,8 +57,14 @@ then
 	alignerFile="$alignFileStart$aligner.$bashExtension"
 fi
 
+if [ $iteration == 0 ]
+then
+	SequencesOfInterestDir="$DIR/$gene/SequencesOfInterest.RogueIter_$iteration"
+else
+	SequencesOfInterestDir="$DIR/$gene/SequencesOfInterest.$aligner.RogueIter_$iteration"
+fi
+
 partSequences="SequencesOfInterestShuffled.part_"
-SequencesOfInterestDir="$DIR/$gene/SequencesOfInterest.RogueIter_$iteration"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 SequencesOfInterestParts="$SequencesOfInterestDir/$partSequences"
 
