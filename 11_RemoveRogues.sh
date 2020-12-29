@@ -42,7 +42,7 @@ rm -f "$baseRogueNaRokDroppedCSV"
 rm -f "$baseRogueNaRokDropped"
 rm -f "$rogueFreeTreesDir/RogueNaRok_info.$base"
 
-"$DIR/../RogueNaRok/RogueNaRok-parallel" -i $inputTrees -n $base -w $rogueFreeTreesDir -T $numTreads
+"$DIR/../RogueNaRok/RogueNaRok-parallel" -s 2 -i $inputTrees -n $base -w $rogueFreeTreesDir -T $numTreads
 
 grep -o -f "$seqsOfInterestIDs" $baseRogueNaRokDropped > "$baseRogueNaRokDroppedCSV"
 
