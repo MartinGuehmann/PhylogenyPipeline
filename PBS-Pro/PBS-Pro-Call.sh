@@ -114,7 +114,7 @@ case $step in
 		fi
 	done
 	# Not needed for optimization
-	jobIDs=:$(qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest, iteration=$iteration" "$alignerFile")
+	#jobIDs=:$(qsub -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest, iteration=$iteration" "$alignerFile")
 	;;
 10)
 	for phyFile in "$AlignmentParts"*"$AlignmentLastBit"
@@ -125,7 +125,7 @@ case $step in
 		fi
 	done
 	# Not needed for optimization
-	qsub -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh"
+	#qsub -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh"
 	;;
 11)
 	jobIDs=:$(qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner" "$DIR/11_PBS-Pro-RemoveRogues.sh")
