@@ -1,6 +1,7 @@
 #!/bin/bash
 
 if [ -z $DIR ]
+then
 	# Get the directory where this script is
 	SOURCE="${BASH_SOURCE[0]}"
 	while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
@@ -13,14 +14,17 @@ fi
 	thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
 if [ -z $gene ]
+then
 	gene="$1"
 fi
 
 if [ -z $iteration ]
+then
 	iteration="$2"
 fi
 
 if [ -z $aligner ]
+then
 	aligner="$3"
 fi
 
@@ -46,6 +50,7 @@ fi
 
 jobIDs=$($DIR/PBS-Pro-Call.sh              "$gene" 10 "$iteration" "$aligner" "" "hold")
 echo $jobIDs
+holdJobs=$jobIDs
 jobIDs=$($DIR/PBS-Pro-Call.sh              "$gene" 11 "$iteration" "$aligner" "$jobIDs")
 echo $jobIDs
 

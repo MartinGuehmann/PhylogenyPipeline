@@ -36,8 +36,8 @@ fi
 
 jobIDs=$($DIR/PBS-Pro-Call.sh              "$gene"  9 "$iteration" "$aligner" "" "hold")
 echo $jobIDs
-qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-Call-RogueOptAlignTree.sh"
+qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-Call-RogueOptTree.sh"
 
 # Start hold jobs
-holdJobs=$(echo $holdJobs | sed "s/:/ /g")
-qrls $holdJobs
+jobIDs=$(echo $jobIDs | sed "s/:/ /g")
+qrls $jobIDs
