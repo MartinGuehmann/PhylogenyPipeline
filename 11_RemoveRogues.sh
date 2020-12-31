@@ -28,13 +28,23 @@ else
 	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest.$aligner.RogueIter_$iteration"
 fi
 
+if [ ! -f $inputTrees ]
+then
+	echo "File $inputTrees does not exist. Existing."
+	exit
+fi
+
 rogueFreeTreesDir="$DIR/$gene/SequencesOfInterest.$aligner.RogueIter_$((iteration + 1))"
 mkdir -p $rogueFreeTreesDir
 
 numTreads=$(nproc)
 base=$(basename $inputTrees ".alignment.$aligner.fasta.raxml.reduced.phy.ufboot")
+alignmentBase=$(basename $inputTrees ".ufboot")
+alignmentDir=$(dirname $inputTrees)
 baseRogueNaRokDropped="$rogueFreeTreesDir/RogueNaRok_droppedRogues.$base"
 baseRogueNaRokDroppedCSV="$baseRogueNaRokDropped.csv"
+baseShrunken="$rogueFreeTreesDir/$base.txt"
+consenseTree="$alignmentDir/$alignmentBase.contree"
 seqsOfInterestIDs="$seqsOfInterestDir/SequencesOfInterestIDs.txt"
 
 # If we call this again we want to overwrite the output
@@ -44,7 +54,10 @@ rm -f "$rogueFreeTreesDir/RogueNaRok_info.$base"
 
 "$DIR/../RogueNaRok/RogueNaRok-parallel" -s 2 -i $inputTrees -n $base -w $rogueFreeTreesDir -T $numTreads
 
-grep -o -f "$seqsOfInterestIDs" $baseRogueNaRokDropped > "$baseRogueNaRokDroppedCSV"
+run_treeshrink.py -t "$consenseTree" -o "$rogueFreeTreesDir" -f -O "$base"
 
-seqkit grep -f "$baseRogueNaRokDroppedCSV" -j $numTreads "$seqsOfInterestDir/$base.fasta" > "$rogueFreeTreesDir/$base.dropped.fasta"
-seqkit grep -v -f "$baseRogueNaRokDroppedCSV" -j $numTreads "$seqsOfInterestDir/$base.fasta" > "$rogueFreeTreesDir/$base.fasta"
+grep -o -f "$seqsOfInterestIDs" "$baseRogueNaRokDropped" > "$baseRogueNaRokDroppedCSV"
+grep -o -f "$seqsOfInterestIDs" "$baseShrunken" >> "$baseRogueNaRokDroppedCSV"
+
+seqkit grep -f "$baseRogueNaRokDroppedCSV" -j "$numTreads" "$seqsOfInterestDir/$base.fasta" > "$rogueFreeTreesDir/$base.dropped.fasta"
+seqkit grep -v -f "$baseRogueNaRokDroppedCSV" -j "$numTreads" "$seqsOfInterestDir/$base.fasta" > "$rogueFreeTreesDir/$base.fasta"

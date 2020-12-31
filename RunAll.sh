@@ -154,7 +154,8 @@ do
 					"$alignerFile" "$gene" "$fastaFile" "$AlignmentDir"
 				fi
 			done
-			"$alignerFile" "$gene" "$SequencesOfInterest" "$AlignmentDir"
+			# We deal with the big alignment in the end
+			#"$alignerFile" "$gene" "$SequencesOfInterest" "$AlignmentDir"
 		else
 			$alignerFile "$gene" "$seqsToAlignOrAlignment" "$AlignmentDir"
 		fi
@@ -171,14 +172,15 @@ do
 					$DIR/10_MakeTreeWithIQ-Tree.sh "$phyFile"
 				fi
 			done
-			$DIR/10_MakeTreeWithIQ-Tree.sh "$AllSeqs"
+			# We deal with the big alignment in the end
+			#$DIR/10_MakeTreeWithIQ-Tree.sh "$AllSeqs"
 		else
 			$DIR/10_MakeTreeWithIQ-Tree.sh "$seqsToAlignOrAlignment"
 		fi
 		echo "10. Trees built with IQ-Tree."
 		;;
 	11)
-		echo "11. Remove rogue sequences with RogueNaRok."
+		echo "11. Remove rogue sequences with RogueNaRok and TreeShrink."
 		if [ -z "$seqsToAlignOrAlignment" ]
 		then
 			$DIR/11a_PrepareForRemovingRogues.sh "$gene" "$aligner" "$iteration"
@@ -189,12 +191,13 @@ do
 					$DIR/11_RemoveRogues.sh "$gene" "$ufbootFile" "$aligner" "$iteration"
 				fi
 			done
-			$DIR/11_RemoveRogues.sh "$gene" $AllSeqsUFBoot "$aligner" "$iteration"
+			# We deal with the big alignment in the end
+			#$DIR/11_RemoveRogues.sh "$gene" $AllSeqsUFBoot "$aligner" "$iteration"
 			$DIR/11b_ExtractNonRogues.sh "$gene" "$aligner" "$iteration"
 		else
 			$DIR/11_RemoveRogues.sh "$gene" "$seqsToAlignOrAlignment"
 		fi
-		echo "11. Rogue sequences removed with RogueNaRok."
+		echo "11. Rogue sequences removed with RogueNaRok and TreeShrink."
 		;;
 
 	# Adjust lastStep if you add more steps here
