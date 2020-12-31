@@ -37,5 +37,5 @@ numDropped=$(grep -c ">" $droppedFinal)
 
 if (( numDropped > 0 ))
 then
-	"$DIR/PBS-Pro-Call-RogueOpt.sh" "$gene" "$nextIteration" "$aligner"
+	"$DIR/PBS-Pro-Call-RogueOptAlign.sh" "$gene" "$nextIteration" "$aligner"
 fi
