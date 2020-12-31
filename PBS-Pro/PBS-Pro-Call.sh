@@ -17,6 +17,7 @@ step="$2"
 iteration="$3"
 aligner="$4"
 depend="$5"
+hold="$6"
 
 if [ -z "$gene" ]
 then
@@ -53,6 +54,18 @@ else
 	depend="-W depend=afterok$depend"
 fi
 
+if [ -z "$hold" ]
+then
+	hold=""
+else
+	if [ $hold == "$hold" ]
+	then
+		hold="-h"
+	else
+		hold=""
+	fi
+fi
+
 alignFileStart="$DIR/09_PBS-Pro-AlignWith"
 bashExtension="sh"
 alignerFile="$alignFileStart$aligner.$bashExtension"
@@ -87,57 +100,57 @@ jobIDs=""
 case $step in
 #0)
 #	Depends on the server of NCBI, thus quite slow and thus a cluster is not useful
-#	jobIDs=:$(qsub $depend -v "DIR=$DIR, gene=$gene" "$DIR/00_PBS-Pro-GetGenesFromAllDataBases.sh")
+#	jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/00_PBS-Pro-GetGenesFromAllDataBases.sh")
 #	;;
 1)
-	jobIDs=:$(qsub $depend -v "DIR=$DIR, gene=$gene" "$DIR/01_PBS-Pro-CombineHitsForEachDatabase.sh")
+	jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/01_PBS-Pro-CombineHitsForEachDatabase.sh")
 	;;
 2)
-	jobIDs=:$(qsub $depend -v "DIR=$DIR, gene=$gene" "$DIR/02_PBS-Pro-CombineHitsFromAllNCBIDatabases.sh")
+	jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/02_PBS-Pro-CombineHitsFromAllNCBIDatabases.sh")
 	;;
 #3)
 #	Efetch is missing for that, anyway this can be done on a laptop
-#	jobIDs=:$(qsub $depend -v "DIR=$DIR, gene=$gene" "$DIR/03_PBS-Pro-ExtractSequences.sh")
+#	jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/03_PBS-Pro-ExtractSequences.sh")
 #	;;
 4)
-	jobIDs=:$(qsub $depend -v "DIR=$DIR, gene=$gene" "$DIR/04_PBS-Pro-MakeNonRedundant.sh")
+	jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/04_PBS-Pro-MakeNonRedundant.sh")
 	;;
 5)
-	jobIDs=:$(qsub $depend -v "DIR=$DIR, gene=$gene" "$DIR/05_PBS-Pro-MakeClansFile.sh")
+	jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/05_PBS-Pro-MakeClansFile.sh")
 	;;
 6)
-	jobIDs=:$(qsub $depend -v "DIR=$DIR, gene=$gene" "$DIR/06_PBS-Pro-ClusterWithClans.sh")
+	jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/06_PBS-Pro-ClusterWithClans.sh")
 	;;
 7)
-	jobIDs=:$(qsub $depend -v "DIR=$DIR, gene=$gene" "$DIR/07_PBS-Pro-MakeTreeForPruning.sh")
+	jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/07_PBS-Pro-MakeTreeForPruning.sh")
 	;;
 8)
-	jobIDs=:$(qsub $depend -v "DIR=$DIR, gene=$gene" "$DIR/08_PBS-Pro-ExtractSequencesOfInterest.sh")
+	jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/08_PBS-Pro-ExtractSequencesOfInterest.sh")
 	;;
 9)
 	for fastaFile in "$SequencesOfInterestParts"+([0-9])".fasta"
 	do
 		if [ -f $fastaFile ]
 		then
-			jobIDs+=:$(qsub $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$fastaFile, iteration=$iteration" "$alignerFile")
+			jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$fastaFile, iteration=$iteration" "$alignerFile")
 		fi
 	done
 	# Not needed for optimization
-	#jobIDs+=:$(qsub $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest, iteration=$iteration" "$alignerFile")
+	#jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest, iteration=$iteration" "$alignerFile")
 	;;
 10)
 	for phyFile in "$AlignmentParts"*"$AlignmentLastBit"
 	do
 		if [ -f $phyFile ]
 		then
-			jobIDs+=:$(qsub $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$phyFile, iteration=$iteration, aligner=$aligner" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh")
+			jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$phyFile, iteration=$iteration, aligner=$aligner" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh")
 		fi
 	done
 	# Not needed for optimization
-	#jobIDs+=:$(qsub $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh")
+	#jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh")
 	;;
 11)
-	jobIDs+=:$(qsub $depend -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner" "$DIR/11_PBS-Pro-RemoveRogues.sh")
+	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner" "$DIR/11_PBS-Pro-RemoveRogues.sh")
 	;;
 
 # Adjust lastStep if you add more steps here
