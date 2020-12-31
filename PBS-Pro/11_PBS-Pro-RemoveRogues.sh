@@ -5,7 +5,8 @@
 
 # Go to the first program line,
 # any PBS directive below that is ignored.
-# No modules to load
+# Modules to load, TreeShrink does not work with R >= 4.0
+module load lang/r/3.6.1
 
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
