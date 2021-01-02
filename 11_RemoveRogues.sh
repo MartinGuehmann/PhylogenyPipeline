@@ -39,8 +39,10 @@ mkdir -p $rogueFreeTreesDir
 
 numTreads=$(nproc)
 base=$(basename $inputTrees ".alignment.$aligner.fasta.raxml.reduced.phy.ufboot")
+bbase="$base.bipartition"
 alignmentBase=$(basename $inputTrees ".ufboot")
 alignmentDir=$(dirname $inputTrees)
+bbaseRogueNaRokDropped="$rogueFreeTreesDir/RogueNaRok_droppedRogues.$bbase"
 baseRogueNaRokDropped="$rogueFreeTreesDir/RogueNaRok_droppedRogues.$base"
 baseRogueNaRokDroppedCSV="$baseRogueNaRokDropped.csv"
 baseShrunken="$rogueFreeTreesDir/$base.txt"
@@ -51,12 +53,15 @@ seqsOfInterestIDs="$seqsOfInterestDir/SequencesOfInterestIDs.txt"
 rm -f "$baseRogueNaRokDroppedCSV"
 rm -f "$baseRogueNaRokDropped"
 rm -f "$rogueFreeTreesDir/RogueNaRok_info.$base"
+rm -f "$rogueFreeTreesDir/RogueNaRok_info.$bbase"
 
 "$DIR/../RogueNaRok/RogueNaRok-parallel" -s 2 -i $inputTrees -n $base -w $rogueFreeTreesDir -T $numTreads
+"$DIR/../RogueNaRok/RogueNaRok-parallel" -s 2 -i $inputTrees -n $bbase -b -w $rogueFreeTreesDir -T $numTreads
 
 run_treeshrink.py -t "$consenseTree" -o "$rogueFreeTreesDir" -f -O "$base"
 
 grep -o -f "$seqsOfInterestIDs" "$baseRogueNaRokDropped" > "$baseRogueNaRokDroppedCSV"
+grep -o -f "$seqsOfInterestIDs" "$bbaseRogueNaRokDropped" >> "$baseRogueNaRokDroppedCSV"
 grep -o -f "$seqsOfInterestIDs" "$baseShrunken" >> "$baseRogueNaRokDroppedCSV"
 
 seqkit grep -f "$baseRogueNaRokDroppedCSV" -j "$numTreads" "$seqsOfInterestDir/$base.fasta" > "$rogueFreeTreesDir/$base.dropped.fasta"
