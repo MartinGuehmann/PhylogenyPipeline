@@ -38,4 +38,6 @@ numDropped=$(grep -c ">" $droppedFinal)
 if (( numDropped > 0 ))
 then
 	"$DIR/PBS-Pro-Call-RogueOptAlign.sh" "$gene" "$nextIteration" "$aligner"
+elif [ -z "$isExtraRound" ]
+	"$DIR/PBS-Pro-Call-RogueOptAlign.sh" "$gene" "$nextIteration" "$aligner" "extraRound"
 fi

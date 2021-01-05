@@ -13,6 +13,7 @@ thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 gene="$1"
 iteration="$2"
 aligner="$3"
+isExtraRound="$4"
 
 if [ -z "$gene" ]
 then
@@ -36,7 +37,7 @@ fi
 
 jobIDs=$($DIR/PBS-Pro-Call.sh              "$gene"  9 "$iteration" "$aligner" "" "hold")
 echo $jobIDs
-qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-Call-RogueOptTree.sh"
+qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, isExtraRound=$isExtraRound" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-Call-RogueOptTree.sh"
 
 # Start hold jobs
 jobIDs=$(echo $jobIDs | sed "s/:/ /g")
