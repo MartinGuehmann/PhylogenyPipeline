@@ -11,7 +11,7 @@ then
 	done
 	DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 fi
-	thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
+thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
 if [ -z $gene ]
 then
