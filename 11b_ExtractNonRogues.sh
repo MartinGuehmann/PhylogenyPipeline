@@ -50,6 +50,14 @@ fi
 cat "$baseRogueNaRokDropped"*".csv" > "$rogueNaRokDropped"
 
 seqkit grep -f "$rogueNaRokDropped" -j $numTreads "$seqsOfInterest" > "$droppedFinal"
-seqkit grep -v -f "$rogueNaRokDropped" -j $numTreads "$seqsOfInterest" > "$nextSeqsOfInterest"
+
+numDropped=$(grep -c ">" $droppedFinal)
+
+if (( numDropped > 0 ))
+then
+	seqkit grep -v -f "$rogueNaRokDropped" -j $numTreads "$seqsOfInterest" > "$nextSeqsOfInterest"
+else
+	cp "$seqsOfInterest" "$nextSeqsOfInterest"
+fi
 
 seqkit stats "$rogueFreeTreesDir/"*".fasta" > "$rogueFreeTreesDir/Statistics.txt"

@@ -48,6 +48,7 @@ baseRogueNaRokDroppedCSV="$baseRogueNaRokDropped.csv"
 baseShrunken="$rogueFreeTreesDir/$base.txt"
 consenseTree="$alignmentDir/$alignmentBase.contree"
 seqsOfInterestIDs="$seqsOfInterestDir/SequencesOfInterestIDs.txt"
+droppedFinal="$rogueFreeTreesDir/$base.dropped.fasta"
 
 # If we call this again we want to overwrite the output
 rm -f "$baseRogueNaRokDroppedCSV"
@@ -64,5 +65,13 @@ grep -o -f "$seqsOfInterestIDs" "$baseRogueNaRokDropped" > "$baseRogueNaRokDropp
 grep -o -f "$seqsOfInterestIDs" "$bbaseRogueNaRokDropped" >> "$baseRogueNaRokDroppedCSV"
 grep -o -f "$seqsOfInterestIDs" "$baseShrunken" >> "$baseRogueNaRokDroppedCSV"
 
-seqkit grep -f "$baseRogueNaRokDroppedCSV" -j "$numTreads" "$seqsOfInterestDir/$base.fasta" > "$rogueFreeTreesDir/$base.dropped.fasta"
-seqkit grep -v -f "$baseRogueNaRokDroppedCSV" -j "$numTreads" "$seqsOfInterestDir/$base.fasta" > "$rogueFreeTreesDir/$base.fasta"
+seqkit grep -f "$baseRogueNaRokDroppedCSV" -j "$numTreads" "$seqsOfInterestDir/$base.fasta" > "$droppedFinal"
+
+numDropped=$(grep -c ">" $droppedFinal)
+
+if (( numDropped > 0 ))
+then
+	seqkit grep -v -f "$baseRogueNaRokDroppedCSV" -j "$numTreads" "$seqsOfInterestDir/$base.fasta" > "$rogueFreeTreesDir/$base.fasta"
+else
+	cp "$seqsOfInterestDir/$base.fasta" "$rogueFreeTreesDir/$base.fasta"
+fi
