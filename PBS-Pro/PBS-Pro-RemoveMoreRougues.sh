@@ -70,5 +70,6 @@ if (( numDropped > 0 ))
 then
 	"$DIR/PBS-Pro-Call-RogueOptAlign.sh" "$gene" "$nextIteration" "$aligner"
 elif [ -z "$isExtraRound" ]
+then
 	"$DIR/PBS-Pro-Call-RogueOptAlign.sh" "$gene" "$nextIteration" "$aligner" "extraRound"
 fi
