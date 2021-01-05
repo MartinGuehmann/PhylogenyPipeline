@@ -100,7 +100,7 @@ jobIDs=""
 #holdJobs=$jobIDs
 #echo $jobIDs
 #depend=$jobIDs
-jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh")
+jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner" "$DIR/10_PBS-Pro-Long-MakeTreeWithIQ-Tree.sh")
 
 echo $jobIDs
 
