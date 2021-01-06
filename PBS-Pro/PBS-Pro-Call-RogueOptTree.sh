@@ -53,6 +53,10 @@ then
 	aligner="$defaultAligner"
 fi
 
+# Change the working directory to the directory of this script
+# so that the standard and error output files to the directory of this script
+cd $DIR
+
 jobIDs=$($DIR/PBS-Pro-Call.sh              "$gene" 10 "$iteration" "$aligner" "" "hold")
 echo $jobIDs
 holdJobs=$jobIDs
