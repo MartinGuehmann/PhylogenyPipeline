@@ -18,6 +18,7 @@ iteration="$3"
 aligner="$4"
 depend="$5"
 hold="$6"
+shuffleSeqs="$7"
 
 if [ -z "$gene" ]
 then
@@ -150,7 +151,7 @@ case $step in
 	#jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh")
 	;;
 11)
-	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner" "$DIR/11_PBS-Pro-RemoveRogues.sh")
+	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, shuffleSeqs=$shuffleSeqs" "$DIR/11_PBS-Pro-RemoveRogues.sh")
 	;;
 
 # Adjust lastStep if you add more steps here

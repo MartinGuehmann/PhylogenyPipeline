@@ -12,6 +12,9 @@ thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 gene="$1"
 aligner="$2"
 iteration="$3"
+shuffle="$4"
+
+shopt -s extglob
 
 if [ -z "$gene" ]
 then
@@ -36,16 +39,18 @@ baseRogueNaRokDropped="$rogueFreeTreesDir/RogueNaRok_droppedRogues.SequencesOfIn
 rogueNaRokDropped="$rogueFreeTreesDir/RogueNaRok_droppedRogues.SequencesOfInterestShuffled.csv"
 droppedFinal="$rogueFreeTreesDir/SequencesOfInterest.dropped.fasta"
 nextSeqsOfInterest="$rogueFreeTreesDir/SequencesOfInterest.fasta"
+SequencesOfInterestShuffled="$rogueFreeTreesDir/SequencesOfInterestShuffled.fasta"
 
-if [ -f $droppedFinal ]
-then
-	mv $droppedFinal "$rogueFreeTreesDir/SequencesOfInterestAll.dropped.fasta"
-fi
+# Not needed anymore
+#if [ -f $droppedFinal ]
+#then
+#	mv $droppedFinal "$rogueFreeTreesDir/SequencesOfInterestAll.dropped.fasta"
+#fi
 
-if [ -f $nextSeqsOfInterest ]
-then
-	mv $nextSeqsOfInterest "$rogueFreeTreesDir/SequencesOfInterestAll.fasta"
-fi
+#if [ -f $nextSeqsOfInterest ]
+#then
+#	mv $nextSeqsOfInterest "$rogueFreeTreesDir/SequencesOfInterestAll.fasta"
+#fi
 
 cat "$baseRogueNaRokDropped"*".csv" > "$rogueNaRokDropped"
 
@@ -58,6 +63,30 @@ then
 	seqkit grep -v -f "$rogueNaRokDropped" -j $numTreads "$seqsOfInterest" > "$nextSeqsOfInterest"
 else
 	cp "$seqsOfInterest" "$nextSeqsOfInterest"
+fi
+
+if [ $shuffle == "true" ]
+then
+	partSequences="SequencesOfInterestShuffled.part_"
+	for fastaFile in "$rogueFreeTreesDir/$partSequences"+([0-9])".fasta"
+	do
+		baseFile=$(basename $fastaFile ".fasta")
+		mv $fastaFile "$rogueFreeTreesDir/$baseFile.old.fasta"
+	done
+
+	seqsPerChunk="900"
+
+	seqkit shuffle -2 -j "$numTreads" "$nextSeqsOfInterest" > "$SequencesOfInterestShuffled"
+
+	numSeqs=$(grep -c '>' $SequencesOfInterestShuffled)
+
+	restSeqChunk=$(($numSeqs % $seqsPerChunk))
+	numSeqChunks=$(($numSeqs / $seqsPerChunk))
+
+	numSeqsCorrPerChunk=$(($seqsPerChunk + 1 + $restSeqChunk / $numSeqChunks))
+
+	# Warns that output directoy is not empty, but it is supposed to be non-empty
+	seqkit split2 -j $numTreads -s $numSeqsCorrPerChunk -O $rogueFreeTreesDir $SequencesOfInterestShuffled
 fi
 
 seqkit stats "$rogueFreeTreesDir/"*".fasta" > "$rogueFreeTreesDir/Statistics.txt"

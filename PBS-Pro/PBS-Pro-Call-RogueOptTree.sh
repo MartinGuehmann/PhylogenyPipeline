@@ -13,24 +13,29 @@ then
 fi
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
-if [ -z $gene ]
+if [ ! -z "$1" ]
 then
 	gene="$1"
 fi
 
-if [ -z $iteration ]
+if [ ! -z "$2" ]
 then
 	iteration="$2"
 fi
 
-if [ -z $aligner ]
+if [ ! -z "$3" ]
 then
 	aligner="$3"
 fi
 
-if [ ! -z $4 ]
+if [ ! -z "$4" ]
 then
 	isExtraRound="$4"
+fi
+
+if [ ! -z "$5" ]
+then
+	shuffleSeqs="$5"
 fi
 
 if [ -z "$gene" ]
@@ -60,10 +65,10 @@ cd $DIR
 jobIDs=$($DIR/PBS-Pro-Call.sh              "$gene" 10 "$iteration" "$aligner" "" "hold")
 echo $jobIDs
 holdJobs=$jobIDs
-jobIDs=$($DIR/PBS-Pro-Call.sh              "$gene" 11 "$iteration" "$aligner" "$jobIDs")
+jobIDs=$($DIR/PBS-Pro-Call.sh              "$gene" 11 "$iteration" "$aligner" "$jobIDs" "" $shuffleSeqs)
 echo $jobIDs
 
-qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, isExtraRound=$isExtraRound" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-RemoveMoreRougues.sh"
+qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, isExtraRound=$isExtraRound, shuffleSeqs=$shuffleSeqs" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-RemoveMoreRougues.sh"
 
 # Start hold jobs
 holdJobs=$(echo $holdJobs | sed "s/:/ /g")

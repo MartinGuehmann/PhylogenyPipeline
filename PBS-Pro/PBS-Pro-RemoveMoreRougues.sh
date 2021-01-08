@@ -41,6 +41,11 @@ then
 	isExtraRound="$4"
 fi
 
+if [ ! -z "$5" ]
+then
+	shuffleSeqs="$5"
+fi
+
 if [ -z "$gene" ]
 then
 	echo "You must give a GeneName, for instance:"
@@ -68,8 +73,8 @@ numDropped=$(grep -c ">" $droppedFinal)
 
 if (( numDropped > 0 ))
 then
-	"$DIR/PBS-Pro-Call-RogueOptAlign.sh" "$gene" "$nextIteration" "$aligner"
-elif [ -z "$isExtraRound" ]
+	"$DIR/PBS-Pro-Call-RogueOptAlign.sh" "$gene" "$nextIteration" "$aligner" "" $shuffleSeqs
+elif [ "$isExtraRound" == "extraRound" ]
 then
-	"$DIR/PBS-Pro-Call-RogueOptAlign.sh" "$gene" "$nextIteration" "$aligner" "extraRound"
+	"$DIR/PBS-Pro-Call-RogueOptAlign.sh" "$gene" "$nextIteration" "$aligner" "extraRound" $shuffleSeqs
 fi

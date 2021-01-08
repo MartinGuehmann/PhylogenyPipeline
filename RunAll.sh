@@ -77,7 +77,7 @@ UFBootPart="$AlignmentLastBit.ufboot"
 AllSeqsUFBoot="$AllSeqs.ufboot"
 
 # Note this must be set to the last available step
-lastStep="11"
+lastStep="12"
 
 if [ -z "$last" ]
 then
@@ -181,22 +181,17 @@ do
 		;;
 	11)
 		echo "11. Remove rogue sequences with RogueNaRok and TreeShrink."
-		if [ -z "$seqsToAlignOrAlignment" ]
-		then
-			$DIR/11a_PrepareForRemovingRogues.sh "$gene" "$aligner" "$iteration"
-			for ufbootFile in "$AlignmentParts"*"$UFBootPart"
-			do
-				if [ -f $ufbootFile ]
-				then
-					$DIR/11_RemoveRogues.sh "$gene" "$ufbootFile" "$aligner" "$iteration"
-				fi
-			done
-			# We deal with the big alignment in the end
-			#$DIR/11_RemoveRogues.sh "$gene" $AllSeqsUFBoot "$aligner" "$iteration"
-			$DIR/11b_ExtractNonRogues.sh "$gene" "$aligner" "$iteration"
-		else
-			$DIR/11_RemoveRogues.sh "$gene" "$seqsToAlignOrAlignment"
-		fi
+		$DIR/11a_PrepareForRemovingRogues.sh "$gene" "$aligner" "$iteration"
+		for ufbootFile in "$AlignmentParts"*"$UFBootPart"
+		do
+			if [ -f $ufbootFile ]
+			then
+				$DIR/11_RemoveRogues.sh "$gene" "$ufbootFile" "$aligner" "$iteration"
+			fi
+		done
+		# We deal with the big alignment in the end
+		#$DIR/11_RemoveRogues.sh "$gene" $AllSeqsUFBoot "$aligner" "$iteration"
+		$DIR/11b_ExtractNonRogues.sh "$gene" "$aligner" "$iteration" "$seqsToAlignOrAlignment"
 		echo "11. Rogue sequences removed with RogueNaRok and TreeShrink."
 		;;
 
