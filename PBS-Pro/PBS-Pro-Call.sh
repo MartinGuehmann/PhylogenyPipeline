@@ -18,7 +18,7 @@ iteration="$3"
 aligner="$4"
 depend="$5"
 hold="$6"
-shuffleSeqs="$7"
+extraBit="$7"
 
 if [ -z "$gene" ]
 then
@@ -129,29 +129,35 @@ case $step in
 	jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/08_PBS-Pro-ExtractSequencesOfInterest.sh")
 	;;
 9)
-	for fastaFile in "$SequencesOfInterestParts"+([0-9])".fasta"
-	do
-		if [ -f $fastaFile ]
-		then
-			jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$fastaFile, iteration=$iteration" "$alignerFile")
-		fi
-	done
-	# Not needed for optimization
-	#jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest, iteration=$iteration" "$alignerFile")
+	if [ $extraBit == "allSeqs" ]
+	then
+		jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest, iteration=$iteration" "$alignerFile")
+	else
+		for fastaFile in "$SequencesOfInterestParts"+([0-9])".fasta"
+		do
+			if [ -f $fastaFile ]
+			then
+				jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$fastaFile, iteration=$iteration" "$alignerFile")
+			fi
+		done
+	fi
 	;;
 10)
-	for phyFile in "$AlignmentParts"*"$AlignmentLastBit"
-	do
-		if [ -f $phyFile ]
-		then
-			jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$phyFile, iteration=$iteration, aligner=$aligner" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh")
-		fi
-	done
-	# Not needed for optimization
-	#jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh")
+	if [ $extraBit == "allSeqs" ]
+	then
+		jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner" "$DIR/10_PBS-Pro-Long-MakeTreeWithIQ-Tree.sh")
+	else
+		for phyFile in "$AlignmentParts"*"$AlignmentLastBit"
+		do
+			if [ -f $phyFile ]
+			then
+				jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$phyFile, iteration=$iteration, aligner=$aligner" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh")
+			fi
+		done
+	fi
 	;;
 11)
-	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, shuffleSeqs=$shuffleSeqs" "$DIR/11_PBS-Pro-RemoveRogues.sh")
+	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, shuffleSeqs=$extraBit" "$DIR/11_PBS-Pro-RemoveRogues.sh")
 	;;
 
 # Adjust lastStep if you add more steps here
