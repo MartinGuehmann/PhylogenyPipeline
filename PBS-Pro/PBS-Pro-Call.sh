@@ -129,13 +129,13 @@ case $step in
 	jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/08_PBS-Pro-ExtractSequencesOfInterest.sh")
 	;;
 9)
-	if [ $extraBit == "allSeqs" ]
+	if [[ ! -z $extraBit && $extraBit == "allSeqs" ]]
 	then
 		jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest, iteration=$iteration" "$alignerFile")
 	else
 		for fastaFile in "$SequencesOfInterestParts"+([0-9])".fasta"
 		do
-			if [ -f $fastaFile ]
+			if [[ -f $fastaFile ]]
 			then
 				jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$fastaFile, iteration=$iteration" "$alignerFile")
 			fi
@@ -143,13 +143,13 @@ case $step in
 	fi
 	;;
 10)
-	if [ $extraBit == "allSeqs" ]
+	if [[ ! -z $extraBit && $extraBit == "allSeqs" ]]
 	then
 		jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner" "$DIR/10_PBS-Pro-Long-MakeTreeWithIQ-Tree.sh")
 	else
 		for phyFile in "$AlignmentParts"*"$AlignmentLastBit"
 		do
-			if [ -f $phyFile ]
+			if [[ -f $phyFile ]]
 			then
 				jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$phyFile, iteration=$iteration, aligner=$aligner" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh")
 			fi

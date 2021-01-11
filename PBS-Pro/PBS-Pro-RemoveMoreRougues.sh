@@ -73,13 +73,20 @@ droppedFinal="$rogueFreeTreesDir/SequencesOfInterest.dropped.fasta"
 if [ -z "$numRoundsLeft" ] # Should be an unset variable or an empty string
 then
 	numRoundsLeft=""
-elif [[ $numRoundsLeft =~ '^[+-]?[0-9]+$' ]]
+elif [[ $numRoundsLeft =~ ^[+-]?[0-9]+$ ]]
+then
 	if (( numRoundsLeft <= 0 ))
 	then
 		exit
 	else
-		(( numRoundsLeft-- ))
+		((numRoundsLeft--))
 	fi
+fi
+
+if [[ ! -f $droppedFinal ]]
+then
+	# Break if this does not exist
+	exit
 fi
 
 numDropped=$(grep -c ">" $droppedFinal)
