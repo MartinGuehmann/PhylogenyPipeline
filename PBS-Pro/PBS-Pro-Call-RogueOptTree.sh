@@ -30,7 +30,7 @@ fi
 
 if [ ! -z "$4" ]
 then
-	isExtraRound="$4"
+	numRoundsLeft="$4"
 fi
 
 if [ ! -z "$5" ]
@@ -68,7 +68,7 @@ holdJobs=$jobIDs
 jobIDs=$($DIR/PBS-Pro-Call.sh              "$gene" 11 "$iteration" "$aligner" "$jobIDs" "" $shuffleSeqs)
 echo $jobIDs
 
-qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, isExtraRound=$isExtraRound, shuffleSeqs=$shuffleSeqs" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-RemoveMoreRougues.sh"
+qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-RemoveMoreRougues.sh"
 
 # Start hold jobs
 holdJobs=$(echo $holdJobs | sed "s/:/ /g")

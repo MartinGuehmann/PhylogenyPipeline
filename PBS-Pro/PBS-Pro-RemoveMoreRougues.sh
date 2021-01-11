@@ -38,7 +38,7 @@ fi
 
 if [ ! -z $4 ]
 then
-	isExtraRound="$4"
+	numRoundsLeft="$4"
 fi
 
 if [ ! -z "$5" ]
@@ -69,12 +69,27 @@ nextIteration=$((iteration + 1))
 rogueFreeTreesDir="$DIR/../$gene/SequencesOfInterest.$aligner.RogueIter_$nextIteration"
 droppedFinal="$rogueFreeTreesDir/SequencesOfInterest.dropped.fasta"
 
+
+if [ -z "$numRoundsLeft" ] # Should be an unset variable or an empty string
+then
+	numRoundsLeft=""
+elif [[ $numRoundsLeft =~ '^[+-]?[0-9]+$' ]]
+	if (( numRoundsLeft <= 0 ))
+	then
+		exit
+	else
+		(( numRoundsLeft-- ))
+	fi
+fi
+
 numDropped=$(grep -c ">" $droppedFinal)
 
-if (( numDropped > 0 ))
+if (( numDropped == 0 ))
 then
-	"$DIR/PBS-Pro-Call-RogueOptAlign.sh" "$gene" "$nextIteration" "$aligner" "" $shuffleSeqs
-elif [ "$isExtraRound" == "extraRound" ]
-then
-	"$DIR/PBS-Pro-Call-RogueOptAlign.sh" "$gene" "$nextIteration" "$aligner" "extraRound" $shuffleSeqs
+	if [ -z "$numRoundsLeft" ]
+	then
+		numRoundsLeft=0
+	fi
 fi
+
+"$DIR/PBS-Pro-Call-RogueOptAlign.sh" "$gene" "$nextIteration" "$aligner" "$numRoundsLeft" "$shuffleSeqs"
