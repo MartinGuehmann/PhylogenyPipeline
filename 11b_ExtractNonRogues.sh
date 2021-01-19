@@ -65,7 +65,7 @@ else
 	cp "$seqsOfInterest" "$nextSeqsOfInterest"
 fi
 
-if [ $shuffle == "true" ]
+if [[ ! -z "$shuffle" && $shuffle == "true" ]]
 then
 	partSequences="SequencesOfInterestShuffled.part_"
 	for fastaFile in "$rogueFreeTreesDir/$partSequences"+([0-9])".fasta"
@@ -90,3 +90,6 @@ then
 fi
 
 seqkit stats "$rogueFreeTreesDir/"*".fasta" > "$rogueFreeTreesDir/Statistics.txt"
+
+AlignmentDir="$DIR/$gene/Alignments.$aligner.RogueIter_$iteration"
+$DIR/11c_CalculateAverageSupport.sh "$AlignmentDir" "$rogueFreeTreesDir"

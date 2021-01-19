@@ -59,6 +59,7 @@ rm -f "$rogueFreeTreesDir/RogueNaRok_info.$bbase"
 "$DIR/../RogueNaRok/RogueNaRok-parallel" -s 2 -i $inputTrees -n $base -w $rogueFreeTreesDir -T $numTreads
 "$DIR/../RogueNaRok/RogueNaRok-parallel" -s 2 -i $inputTrees -n $bbase -b -w $rogueFreeTreesDir -T $numTreads
 
+# Creates a .contree file in the target directory
 run_treeshrink.py -t "$consenseTree" -o "$rogueFreeTreesDir" -f -O "$base"
 
 grep -o -f "$seqsOfInterestIDs" "$baseRogueNaRokDropped" > "$baseRogueNaRokDroppedCSV"
