@@ -37,10 +37,8 @@ fi
 numTreads=$(nproc)
 base=$(basename $inputSequences .fasta)
 outFile="$alignmentDir/$base.alignment.FAMSA.fasta"
-outTree="$alignmentDir/$base.tree.FAMSA.newick"
 
 mkdir -p $alignmentDir
 
-$DIR/../FAMSA/famsa -fr -t $numTreads -gt_export $inputSequences $outTree
 $DIR/../FAMSA/famsa -fr -t $numTreads $inputSequences $outFile
 raxml-ng --msa "$outFile" --threads $numTreads --model LG+G --check
