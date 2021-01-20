@@ -40,5 +40,5 @@ outFile="$alignmentDir/$base.alignment.MUSCLE.fasta"
 
 mkdir -p $alignmentDir
 
-muscle --thread $numTreads -in $inputSequences -out $outFile
+muscle -in $inputSequences -out $outFile
 raxml-ng --msa "$outFile" --threads $numTreads --model LG+G --check
