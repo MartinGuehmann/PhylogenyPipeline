@@ -41,5 +41,5 @@ outTree="$alignmentDir/$base.tree.RegTCoffee.newick"
 
 mkdir -p $alignmentDir
 
-MAX_N_PID_4_TCOFFEE=520000 t_coffee -reg -seq $inputSequences -nseq 100 -tree mbed -method mafftginsi_msa -outfile $outFile -outtree $outTree -thread 0
+MAX_N_PID_4_TCOFFEE=520000 t_coffee -reg -seq $inputSequences -nseq 100 -tree mbed -method mafftlinsi_msa -outfile $outFile -outtree $outTree -thread 0
 raxml-ng --msa "$outFile" --threads $numTreads --model LG+G --check
