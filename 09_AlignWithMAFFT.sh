@@ -36,14 +36,9 @@ fi
 
 numTreads=$(nproc)
 base=$(basename $inputSequences .fasta)
-outFile="$alignmentDir/$base.alignment.PASTA.fasta"
+outFile="$alignmentDir/$base.alignment.MAFFT.fasta"
 
 mkdir -p $alignmentDir
 
-run_pasta.py -i $inputSequences -d protein -o $alignmentDir -k --keepalignmenttemps
-
-# Missing code
-# Rename PASTA output file to $outFile
-
+mafft --thread $numTreads $inputSequences > $outFile
 raxml-ng --msa "$outFile" --threads $numTreads --model LG+G --check
-

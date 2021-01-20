@@ -5,7 +5,8 @@
 
 # Go to the first program line,
 # any PBS directive below that is ignored.
-# No modules to be loaded
+# Load modules
+module load apps/muscle/3.8.31
 
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
@@ -17,5 +18,5 @@ then
 fi
 
 date
-time "$DIR/../RunAll.sh" "$gene" "9" "9" "$iteration" "FAMSA" "$seqsToAlign"
+time "$DIR/../RunAll.sh" "$gene" "9" "9" "$iteration" "MUSCLE" "$seqsToAlign"
 date

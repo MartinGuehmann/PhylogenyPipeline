@@ -5,8 +5,7 @@
 
 # Go to the first program line,
 # any PBS directive below that is ignored.
-# Load modules
-module load apps/tcoffee/13.45.0
+# No modules to be loaded
 
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
