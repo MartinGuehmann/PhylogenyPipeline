@@ -7,11 +7,15 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
   SOURCE="$(readlink "$SOURCE")"
   [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
+
+# Directory and the name of this script
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
-gene="$1"
-inputSequences="$2"
-alignmentDir="$3"
+
+# Input parameters
+gene="$1"                    # The gene name, the base directory for this analysis
+inputSequences="$2"          # The input sequences to be aligned
+alignmentDir="$3"            # The output directories for the alignments
 
 if [ -z "$gene" ]
 then
@@ -34,16 +38,21 @@ then
 	exit
 fi
 
+# Make input and output file names
 numTreads=$(nproc)
 base=$(basename $inputSequences .fasta)
 outFile="$alignmentDir/$base.alignment.PASTA.fasta"
 
+# Make alignment directory if it does not exist
 mkdir -p $alignmentDir
 
+# Align the sequences with PASTA
 run_pasta.py -i $inputSequences -d protein -o $alignmentDir -k
 
 # Missing code
 # Rename PASTA output file to $outFile
 
+###########################################################
+# Clean alignment of empty columns
 raxml-ng --msa "$outFile" --threads $numTreads --model LG+G --check
 
