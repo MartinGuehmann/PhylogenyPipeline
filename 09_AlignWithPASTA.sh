@@ -51,6 +51,8 @@ run_pasta.py -i $inputSequences -d protein -o $alignmentDir -k
 
 # Missing code
 # Rename PASTA output file to $outFile
+pastaAlnFile="$alignmentDir/"*".$base.aln"
+mv $pastaAlnFile $outFile
 
 ###########################################################
 # Clean alignment of empty columns
