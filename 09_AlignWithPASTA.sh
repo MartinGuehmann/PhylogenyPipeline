@@ -40,7 +40,7 @@ outFile="$alignmentDir/$base.alignment.PASTA.fasta"
 
 mkdir -p $alignmentDir
 
-run_pasta.py -i $inputSequences -d protein -o $alignmentDir -k --keepalignmenttemps
+run_pasta.py -i $inputSequences -d protein -o $alignmentDir -k
 
 # Missing code
 # Rename PASTA output file to $outFile
