@@ -37,9 +37,34 @@ fi
 numTreads=$(nproc)
 base=$(basename $inputSequences .fasta)
 outFile="$alignmentDir/$base.alignment.RegTCoffee.fasta"
+outFileFixed="$alignmentDir/$base.alignment.RegTCoffee.fixed.fasta"
 outTree="$alignmentDir/$base.tree.RegTCoffee.newick"
 
+# Make alignment directory if it does not exist
 mkdir -p $alignmentDir
 
+# Align the sequences with regressive t-coffee
 MAX_N_PID_4_TCOFFEE=520000 t_coffee -reg -seq $inputSequences -nseq 100 -tree mbed -method mafftlinsi_msa -outfile $outFile -outtree $outTree -thread 0
+
+###########################################################
+# Restore sequence names, so that we have some idea of what we are looking when we are looking at the tree
+mapFile="$alignmentDir/$base.map.txt"
+
+rm -f "$mapFile"
+while read line
+do
+	if [[ ">" == "${line:0:1}" ]]
+	then
+		long="${line#?}"
+		short="${long%% *}"
+		echo "$short	$long" >> "$mapFile"
+	fi
+
+done < $inputSequences
+
+seqkit replace -p '(.+)$' -k "$mapFile" -r '{kv}' -K "$outFile" > "$outFileFixed"
+mv "$outFileFixed" "$outFile"
+
+###########################################################
+# Clean alignment of empty columns
 raxml-ng --msa "$outFile" --threads $numTreads --model LG+G --check
