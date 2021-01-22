@@ -49,10 +49,17 @@ mkdir -p $alignmentDir
 # Align the sequences with PASTA
 run_pasta.py -i $inputSequences -d protein -o $alignmentDir -k
 
-# Missing code
 # Rename PASTA output file to $outFile
-pastaAlnFile="$alignmentDir/"*".$base.aln"
-mv $pastaAlnFile $outFile
+for pastaAlnFile in "$alignmentDir/"*".$base.aln"
+do
+	# We might have more than one, some even be empty, from previous incomplete runs
+	# So just rename the first non-empty one
+	if [ -s $pastaAlnFile ]
+	then
+		mv $pastaAlnFile $outFile
+		break
+	fi
+done
 
 ###########################################################
 # Clean alignment of empty columns
