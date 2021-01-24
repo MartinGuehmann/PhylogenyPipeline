@@ -56,13 +56,13 @@ then
 	alignerFile="$alignFileStart$aligner.$bashExtension"
 fi
 
-SequencesOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -d "$DIR" -g "$gene" -i "$iteration" -a "$aligner")
+SequencesOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner")
 
 partSequences="SequencesOfInterestShuffled.part_"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 SequencesOfInterestParts="$SequencesOfInterestDir/$partSequences"
 
-AlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -d "$DIR" -g "$gene" -i "$iteration" -a "$aligner")
+AlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner")
 AlignmentParts="$AlignmentDir/$partSequences"
 AlignmentLastBit=".alignment.$aligner.fasta.raxml.reduced.phy"
 AllSeqs="$AlignmentDir/SequencesOfInterest$AlignmentLastBit"

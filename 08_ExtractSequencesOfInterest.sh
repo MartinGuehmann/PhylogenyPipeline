@@ -18,7 +18,7 @@ then
 	exit
 fi
 
-SequencesOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -d "$DIR" -g "$gene")
+SequencesOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene")
 
 mkdir -p $SequencesOfInterestDir
 

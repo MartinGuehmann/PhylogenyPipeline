@@ -23,8 +23,8 @@ then
 	exit
 fi
 
-seqsOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -d "$DIR" -g "$gene" -i "$iteration" -a "$aligner")
-rogueFreeTreesDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -d "$DIR" -g "$gene" -i "$((iteration + 1))" -a "$aligner")
+seqsOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner")
+rogueFreeTreesDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$((iteration + 1))" -a "$aligner")
 
 
 numTreads=$(nproc)
@@ -92,5 +92,5 @@ fi
 
 seqkit stats "$rogueFreeTreesDir/"*".fasta" > "$rogueFreeTreesDir/Statistics.txt"
 
-AlignmentDir="$DIR/$gene/Alignments/$aligner/RogueIter_$iteration"
+AlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner")
 $DIR/11c_CalculateAverageSupport.sh "$AlignmentDir" "$rogueFreeTreesDir"

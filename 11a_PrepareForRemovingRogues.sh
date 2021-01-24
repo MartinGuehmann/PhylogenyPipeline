@@ -20,7 +20,7 @@ then
 	exit
 fi
 
-seqsOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -d "$DIR" -g "$gene" -i "$iteration" -a "$aligner")
+seqsOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner")
 
 numTreads=$(nproc)
 

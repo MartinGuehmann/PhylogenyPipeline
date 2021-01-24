@@ -63,7 +63,7 @@ then
 	aligner=$("$DIR/../GetDefaultAligner.sh")
 fi
 
-rogueFreeTreesDir=$("$DIR/../GetSequencesOfInterestDirectory.sh" -d "$DIR" -g "$gene" -i "$nextIteration" -a "$aligner")
+rogueFreeTreesDir=$("$DIR/../GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$nextIteration" -a "$aligner")
 droppedFinal="$rogueFreeTreesDir/SequencesOfInterest.dropped.fasta"
 
 

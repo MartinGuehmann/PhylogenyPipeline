@@ -21,12 +21,6 @@ do
             shift
             gene="$1"
             ;;
-        --baseDir)
-            ;&
-        -d)
-            shift
-            baseDir="$1"
-            ;;
         --iteration)
             ;&
         -i)
@@ -69,15 +63,6 @@ then
 	exit
 fi
 
-if [ -z "$baseDir" ]
-then
-	thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
-	echo "You must give a directory, for instance:"
-	echo "./$thisScript --baseDir directory"
-	echo "./$thisScript -d directory"
-	exit
-fi
-
-AlignmentDir="$baseDir/$gene/Alignments/$aligner/RogueIter_$iteration"
+AlignmentDir="$DIR/$gene/Alignments/$aligner/RogueIter_$iteration"
 
 echo $AlignmentDir

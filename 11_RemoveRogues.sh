@@ -27,8 +27,8 @@ then
 	exit
 fi
 
-seqsOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -d "$DIR" -g "$gene" -i "$iteration" -a "$aligner")
-rogueFreeTreesDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -d "$DIR" -g "$gene" -i "$((iteration + 1))" -a "$aligner")
+seqsOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner")
+rogueFreeTreesDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$((iteration + 1))" -a "$aligner")
 
 mkdir -p $rogueFreeTreesDir
 

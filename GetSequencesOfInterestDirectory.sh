@@ -21,12 +21,6 @@ do
             shift
             gene="$1"
             ;;
-        --baseDir)
-            ;&
-        -d)
-            shift
-            baseDir="$1"
-            ;;
         --iteration)
             ;&
         -i)
@@ -69,20 +63,11 @@ then
 	exit
 fi
 
-if [ -z "$baseDir" ]
-then
-	thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
-	echo "You must give a directory, for instance:"
-	echo "./$thisScript --baseDir directory"
-	echo "./$thisScript -d directory"
-	exit
-fi
-
 if [ $iteration == 0 ]
 then
-	seqsOfInterestDir="$baseDir/$gene/SequencesOfInterest/RogueIter_$iteration"
+	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest/RogueIter_$iteration"
 else
-	seqsOfInterestDir="$baseDir/$gene/SequencesOfInterest/$aligner/RogueIter_$iteration"
+	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest/$aligner/RogueIter_$iteration"
 fi
 
 echo $seqsOfInterestDir
