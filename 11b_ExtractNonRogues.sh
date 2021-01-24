@@ -40,19 +40,26 @@ rogueNaRokDropped="$rogueFreeTreesDir/RogueNaRok_droppedRogues.SequencesOfIntere
 droppedFinal="$rogueFreeTreesDir/SequencesOfInterest.dropped.fasta"
 nextSeqsOfInterest="$rogueFreeTreesDir/SequencesOfInterest.fasta"
 SequencesOfInterestShuffled="$rogueFreeTreesDir/SequencesOfInterestShuffled.fasta"
+droppedAll="$rogueFreeTreesDir/SequencesOfInterestAll.dropped.fasta"
+sequencesAll="$rogueFreeTreesDir/SequencesOfInterestAll.fasta"
+droppedListAll=""
 
-# Not needed anymore
-#if [ -f $droppedFinal ]
-#then
-#	mv $droppedFinal "$rogueFreeTreesDir/SequencesOfInterestAll.dropped.fasta"
-#fi
+if [ -f $droppedFinal ]
+then
+	mv $droppedFinal "$droppedAll"
+fi
 
-#if [ -f $nextSeqsOfInterest ]
-#then
-#	mv $nextSeqsOfInterest "$rogueFreeTreesDir/SequencesOfInterestAll.fasta"
-#fi
+if [ -f $nextSeqsOfInterest ]
+then
+	mv $nextSeqsOfInterest "$sequencesAll"
+fi
 
-cat "$baseRogueNaRokDropped"*".csv" > "$rogueNaRokDropped"
+if [ -f "$droppedAll" ]
+then
+	cat "$rogueFreeTreesDir/SequencesOfInterest.csv" "$baseRogueNaRokDropped"*".csv" > "$rogueNaRokDropped"
+else
+	cat "$baseRogueNaRokDropped"*".csv" > "$rogueNaRokDropped"
+fi
 
 seqkit grep -f "$rogueNaRokDropped" -j $numTreads "$seqsOfInterest" > "$droppedFinal"
 

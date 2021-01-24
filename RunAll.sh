@@ -190,7 +190,10 @@ do
 			fi
 		done
 		# We deal with the big alignment in the end
-		#$DIR/11_RemoveRogues.sh "$gene" $AllSeqsUFBoot "$aligner" "$iteration"
+		if [ -f $AllSeqsUFBoot ]
+		then
+			$DIR/11_RemoveRogues.sh "$gene" $AllSeqsUFBoot "$aligner" "$iteration"
+		fi
 		$DIR/11b_ExtractNonRogues.sh "$gene" "$aligner" "$iteration" "$seqsToAlignOrAlignment"
 		echo "11. Rogue sequences removed with RogueNaRok and TreeShrink."
 		;;
