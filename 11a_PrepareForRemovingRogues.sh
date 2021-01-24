@@ -20,12 +20,7 @@ then
 	exit
 fi
 
-if [ $iteration == 0 ]
-then
-	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest/RogueIter_$iteration"
-else
-	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest/$aligner/RogueIter_$iteration"
-fi
+seqsOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -d "$DIR" -g "$gene" -i "$iteration" -a "$aligner")
 
 numTreads=$(nproc)
 

@@ -56,12 +56,7 @@ fi
 
 alignerFile="$alignFileStart$aligner.$bashExtension"
 
-if [ $iteration == 0 ]
-then
-	SequencesOfInterestDir="$DIR/$gene/SequencesOfInterest/RogueIter_$iteration"
-else
-	SequencesOfInterestDir="$DIR/$gene/SequencesOfInterest/$aligner/RogueIter_$iteration"
-fi
+SequencesOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -d "$DIR" -g "$gene" -i "$iteration" -a "$aligner")
 
 partSequences="SequencesOfInterestShuffled.part_"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
