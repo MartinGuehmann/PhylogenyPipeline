@@ -42,13 +42,22 @@ fi
 numTreads=$(nproc)
 base=$(basename $inputSequences .fasta)
 outFile="$alignmentDir/$base.alignment.PASTA.fasta"
+cleanedinputSequences="$alignmentDir/$base.fasta"
 
 # Make alignment directory if it does not exist
 mkdir -p $alignmentDir
 
-# Align the sequences with PASTA
-run_pasta.py -i $inputSequences -d protein -o $alignmentDir -k
+###########################################################
+# Copy sequences and replace Js by Ls
+# since PASTA cannot cope with that
+cp $inputSequences $cleanedinputSequences
+sed -i -e '/^#/!s/J/L/g' -e '/^#/!s/j/l/g' $cleanedinputSequences
 
+###########################################################
+# Align the sequences with PASTA
+run_pasta.py -i $cleanedinputSequences -d protein -o $alignmentDir -k
+
+###########################################################
 # Rename PASTA output file to $outFile
 for pastaAlnFile in "$alignmentDir/"*".$base.aln"
 do
