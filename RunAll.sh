@@ -62,7 +62,7 @@ partSequences="SequencesOfInterestShuffled.part_"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 SequencesOfInterestParts="$SequencesOfInterestDir/$partSequences"
 
-AlignmentDir="$DIR/$gene/Alignments/$aligner/RogueIter_$iteration"
+AlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -d "$DIR" -g "$gene" -i "$iteration" -a "$aligner")
 AlignmentParts="$AlignmentDir/$partSequences"
 AlignmentLastBit=".alignment.$aligner.fasta.raxml.reduced.phy"
 AllSeqs="$AlignmentDir/SequencesOfInterest$AlignmentLastBit"
