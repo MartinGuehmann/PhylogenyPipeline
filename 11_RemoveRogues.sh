@@ -23,9 +23,9 @@ fi
 
 if [ $iteration == 0 ]
 then
-	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest.RogueIter_$iteration"
+	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest/RogueIter_$iteration"
 else
-	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest.$aligner.RogueIter_$iteration"
+	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest/$aligner/RogueIter_$iteration"
 fi
 
 if [ ! -f $inputTrees ]
@@ -34,7 +34,7 @@ then
 	exit
 fi
 
-rogueFreeTreesDir="$DIR/$gene/SequencesOfInterest.$aligner.RogueIter_$((iteration + 1))"
+rogueFreeTreesDir="$DIR/$gene/SequencesOfInterest/$aligner/RogueIter_$((iteration + 1))"
 mkdir -p $rogueFreeTreesDir
 
 numTreads=$(nproc)

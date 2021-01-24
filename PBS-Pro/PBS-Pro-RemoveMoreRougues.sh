@@ -66,7 +66,7 @@ then
 fi
 
 nextIteration=$((iteration + 1))
-rogueFreeTreesDir="$DIR/../$gene/SequencesOfInterest.$aligner.RogueIter_$nextIteration"
+rogueFreeTreesDir="$DIR/../$gene/SequencesOfInterest/$aligner/RogueIter_$nextIteration"
 droppedFinal="$rogueFreeTreesDir/SequencesOfInterest.dropped.fasta"
 
 

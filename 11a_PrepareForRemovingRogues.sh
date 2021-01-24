@@ -22,9 +22,9 @@ fi
 
 if [ $iteration == 0 ]
 then
-	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest.RogueIter_$iteration"
+	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest/RogueIter_$iteration"
 else
-	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest.$aligner.RogueIter_$iteration"
+	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest/$aligner/RogueIter_$iteration"
 fi
 
 numTreads=$(nproc)

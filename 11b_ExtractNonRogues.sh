@@ -25,12 +25,12 @@ fi
 
 if [ $iteration == 0 ]
 then
-	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest.RogueIter_$iteration"
+	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest/RogueIter_$iteration"
 else
-	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest.$aligner.RogueIter_$iteration"
+	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest/$aligner/RogueIter_$iteration"
 fi
 
-rogueFreeTreesDir="$DIR/$gene/SequencesOfInterest.$aligner.RogueIter_$((iteration + 1))"
+rogueFreeTreesDir="$DIR/$gene/SequencesOfInterest/$aligner/RogueIter_$((iteration + 1))"
 
 
 numTreads=$(nproc)
@@ -98,5 +98,5 @@ fi
 
 seqkit stats "$rogueFreeTreesDir/"*".fasta" > "$rogueFreeTreesDir/Statistics.txt"
 
-AlignmentDir="$DIR/$gene/Alignments.$aligner.RogueIter_$iteration"
+AlignmentDir="$DIR/$gene/Alignments/$aligner/RogueIter_$iteration"
 $DIR/11c_CalculateAverageSupport.sh "$AlignmentDir" "$rogueFreeTreesDir"

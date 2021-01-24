@@ -80,16 +80,16 @@ fi
 
 if [ $iteration == 0 ]
 then
-	SequencesOfInterestDir="$DIR/../$gene/SequencesOfInterest.RogueIter_$iteration"
+	SequencesOfInterestDir="$DIR/../$gene/SequencesOfInterest/RogueIter_$iteration"
 else
-	SequencesOfInterestDir="$DIR/../$gene/SequencesOfInterest.$aligner.RogueIter_$iteration"
+	SequencesOfInterestDir="$DIR/../$gene/SequencesOfInterest/$aligner/RogueIter_$iteration"
 fi
 
 partSequences="SequencesOfInterestShuffled.part_"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 SequencesOfInterestParts="$SequencesOfInterestDir/$partSequences"
 
-AlignmentDir="$DIR/../$gene/Alignments.$aligner.RogueIter_$iteration"
+AlignmentDir="$DIR/../$gene/Alignments/$aligner/RogueIter_$iteration"
 AlignmentParts="$AlignmentDir/$partSequences"
 AlignmentLastBit=".alignment.$aligner.fasta.raxml.reduced.phy"
 AllSeqs="$AlignmentDir/SequencesOfInterest$AlignmentLastBit"
