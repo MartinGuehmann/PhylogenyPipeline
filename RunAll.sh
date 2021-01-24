@@ -46,15 +46,15 @@ fi
 
 alignFileStart="$DIR/09_AlignWith"
 bashExtension="sh"
+alignerFile="$alignFileStart$aligner.$bashExtension"
 
 if [ -z "$alignerFile" ]
 then
 	echo "Aligner file for $aligner does not exit."
 	echo "Use default aligner $defaultAligner instead."
 	aligner=$defaultAligner
+	alignerFile="$alignFileStart$aligner.$bashExtension"
 fi
-
-alignerFile="$alignFileStart$aligner.$bashExtension"
 
 SequencesOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -d "$DIR" -g "$gene" -i "$iteration" -a "$aligner")
 

@@ -78,11 +78,6 @@ then
 	exit
 fi
 
-if [ $iteration == 0 ]
-then
-	seqsOfInterestDir="$baseDir/$gene/SequencesOfInterest/RogueIter_$iteration"
-else
-	seqsOfInterestDir="$baseDir/$gene/SequencesOfInterest/$aligner/RogueIter_$iteration"
-fi
+AlignmentDir="$baseDir/$gene/Alignments/$aligner/RogueIter_$iteration"
 
-echo $seqsOfInterestDir
+echo $AlignmentDir
