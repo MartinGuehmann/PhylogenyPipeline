@@ -58,11 +58,9 @@ then
 	iteration="0"
 fi
 
-defaultAligner="FAMSA"
-
 if [ -z "$aligner" ]
 then
-	aligner="$defaultAligner"
+	aligner=$("$DIR/../GetDefaultAligner.sh")
 fi
 
 nextIteration=$((iteration + 1))

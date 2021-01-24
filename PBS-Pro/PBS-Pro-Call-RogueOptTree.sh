@@ -51,11 +51,9 @@ then
 	iteration="0"
 fi
 
-defaultAligner="FAMSA"
-
 if [ -z "$aligner" ]
 then
-	aligner="$defaultAligner"
+	aligner=$("$DIR/../GetDefaultAligner.sh")
 fi
 
 # Change the working directory to the directory of this script

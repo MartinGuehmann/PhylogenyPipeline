@@ -39,11 +39,9 @@ then
 	iteration="0"
 fi
 
-defaultAligner="FAMSA"
-
 if [ -z "$aligner" ]
 then
-	aligner="$defaultAligner"
+	aligner=$("$DIR/../GetDefaultAligner.sh")
 fi
 
 if [ -z "$depend" ]
@@ -72,8 +70,8 @@ alignerFile="$alignFileStart$aligner.$bashExtension"
 if [ -z "$alignerFile" ]
 then
 	echo "Aligner file for $aligner does not exit."
-	echo "Use default aligner $defaultAligner instead."
-	aligner=$defaultAligner
+	aligner=$("$DIR/../GetDefaultAligner.sh")
+	echo "Use default aligner $aligner instead."
 	alignerFile="$alignFileStart$aligner.$bashExtension"
 fi
 

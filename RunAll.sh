@@ -39,11 +39,9 @@ then
 	iteration="0"
 fi
 
-defaultAligner="FAMSA"
-
 if [ -z "$aligner" ]
 then
-	aligner="$defaultAligner"
+	aligner=$("$DIR/GetDefaultAligner.sh")
 fi
 
 alignFileStart="$DIR/09_AlignWith"
