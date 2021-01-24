@@ -46,15 +46,15 @@ fi
 
 alignFileStart="$DIR/09_AlignWith"
 bashExtension="sh"
-alignerFile="$alignFileStart$aligner.$bashExtension"
 
 if [ -z "$alignerFile" ]
 then
 	echo "Aligner file for $aligner does not exit."
 	echo "Use default aligner $defaultAligner instead."
 	aligner=$defaultAligner
-	alignerFile="$alignFileStart$aligner.$bashExtension"
 fi
+
+alignerFile="$alignFileStart$aligner.$bashExtension"
 
 if [ $iteration == 0 ]
 then
@@ -75,7 +75,7 @@ UFBootPart="$AlignmentLastBit.ufboot"
 AllSeqsUFBoot="$AllSeqs.ufboot"
 
 # Note this must be set to the last available step
-lastStep="12"
+lastStep="11"
 
 if [ -z "$last" ]
 then
