@@ -63,6 +63,7 @@ then
 	aligner=$("$DIR/../GetDefaultAligner.sh")
 fi
 
+nextIteration="$((iteration + 1))"
 rogueFreeTreesDir=$("$DIR/../GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$nextIteration" -a "$aligner")
 droppedFinal="$rogueFreeTreesDir/SequencesOfInterest.dropped.fasta"
 
@@ -74,14 +75,17 @@ elif [[ $numRoundsLeft =~ ^[+-]?[0-9]+$ ]]
 then
 	if (( numRoundsLeft <= 0 ))
 	then
+		echo "Num rounds left at $numRoundsLeft rounds left, in iteration $iteration"
 		exit
 	else
+		echo "$numRoundsLeft more rounds to go, next iteration: $nextIteration"
 		((numRoundsLeft--))
 	fi
 fi
 
 if [[ ! -f $droppedFinal ]]
 then
+	echo "$droppedFinal does not exist, existing"
 	# Break if this does not exist
 	exit
 fi
