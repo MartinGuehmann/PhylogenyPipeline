@@ -38,7 +38,7 @@ fi
 # so that the standard and error output files to the directory of this script
 cd $DIR
 
-jobIDs=$($DIR/PBS-Pro-Call.sh              "$gene"  9 "$iteration" "$aligner" "" "hold")
+jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "9" -i "$iteration" -a "$aligner" --hold)
 echo $jobIDs
 qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-Call-RogueOptTree.sh"
 

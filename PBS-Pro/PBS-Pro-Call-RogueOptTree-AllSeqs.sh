@@ -50,7 +50,7 @@ fi
 # so that the standard and error output files to the directory of this script
 cd $DIR
 
-jobIDs=$($DIR/PBS-Pro-Call.sh              "$gene" 10 "$iteration" "$aligner" "" "hold" "allSeqs")
+jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "10" -i "$iteration" -a "$aligner" --hold --allSeqs)
 echo $jobIDs
 
 qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner" -W "depend=afternotok$jobIDs" "$DIR/PBS-Pro-Call-RogueOptTree-AllSeqs.sh"
