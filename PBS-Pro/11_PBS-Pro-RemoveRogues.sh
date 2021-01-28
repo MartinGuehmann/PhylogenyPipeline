@@ -20,5 +20,5 @@ then
 fi
 
 date
-time "$DIR/../RunAll.sh" "$gene" "11" "11" "$iteration" "$aligner" "$shuffleSeqs"
+time "$DIR/../RunAll.sh" -g "$gene" -s "11" -l "11" -i "$iteration" -a "$aligner" -f "$shuffleSeqs"
 date

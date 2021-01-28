@@ -18,5 +18,5 @@ then
 fi
 
 date
-time "$DIR/../RunAll.sh" "$gene" "4" "4"
+time "$DIR/../RunAll.sh" -g "$gene" -s "4" -l "4"
 date

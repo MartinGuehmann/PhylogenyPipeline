@@ -17,5 +17,5 @@ then
 fi
 
 date
-time "$DIR/../RunAll.sh" "$gene" "9" "9" "$iteration" "PASTA" "$seqsToAlign"
+time "$DIR/../RunAll.sh" -g "$gene" -s "9" -l "9" -i "$iteration" -a "PASTA" -f "$seqsToAlign"
 date
