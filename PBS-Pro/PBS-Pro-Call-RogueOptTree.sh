@@ -13,30 +13,56 @@ then
 fi
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
-if [ ! -z "$1" ]
-then
-	gene="$1"
-fi
-
-if [ ! -z "$2" ]
-then
-	iteration="$2"
-fi
-
-if [ ! -z "$3" ]
-then
-	aligner="$3"
-fi
-
-if [ ! -z "$4" ]
-then
-	numRoundsLeft="$4"
-fi
-
-if [ ! -z "$5" ]
-then
-	shuffleSeqs="$5"
-fi
+# Idiomatic parameter and option handling in sh
+# Adapted from https://superuser.com/questions/186272/check-if-any-of-the-parameters-to-a-bash-script-match-a-string
+# And advanced version is here https://stackoverflow.com/questions/7069682/how-to-get-arguments-with-flags-in-bash/7069755#7069755
+while test $# -gt 0
+do
+    case "$1" in
+        --gene)
+            ;&
+        -g)
+            shift
+            gene="$1"
+            ;;
+        --iteration)
+            ;&
+        -i)
+            shift
+            iteration="$1"
+            ;;
+        --aligner)
+            ;&
+        -a)
+            shift
+            aligner="$1"
+            ;;
+        --numRoundsLeft)
+            ;&
+        -n)
+            shift
+            numRoundsLeft="$1"
+            ;;
+        --allSeqs)
+            ;&
+        -q)
+            allSeqs="--allSeqs"
+            ;;
+        --shuffleSeqs)
+            ;&
+        -l)
+            shuffleSeqs="--shuffleSeqs"
+            ;;
+        -*)
+            ;&
+        --*)
+            ;&
+        *)
+            echo "Bad option $1 is ignored"
+            ;;
+    esac
+    shift
+done
 
 if [ -z "$gene" ]
 then
@@ -60,13 +86,13 @@ fi
 # so that the standard and error output files to the directory of this script
 cd $DIR
 
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "10" -i "$iteration" -a "$aligner" --hold)
+jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "10" -i "$iteration" -a "$aligner" "$allSeqs" --hold)
 echo $jobIDs
 holdJobs=$jobIDs
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "11" -i "$iteration" -a "$aligner" -d "$jobIDs" --shuffleSeqs)
+jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "11" -i "$iteration" -a "$aligner" "$allSeqs" -d "$jobIDs" "$shuffleSeqs")
 echo $jobIDs
 
-qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-RemoveMoreRougues.sh"
+qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-RemoveMoreRougues.sh"
 
 # Start hold jobs
 holdJobs=$(echo $holdJobs | sed "s/:/ /g")
