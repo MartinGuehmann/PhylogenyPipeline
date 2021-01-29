@@ -125,4 +125,4 @@ then
 	fi
 fi
 
-"$DIR/PBS-Pro-Call-RogueOptAlign.sh" -g "$gene" -i "$nextIteration" -a "$aligner" -n "$numRoundsLeft" "$shuffleSeqs" "$allSeqs"
+"$DIR/PBS-Pro-Call-RogueOptAlign.sh" -g "$gene" -i "$nextIteration" -a "$aligner" -n "$numRoundsLeft" $shuffleSeqs $allSeqs
