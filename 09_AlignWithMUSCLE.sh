@@ -54,4 +54,4 @@ muscle -in $inputSequences -out $outFile
 raxml-ng --msa "$outFile" --threads $numTreads --model LG+G --check
 
 # Remove double underscores and brackets from extended sequence IDs
-sed -i -e 's/__/_/g' -e 's/[][]//g' "$outFile"
+sed -i -e 's/__/_/g' -e 's/[][]//g' "$outFile.raxml.reduced.phy"
