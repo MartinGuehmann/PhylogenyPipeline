@@ -9,6 +9,8 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
+suffix=""
+
 # Idiomatic parameter and option handling in sh
 # Adapted from https://superuser.com/questions/186272/check-if-any-of-the-parameters-to-a-bash-script-match-a-string
 # And advanced version is here https://stackoverflow.com/questions/7069682/how-to-get-arguments-with-flags-in-bash/7069755#7069755
@@ -32,6 +34,12 @@ do
         -a)
             shift
             aligner="$1"
+            ;;
+        --suffix)
+            ;&
+        -x)
+            shift
+            suffix=".$1"
             ;;
         -*)
             ;&
@@ -67,7 +75,7 @@ if [ $iteration == 0 ]
 then
 	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest/RogueIter_$iteration"
 else
-	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest/$aligner/RogueIter_$iteration"
+	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest/$aligner$suffix/RogueIter_$iteration"
 fi
 
 echo $seqsOfInterestDir

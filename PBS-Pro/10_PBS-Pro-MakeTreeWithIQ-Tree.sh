@@ -18,5 +18,5 @@ then
 fi
 
 date
-time "$DIR/../RunAll.sh" -g "$gene" -s "10" -l "10" -i "$iteration" -a "$aligner" -f "$alignmentToUse"
+time "$DIR/../RunAll.sh" -g "$gene" -s "10" -l "10" -i "$iteration" -a "$aligner" -f "$alignmentToUse" $suffix
 date

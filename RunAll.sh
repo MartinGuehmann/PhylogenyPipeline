@@ -11,6 +11,10 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 shopt -s extglob
 
+iteration="0"
+shuffleSeqs=""
+suffix=""
+
 # Idiomatic parameter and option handling in sh
 # Adapted from https://superuser.com/questions/186272/check-if-any-of-the-parameters-to-a-bash-script-match-a-string
 # And advanced version is here https://stackoverflow.com/questions/7069682/how-to-get-arguments-with-flags-in-bash/7069755#7069755
@@ -53,6 +57,17 @@ do
             shift
             seqsToAlignOrAlignment="$1"
             ;;
+        --shuffleSeqs)
+            ;&
+        -l)
+            shuffleSeqs="--shuffleSeqs"
+            ;;
+        --suffix)
+            ;&
+        -x)
+            shift
+            suffix="-x $1"
+            ;;
         -*)
             ;&
         --*)
@@ -80,11 +95,6 @@ then
 	exit
 fi
 
-if [ -z "$iteration" ]
-then
-	iteration="0"
-fi
-
 if [ -z "$aligner" ]
 then
 	aligner=$("$DIR/GetDefaultAligner.sh")
@@ -102,13 +112,13 @@ then
 	alignerFile="$alignFileStart$aligner.$bashExtension"
 fi
 
-SequencesOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner")
+SequencesOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix)
 
 partSequences="SequencesOfInterestShuffled.part_"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 SequencesOfInterestParts="$SequencesOfInterestDir/$partSequences"
 
-AlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner")
+AlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix)
 AlignmentParts="$AlignmentDir/$partSequences"
 AlignmentLastBit=".alignment.$aligner.fasta.raxml.reduced.phy"
 AllSeqs="$AlignmentDir/SequencesOfInterest$AlignmentLastBit"
@@ -220,20 +230,19 @@ do
 		;;
 	11)
 		echo "11. Remove rogue sequences with RogueNaRok and TreeShrink."
-		$DIR/11a_PrepareForRemovingRogues.sh "$gene" "$aligner" "$iteration"
+		$DIR/11a_PrepareForRemovingRogues.sh "$SequencesOfInterestDir"
 		for ufbootFile in "$AlignmentParts"*"$UFBootPart"
 		do
 			if [ -f $ufbootFile ]
 			then
-				$DIR/11_RemoveRogues.sh "$gene" "$ufbootFile" "$aligner" "$iteration"
+				$DIR/11_RemoveRogues.sh -g "$gene" -f "$ufbootFile" -a "$aligner" -i "$iteration" $suffix
 			fi
 		done
-		# We deal with the big alignment in the end
 		if [ -f $AllSeqsUFBoot ]
 		then
-			$DIR/11_RemoveRogues.sh "$gene" $AllSeqsUFBoot "$aligner" "$iteration"
+			$DIR/11_RemoveRogues.sh -g "$gene" -f $AllSeqsUFBoot -a "$aligner" -i "$iteration" $suffix
 		fi
-		$DIR/11b_ExtractNonRogues.sh "$gene" "$aligner" "$iteration" "$seqsToAlignOrAlignment"
+		$DIR/11b_ExtractNonRogues.sh -g "$gene" -a "$aligner" -i "$iteration" $shuffleSeqs $suffix
 		echo "11. Rogue sequences removed with RogueNaRok and TreeShrink."
 		;;
 

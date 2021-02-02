@@ -20,6 +20,11 @@ then
 fi
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
+iteration="0"
+allSeqs=""
+shuffleSeqs=""
+suffix=""
+
 # Idiomatic parameter and option handling in sh
 # Adapted from https://superuser.com/questions/186272/check-if-any-of-the-parameters-to-a-bash-script-match-a-string
 # And advanced version is here https://stackoverflow.com/questions/7069682/how-to-get-arguments-with-flags-in-bash/7069755#7069755
@@ -60,6 +65,12 @@ do
         -l)
             shuffleSeqs="--shuffleSeqs"
             ;;
+        --suffix)
+            ;&
+        -x)
+            shift
+            suffix="-x $1"
+            ;;
         -*)
             ;&
         --*)
@@ -78,18 +89,13 @@ then
 	exit
 fi
 
-if [ -z "$iteration" ]
-then
-	iteration="0"
-fi
-
 if [ -z "$aligner" ]
 then
 	aligner=$("$DIR/../GetDefaultAligner.sh")
 fi
 
 nextIteration="$((iteration + 1))"
-rogueFreeTreesDir=$("$DIR/../GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$nextIteration" -a "$aligner")
+rogueFreeTreesDir=$("$DIR/../GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$nextIteration" -a "$aligner" $suffix)
 droppedFinal="$rogueFreeTreesDir/SequencesOfInterest.dropped.fasta"
 
 
@@ -125,4 +131,4 @@ then
 	fi
 fi
 
-"$DIR/PBS-Pro-Call-RogueOptAlign.sh" -g "$gene" -i "$nextIteration" -a "$aligner" -n "$numRoundsLeft" $shuffleSeqs $allSeqs
+"$DIR/PBS-Pro-Call-RogueOptAlign.sh" -g "$gene" -i "$nextIteration" -a "$aligner" -n "$numRoundsLeft" $shuffleSeqs $allSeqs $suffix

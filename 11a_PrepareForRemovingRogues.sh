@@ -9,18 +9,15 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
-gene="$1"
-aligner="$2"
-iteration="$3"
 
-if [ -z "$gene" ]
+seqsOfInterestDir="$1"
+
+if [ -z "$seqsOfInterestDir" ]
 then
-	echo "You must give a GeneName, for instance:"
-	echo "./$thisScript GeneName"
+	echo "You must give a SeqsOfInterestDir, for instance:"
+	echo "./$thisScript SeqsOfInterestDir"
 	exit
 fi
-
-seqsOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner")
 
 numTreads=$(nproc)
 

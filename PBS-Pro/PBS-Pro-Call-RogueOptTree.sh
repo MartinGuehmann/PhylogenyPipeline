@@ -13,6 +13,11 @@ then
 fi
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
+iteration="0"
+allSeqs=""
+shuffleSeqs=""
+suffix=""
+
 # Idiomatic parameter and option handling in sh
 # Adapted from https://superuser.com/questions/186272/check-if-any-of-the-parameters-to-a-bash-script-match-a-string
 # And advanced version is here https://stackoverflow.com/questions/7069682/how-to-get-arguments-with-flags-in-bash/7069755#7069755
@@ -53,6 +58,12 @@ do
         -l)
             shuffleSeqs="--shuffleSeqs"
             ;;
+        --suffix)
+            ;&
+        -x)
+            shift
+            suffix="-x $1"
+            ;;
         -*)
             ;&
         --*)
@@ -72,11 +83,6 @@ then
 	exit
 fi
 
-if [ -z "$iteration" ]
-then
-	iteration="0"
-fi
-
 if [ -z "$aligner" ]
 then
 	aligner=$("$DIR/../GetDefaultAligner.sh")
@@ -86,17 +92,17 @@ fi
 # so that the standard and error output files to the directory of this script
 cd $DIR
 
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "10" -i "$iteration" -a "$aligner" $allSeqs --hold)
+jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "10" -i "$iteration" -a "$aligner" $allSeqs --hold $suffix)
 echo $jobIDs
 holdJobs=$jobIDs
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "11" -i "$iteration" -a "$aligner" $allSeqs -d "$jobIDs" $shuffleSeqs)
+jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "11" -i "$iteration" -a "$aligner" $allSeqs -d "$jobIDs" $shuffleSeqs $suffix)
 echo $jobIDs
 
-qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-RemoveMoreRougues.sh"
+qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-RemoveMoreRougues.sh"
 
 if [[ "$allSeqs" == "--allSeqs" ]]
 then
-	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs" -W "depend=afternotok$jobIDs" "$DIR/PBS-Pro-Call-RogueOptTree.sh"
+	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix" -W "depend=afternotok$jobIDs" "$DIR/PBS-Pro-Call-RogueOptTree.sh"
 fi
 
 # Start hold jobs

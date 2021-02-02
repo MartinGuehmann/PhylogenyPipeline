@@ -33,6 +33,12 @@ do
             shift
             aligner="$1"
             ;;
+        --suffix)
+            ;&
+        -x)
+            shift
+            suffix=".$1"
+            ;;
         -*)
             ;&
         --*)
@@ -63,6 +69,6 @@ then
 	exit
 fi
 
-AlignmentDir="$DIR/$gene/Alignments/$aligner/RogueIter_$iteration"
+AlignmentDir="$DIR/$gene/Alignments/$aligner$suffix/RogueIter_$iteration"
 
 echo $AlignmentDir

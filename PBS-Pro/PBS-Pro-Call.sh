@@ -17,6 +17,7 @@ hold=""
 depend=""
 allSeqs=""
 shuffleSeqs=""
+suffix=""
 
 # Idiomatic parameter and option handling in sh
 # Adapted from https://superuser.com/questions/186272/check-if-any-of-the-parameters-to-a-bash-script-match-a-string
@@ -67,7 +68,13 @@ do
         --shuffleSeqs)
             ;&
         -l)
-            shuffleSeqs="true"
+            shuffleSeqs="--shuffleSeqs"
+            ;;
+        --suffix)
+            ;&
+        -x)
+            shift
+            suffix="-x $1"
             ;;
         -*)
             ;&
@@ -113,13 +120,13 @@ then
 	alignerFile="$alignFileStart$aligner.$bashExtension"
 fi
 
-SequencesOfInterestDir=$("$DIR/../GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner")
+SequencesOfInterestDir=$("$DIR/../GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix)
 
 partSequences="SequencesOfInterestShuffled.part_"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 SequencesOfInterestParts="$SequencesOfInterestDir/$partSequences"
 
-AlignmentDir=$("$DIR/../GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner")
+AlignmentDir=$("$DIR/../GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix)
 AlignmentParts="$AlignmentDir/$partSequences"
 AlignmentLastBit=".alignment.$aligner.fasta.raxml.reduced.phy"
 AllSeqs="$AlignmentDir/SequencesOfInterest$AlignmentLastBit"
@@ -159,13 +166,13 @@ case $step in
 9)
 	if [[ $allSeqs == "allSeqs" ]]
 	then
-		jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest, iteration=$iteration" "$alignerFile")
+		jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest, iteration=$iteration, suffix=$suffix" "$alignerFile")
 	else
 		for fastaFile in "$SequencesOfInterestParts"+([0-9])".fasta"
 		do
 			if [[ -f $fastaFile ]]
 			then
-				jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$fastaFile, iteration=$iteration" "$alignerFile")
+				jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$fastaFile, iteration=$iteration, suffix=$suffix" "$alignerFile")
 			fi
 		done
 	fi
@@ -173,19 +180,19 @@ case $step in
 10)
 	if [[ $allSeqs == "allSeqs" ]]
 	then
-		jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner" "$DIR/10_PBS-Pro-Long-MakeTreeWithIQ-Tree.sh")
+		jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner, suffix=$suffix" "$DIR/10_PBS-Pro-Long-MakeTreeWithIQ-Tree.sh")
 	else
 		for phyFile in "$AlignmentParts"*"$AlignmentLastBit"
 		do
 			if [[ -f $phyFile ]]
 			then
-				jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$phyFile, iteration=$iteration, aligner=$aligner" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh")
+				jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$phyFile, iteration=$iteration, aligner=$aligner, suffix=$suffix" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh")
 			fi
 		done
 	fi
 	;;
 11)
-	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, shuffleSeqs=$shuffleSeqs" "$DIR/11_PBS-Pro-RemoveRogues.sh")
+	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, shuffleSeqs=$shuffleSeqs, suffix=$suffix" "$DIR/11_PBS-Pro-RemoveRogues.sh")
 	;;
 
 *)
