@@ -48,7 +48,7 @@ outTree="$alignmentDir/$base.tree.ClustalO.newick"
 mkdir -p $alignmentDir
 
 # Align the sequences with ClustalO
-clustalo --threads "$numTreads" -i "$inputSequences" -o "$outFile" --guidetree-out="$outTree"
+clustalo  --iterations 5 --threads "$numTreads" -i "$inputSequences" -o "$outFile" --guidetree-out="$outTree"
 
 ###########################################################
 # Clean alignment of empty columns
