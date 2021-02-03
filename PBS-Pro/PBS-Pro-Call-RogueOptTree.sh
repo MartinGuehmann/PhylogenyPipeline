@@ -13,11 +13,6 @@ then
 fi
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
-iteration="0"
-allSeqs=""
-shuffleSeqs=""
-suffix=""
-
 # Idiomatic parameter and option handling in sh
 # Adapted from https://superuser.com/questions/186272/check-if-any-of-the-parameters-to-a-bash-script-match-a-string
 # And advanced version is here https://stackoverflow.com/questions/7069682/how-to-get-arguments-with-flags-in-bash/7069755#7069755
@@ -81,6 +76,11 @@ then
 	echo "You must give a GeneName and a StepNumber, for instance:"
 	echo "./$thisScript GeneName StepNumber"
 	exit
+fi
+
+if [ -z "$iteration" ]
+then
+	iteration="0"
 fi
 
 if [ -z "$aligner" ]

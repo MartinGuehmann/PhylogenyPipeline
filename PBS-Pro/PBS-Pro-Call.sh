@@ -12,6 +12,7 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 shopt -s extglob
 
+# These would need not defind guards if called via qsub
 iteration="0"
 hold=""
 depend=""
