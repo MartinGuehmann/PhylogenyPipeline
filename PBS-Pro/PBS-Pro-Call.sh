@@ -77,6 +77,12 @@ do
             shift
             suffix="-x $1"
             ;;
+        --previousAligner)
+            ;&
+        -p)
+            shift
+            previousAligner="-p $1"
+            ;;
         -*)
             ;&
         --*)
@@ -121,7 +127,7 @@ then
 	alignerFile="$alignFileStart$aligner.$bashExtension"
 fi
 
-SequencesOfInterestDir=$("$DIR/../GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix)
+SequencesOfInterestDir=$("$DIR/../GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix $previousAligner)
 
 partSequences="SequencesOfInterestShuffled.part_"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
@@ -167,13 +173,13 @@ case $step in
 9)
 	if [[ $allSeqs == "allSeqs" ]]
 	then
-		jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest, iteration=$iteration, suffix=$suffix" "$alignerFile")
+		jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner" "$alignerFile")
 	else
 		for fastaFile in "$SequencesOfInterestParts"+([0-9])".fasta"
 		do
 			if [[ -f $fastaFile ]]
 			then
-				jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$fastaFile, iteration=$iteration, suffix=$suffix" "$alignerFile")
+				jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$fastaFile, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner" "$alignerFile")
 			fi
 		done
 	fi
@@ -181,19 +187,19 @@ case $step in
 10)
 	if [[ $allSeqs == "allSeqs" ]]
 	then
-		jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner, suffix=$suffix" "$DIR/10_PBS-Pro-Long-MakeTreeWithIQ-Tree.sh")
+		jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner, suffix=$suffix, previousAligner=$previousAligner" "$DIR/10_PBS-Pro-Long-MakeTreeWithIQ-Tree.sh")
 	else
 		for phyFile in "$AlignmentParts"*"$AlignmentLastBit"
 		do
 			if [[ -f $phyFile ]]
 			then
-				jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$phyFile, iteration=$iteration, aligner=$aligner, suffix=$suffix" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh")
+				jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$phyFile, iteration=$iteration, aligner=$aligner, suffix=$suffix, previousAligner=$previousAligner" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh")
 			fi
 		done
 	fi
 	;;
 11)
-	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, shuffleSeqs=$shuffleSeqs, suffix=$suffix" "$DIR/11_PBS-Pro-RemoveRogues.sh")
+	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, shuffleSeqs=$shuffleSeqs, suffix=$suffix, previousAligner=$previousAligner" "$DIR/11_PBS-Pro-RemoveRogues.sh")
 	;;
 
 *)

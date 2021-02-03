@@ -68,6 +68,12 @@ do
             shift
             suffix="-x $1"
             ;;
+        --previousAligner)
+            ;&
+        -p)
+            shift
+            previousAligner="-p $1"
+            ;;
         -*)
             ;&
         --*)
@@ -112,7 +118,7 @@ then
 	alignerFile="$alignFileStart$aligner.$bashExtension"
 fi
 
-SequencesOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix)
+SequencesOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix $previousAligner)
 
 partSequences="SequencesOfInterestShuffled.part_"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
@@ -235,14 +241,14 @@ do
 		do
 			if [ -f $ufbootFile ]
 			then
-				$DIR/11_RemoveRogues.sh -g "$gene" -f "$ufbootFile" -a "$aligner" -i "$iteration" $suffix
+				$DIR/11_RemoveRogues.sh -g "$gene" -f "$ufbootFile" -a "$aligner" -i "$iteration" $suffix $previousAligner
 			fi
 		done
 		if [ -f $AllSeqsUFBoot ]
 		then
-			$DIR/11_RemoveRogues.sh -g "$gene" -f $AllSeqsUFBoot -a "$aligner" -i "$iteration" $suffix
+			$DIR/11_RemoveRogues.sh -g "$gene" -f $AllSeqsUFBoot -a "$aligner" -i "$iteration" $suffix $previousAligner
 		fi
-		$DIR/11b_ExtractNonRogues.sh -g "$gene" -a "$aligner" -i "$iteration" $shuffleSeqs $suffix
+		$DIR/11b_ExtractNonRogues.sh -g "$gene" -a "$aligner" -i "$iteration" $shuffleSeqs $suffix $previousAligner
 		echo "11. Rogue sequences removed with RogueNaRok and TreeShrink."
 		;;
 

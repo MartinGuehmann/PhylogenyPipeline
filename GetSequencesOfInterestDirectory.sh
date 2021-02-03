@@ -9,7 +9,9 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
+# This is needed, because these might be definded from qsub
 suffix=""
+previousAligner=""
 
 # Idiomatic parameter and option handling in sh
 # Adapted from https://superuser.com/questions/186272/check-if-any-of-the-parameters-to-a-bash-script-match-a-string
@@ -40,6 +42,12 @@ do
         -x)
             shift
             suffix=".$1"
+            ;;
+        --previousAligner)
+            ;&
+        -p)
+            shift
+            previousAligner="$1"
             ;;
         -*)
             ;&
@@ -74,8 +82,11 @@ fi
 if [ $iteration == 0 ]
 then
 	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest/RogueIter_$iteration"
-else
+elif [ -z $previousAligner ]
+then
 	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest/$aligner$suffix/RogueIter_$iteration"
+else
+	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest/$previousAligner/RogueIter_$iteration"
 fi
 
 echo $seqsOfInterestDir

@@ -59,6 +59,12 @@ do
             shift
             suffix="-x $1"
             ;;
+        --previousAligner)
+            ;&
+        -p)
+            shift
+            previousAligner="-p $1"
+            ;;
         -*)
             ;&
         --*)
@@ -92,17 +98,17 @@ fi
 # so that the standard and error output files to the directory of this script
 cd $DIR
 
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "10" -i "$iteration" -a "$aligner" $allSeqs --hold $suffix)
+jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "10" -i "$iteration" -a "$aligner" $allSeqs --hold $suffix $previousAligner)
 echo $jobIDs
 holdJobs=$jobIDs
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "11" -i "$iteration" -a "$aligner" $allSeqs -d "$jobIDs" $shuffleSeqs $suffix)
+jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "11" -i "$iteration" -a "$aligner" $allSeqs -d "$jobIDs" $shuffleSeqs $suffix $previousAligner)
 echo $jobIDs
 
 qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-RemoveMoreRougues.sh"
 
 if [[ "$allSeqs" == "--allSeqs" ]]
 then
-	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix" -W "depend=afternotok$jobIDs" "$DIR/PBS-Pro-Call-RogueOptTree.sh"
+	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, previousAligner=$previousAligner" -W "depend=afternotok$jobIDs" "$DIR/PBS-Pro-Call-RogueOptTree.sh"
 fi
 
 # Start hold jobs

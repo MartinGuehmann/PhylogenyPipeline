@@ -45,6 +45,12 @@ do
             shift
             suffix="-x $1"
             ;;
+        --previousAligner)
+            ;&
+        -p)
+            shift
+            previousAligner="-p $1"
+            ;;
         -*)
             ;&
         --*)
@@ -65,7 +71,7 @@ then
 	exit
 fi
 
-seqsOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix)
+seqsOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix $previousAligner)
 rogueFreeTreesDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$((iteration + 1))" -a "$aligner" $suffix)
 
 

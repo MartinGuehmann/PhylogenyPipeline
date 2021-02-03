@@ -56,6 +56,12 @@ do
             shift
             suffix="-x $1"
             ;;
+        --previousAligner)
+            ;&
+        -p)
+            shift
+            previousAligner="-p $1"
+            ;;
         -*)
             ;&
         --*)
@@ -89,10 +95,10 @@ fi
 # so that the standard and error output files to the directory of this script
 cd $DIR
 
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "9" -i "$iteration" -a "$aligner" --hold $allSeqs $suffix)
+jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "9" -i "$iteration" -a "$aligner" --hold $allSeqs $suffix $previousAligner)
 echo $jobIDs
 
-qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-Call-RogueOptTree.sh"
+qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, previousAligner=$previousAligner" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-Call-RogueOptTree.sh"
 
 # Start hold jobs
 jobIDs=$(echo $jobIDs | sed "s/:/ /g")
