@@ -89,6 +89,11 @@ do
             shift
             trimAl="-t $1"
             ;;
+        --restore)
+            ;&
+        -r)
+            restore="--restore"
+            ;;
         -*)
             ;&
         --*)
@@ -205,7 +210,7 @@ case $step in
 	fi
 	;;
 11)
-	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, shuffleSeqs=$shuffleSeqs, suffix=$suffix, previousAligner=$previousAligner" "$DIR/11_PBS-Pro-RemoveRogues.sh")
+	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, shuffleSeqs=$shuffleSeqs, suffix=$suffix, previousAligner=$previousAligner, restore=$restore" "$DIR/11_PBS-Pro-RemoveRogues.sh")
 	;;
 
 *)

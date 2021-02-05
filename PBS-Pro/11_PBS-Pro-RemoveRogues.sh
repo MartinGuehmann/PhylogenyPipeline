@@ -20,5 +20,5 @@ then
 fi
 
 date
-time "$DIR/../RunAll.sh" -g "$gene" -s "11" -l "11" -i "$iteration" -a "$aligner" $shuffleSeqs $suffix $previousAligner
+time "$DIR/../RunAll.sh" -g "$gene" -s "11" -l "11" -i "$iteration" -a "$aligner" $shuffleSeqs $suffix $previousAligner $restore
 date

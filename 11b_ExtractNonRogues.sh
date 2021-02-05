@@ -39,6 +39,11 @@ do
         -l)
             shuffleSeqs="--shuffleSeqs"
             ;;
+        --restore)
+            ;&
+        -r)
+            restore="--restore"
+            ;;
         --suffix)
             ;&
         -x)
@@ -73,7 +78,6 @@ fi
 
 seqsOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix $previousAligner)
 rogueFreeTreesDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$((iteration + 1))" -a "$aligner" $suffix)
-
 
 numTreads=$(nproc)
 seqsOfInterest="$seqsOfInterestDir/SequencesOfInterest.fasta"
@@ -123,19 +127,37 @@ then
 		mv $fastaFile "$rogueFreeTreesDir/$baseFile.old.fasta"
 	done
 
-	seqsPerChunk="900"
+	nextAlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "$((iteration + 1))" -a "$aligner" $suffix)
+	if [[ restore == "--restore" && ! -z $nextAlignmentDir ]]
+	then
+		rm -f "$SequencesOfInterestShuffled"
+		seqIDs="$rogueFreeTreesDir/SeqIDs.txt"
+		for fastaFile in "$nextAlignmentDir/$partSequences"+([0-9])".alignment.$aligner.fasta"
+		do
+			seqkit seq -i $fastaFile > $seqIDs
+			baseFile=$(basename $fastaFile ".alignment.$aligner.fasta")
+			seqkit grep -f "$seqIDs" -j $numTreads "$nextSeqsOfInterest" > "$baseFile.fasta"
 
-	seqkit shuffle -2 -j "$numTreads" "$nextSeqsOfInterest" > "$SequencesOfInterestShuffled"
+			echo "$baseFile.fasta" >> "$SequencesOfInterestShuffled"
+		done
 
-	numSeqs=$(grep -c '>' $SequencesOfInterestShuffled)
+		rm -f $seqIDs
+	else
 
-	restSeqChunk=$(($numSeqs % $seqsPerChunk))
-	numSeqChunks=$(($numSeqs / $seqsPerChunk))
+		seqsPerChunk="900"
 
-	numSeqsCorrPerChunk=$(($seqsPerChunk + 1 + $restSeqChunk / $numSeqChunks))
+		seqkit shuffle -2 -j "$numTreads" "$nextSeqsOfInterest" > "$SequencesOfInterestShuffled"
 
-	# Warns that output directoy is not empty, but it is supposed to be non-empty
-	seqkit split2 -j $numTreads -s $numSeqsCorrPerChunk -O $rogueFreeTreesDir $SequencesOfInterestShuffled
+		numSeqs=$(grep -c '>' $SequencesOfInterestShuffled)
+
+		restSeqChunk=$(($numSeqs % $seqsPerChunk))
+		numSeqChunks=$(($numSeqs / $seqsPerChunk))
+
+		numSeqsCorrPerChunk=$(($seqsPerChunk + 1 + $restSeqChunk / $numSeqChunks))
+
+		# Warns that output directoy is not empty, but it is supposed to be non-empty
+		seqkit split2 -j $numTreads -s $numSeqsCorrPerChunk -O $rogueFreeTreesDir $SequencesOfInterestShuffled
+	fi
 fi
 
 seqkit stats "$rogueFreeTreesDir/"*".fasta" > "$rogueFreeTreesDir/Statistics.txt"

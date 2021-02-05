@@ -85,6 +85,11 @@ do
                 trimAl="$1"
             fi
             ;;
+        --restore)
+            ;&
+        -r)
+            restore="--restore"
+            ;;
         -*)
             ;&
         --*)
@@ -259,7 +264,7 @@ do
 		then
 			$DIR/11_RemoveRogues.sh -g "$gene" -f $AllSeqsUFBoot -a "$aligner" -i "$iteration" $suffix $previousAligner
 		fi
-		$DIR/11b_ExtractNonRogues.sh -g "$gene" -a "$aligner" -i "$iteration" $shuffleSeqs $suffix $previousAligner
+		$DIR/11b_ExtractNonRogues.sh -g "$gene" -a "$aligner" -i "$iteration" $shuffleSeqs $suffix $previousAligner $restore
 		echo "11. Rogue sequences removed with RogueNaRok and TreeShrink."
 		;;
 
