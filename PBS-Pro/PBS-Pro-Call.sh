@@ -83,6 +83,12 @@ do
             shift
             previousAligner="-p $1"
             ;;
+        --trimAl)
+            ;&
+        -t)
+            shift
+            trimAl="-t $1"
+            ;;
         -*)
             ;&
         --*)
@@ -173,13 +179,13 @@ case $step in
 9)
 	if [[ $allSeqs == "allSeqs" ]]
 	then
-		jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner" "$alignerFile")
+		jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" "$alignerFile")
 	else
 		for fastaFile in "$SequencesOfInterestParts"+([0-9])".fasta"
 		do
 			if [[ -f $fastaFile ]]
 			then
-				jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$fastaFile, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner" "$alignerFile")
+				jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$fastaFile, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" "$alignerFile")
 			fi
 		done
 	fi

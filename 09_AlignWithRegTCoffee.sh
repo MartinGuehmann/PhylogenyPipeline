@@ -16,6 +16,7 @@ thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 gene="$1"                    # The gene name, the base directory for this analysis
 inputSequences="$2"          # The input sequences to be aligned
 alignmentDir="$3"            # The output directories for the alignments
+trimal="$4"                  # Whether the alignment should be trimmed
 
 if [ -z "$gene" ]
 then
@@ -74,5 +75,12 @@ mv "$outFileFixed" "$outFile"
 # Clean alignment of empty columns
 raxml-ng --msa "$outFile" --threads $numTreads --model LG+G --check
 
+reducedOutFile="$outFile.raxml.reduced.phy"
+
 # Remove double underscores and brackets from extended sequence IDs
-sed -i -e 's/__/_/g' -e 's/[][]//g' "$outFile.raxml.reduced.phy"
+sed -i -e 's/__/_/g' -e 's/[][]//g' "$reducedOutFile"
+
+if [ ! -z "$trimal" ]
+then
+	"$DIR/../trimal/source/trimal" -in "$reducedOutFile" -out "$reducedOutFile" -gt "$trimal"
+fi

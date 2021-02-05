@@ -65,6 +65,12 @@ do
             shift
             previousAligner="-p $1"
             ;;
+        --trimAl)
+            ;&
+        -t)
+            shift
+            trimAl="-t $1"
+            ;;
         -*)
             ;&
         --*)
@@ -104,11 +110,11 @@ holdJobs=$jobIDs
 jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "11" -i "$iteration" -a "$aligner" $allSeqs -d "$jobIDs" $shuffleSeqs $suffix $previousAligner)
 echo $jobIDs
 
-qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-RemoveMoreRougues.sh"
+qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, trimAl=$trimAl" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-RemoveMoreRougues.sh"
 
 if [[ "$allSeqs" == "--allSeqs" ]]
 then
-	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, previousAligner=$previousAligner" -W "depend=afternotok$jobIDs" "$DIR/PBS-Pro-Call-RogueOptTree.sh"
+	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" -W "depend=afternotok$jobIDs" "$DIR/PBS-Pro-Call-RogueOptTree.sh"
 fi
 
 # Start hold jobs

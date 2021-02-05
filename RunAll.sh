@@ -74,6 +74,17 @@ do
             shift
             previousAligner="-p $1"
             ;;
+        --trimAl)
+            ;&
+        -t)
+            shift
+            if [ "$1" == "Default" ]
+            then
+                trimAl="0.1"
+            else
+                trimAl="$1"
+            fi
+            ;;
         -*)
             ;&
         --*)
@@ -206,13 +217,13 @@ do
 			do
 				if [ -f $fastaFile ]
 				then
-					"$alignerFile" "$gene" "$fastaFile" "$AlignmentDir"
+					"$alignerFile" "$gene" "$fastaFile" "$AlignmentDir" "$trimAl"
 				fi
 			done
 			# We deal with the big alignment in the end
-			#"$alignerFile" "$gene" "$SequencesOfInterest" "$AlignmentDir"
+			#"$alignerFile" "$gene" "$SequencesOfInterest" "$AlignmentDir" "$trimAl"
 		else
-			$alignerFile "$gene" "$seqsToAlignOrAlignment" "$AlignmentDir"
+			$alignerFile "$gene" "$seqsToAlignOrAlignment" "$AlignmentDir" "$trimAl"
 		fi
 		echo "9. Sequences aligned with $aligner."
 		;;
