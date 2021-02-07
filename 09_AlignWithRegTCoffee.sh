@@ -13,29 +13,21 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
 # Input parameters
-gene="$1"                    # The gene name, the base directory for this analysis
-inputSequences="$2"          # The input sequences to be aligned
-alignmentDir="$3"            # The output directories for the alignments
-trimal="$4"                  # Whether the alignment should be trimmed
-
-if [ -z "$gene" ]
-then
-	echo "You must give a GeneName, for instance:"
-	echo "./$thisScript GeneName InputSequences AlignmentDirectory"
-	exit
-fi
+inputSequences="$1"          # The input sequences to be aligned
+alignmentDir="$2"            # The output directories for the alignments
+trimal="$3"                  # Whether the alignment should be trimmed
 
 if [[ -z "$inputSequences" ]]
 then
 	echo "You must give a file with InputSequences, for instance:"
-	echo "./$thisScript GeneName InputSequences AlignmentDirectory"
+	echo "./$thisScript InputSequences AlignmentDirectory"
 	exit
 fi
 
 if [ -z "$alignmentDir" ]
 then
 	echo "You must give a file with InputSequences, for instance:"
-	echo "./$thisScript GeneName InputSequences AlignmentDirectory"
+	echo "./$thisScript InputSequences AlignmentDirectory"
 	exit
 fi
 

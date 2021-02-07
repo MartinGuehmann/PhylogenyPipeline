@@ -204,11 +204,11 @@ case $step in
 		do
 			if [ -f $fastaFile ]
 			then
-				"$alignerFile" "$gene" "$fastaFile" "$AlignmentDir" "$trimAl"
+				"$alignerFile" "$fastaFile" "$AlignmentDir" "$trimAl"
 			fi
 		done
 	else
-		$alignerFile "$gene" "$seqsToAlignOrAlignment" "$AlignmentDir" "$trimAl"
+		$alignerFile "$seqsToAlignOrAlignment" "$AlignmentDir" "$trimAl"
 	fi
 	echo "9. Sequences aligned with $aligner."
 	;;
@@ -261,12 +261,12 @@ case $step in
 		do
 			if [ -f $fastaFile ]
 			then
-				$DIR/09_AlignWithPASTA.sh "$gene" "$fastaFile" "$TreesForPruningFromPASTADir"
+				$DIR/09_AlignWithPASTA.sh "$fastaFile" "$TreesForPruningFromPASTADir"
 			fi
 		done
 	else
 		#Remove the gene argument
-		$DIR/09_AlignWithPASTA.sh "$gene" "$seqsToAlignOrAlignment" "$TreesForPruningFromPASTADir"
+		$DIR/09_AlignWithPASTA.sh "$seqsToAlignOrAlignment" "$TreesForPruningFromPASTADir"
 	fi
 	echo "14. Trees built with PASTA for pruning."
 	;;
