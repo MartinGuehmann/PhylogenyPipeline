@@ -134,6 +134,9 @@ partSequences="SequencesOfInterestShuffled.part_"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 SequencesOfInterestParts="$SequencesOfInterestDir/$partSequences"
 
+TreesForPruningFromPASTADir="$DIR/$gene/TreesForPruningFromPASTA"
+TreesForPruningFromPASTAParts="SequencesForPruning.part_"
+
 AlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix)
 AlignmentParts="$AlignmentDir/$partSequences"
 AlignmentLastBit=".alignment.$aligner.fasta.raxml.reduced.phy"
@@ -204,8 +207,6 @@ case $step in
 				"$alignerFile" "$gene" "$fastaFile" "$AlignmentDir" "$trimAl"
 			fi
 		done
-		# We deal with the big alignment in the end
-		#"$alignerFile" "$gene" "$SequencesOfInterest" "$AlignmentDir" "$trimAl"
 	else
 		$alignerFile "$gene" "$seqsToAlignOrAlignment" "$AlignmentDir" "$trimAl"
 	fi
@@ -222,8 +223,6 @@ case $step in
 				$DIR/10_MakeTreeWithIQ-Tree.sh "$phyFile"
 			fi
 		done
-		# We deal with the big alignment in the end
-		#$DIR/10_MakeTreeWithIQ-Tree.sh "$AllSeqs"
 	else
 		$DIR/10_MakeTreeWithIQ-Tree.sh "$seqsToAlignOrAlignment"
 	fi
@@ -246,7 +245,35 @@ case $step in
 	$DIR/11b_ExtractNonRogues.sh -g "$gene" -a "$aligner" -i "$iteration" $shuffleSeqs $suffix $previousAligner $restore
 	echo "11. Rogue sequences removed with RogueNaRok and TreeShrink."
 	;;
-
+12)
+	echo "12. Visualise trees."
+	echo "12. Trees visualized."
+	;;
+13)
+	echo "13. Split sequences into chunks for subset extraction."
+	echo "13. Sequences split into chunks for subset extraction."
+	;;
+14)
+	echo "14. Build trees with PASTA for pruning."
+	if [ -z "$seqsToAlignOrAlignment" ]
+	then
+		for fastaFile in "$TreesForPruningFromPASTAParts"+([0-9])".fasta"
+		do
+			if [ -f $fastaFile ]
+			then
+				$DIR/09_AlignWithPASTA.sh "$gene" "$fastaFile" "$TreesForPruningFromPASTADir"
+			fi
+		done
+	else
+		#Remove the gene argument
+		$DIR/09_AlignWithPASTA.sh "$gene" "$seqsToAlignOrAlignment" "$TreesForPruningFromPASTADir"
+	fi
+	echo "14. Trees built with PASTA for pruning."
+	;;
+15)
+	echo "15. Extract sequences of interest."
+	echo "15. Sequences of interest extracted."
+	;;
 *)
 	echo "Step $i is not a valid step."
 esac
