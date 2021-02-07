@@ -49,7 +49,7 @@ sed -i -e '/^#/!s/J/L/g' -e '/^#/!s/j/l/g' $cleanedinputSequences
 ###########################################################
 # Align the sequences with PASTA
 maxMB="16384"
-run_pasta.py -i $cleanedinputSequences -d protein -o $alignmentDir -k --max-mem-mb=$maxMB
+run_pasta.py -i $cleanedinputSequences -d protein -o $alignmentDir --max-mem-mb=$maxMB
 
 ###########################################################
 # Rename PASTA output file to $outFile
