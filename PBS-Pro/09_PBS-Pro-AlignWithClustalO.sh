@@ -18,5 +18,5 @@ then
 fi
 
 date
-time "$DIR/../RunAll.sh" -g "$gene" -s "9" -l "9" -i "$iteration" -a "ClustalO" -f "$seqsToAlign" $suffix $previousAligner $trimAl
+time "$DIR/../RunAll.sh" -g "$gene" -s "9" -i "$iteration" -a "ClustalO" -f "$seqsToAlign" $suffix $previousAligner $trimAl
 date
