@@ -19,15 +19,15 @@ trimal="$3"                  # Whether the alignment should be trimmed
 
 if [[ -z "$inputSequences" ]]
 then
-	echo "You must give a file with InputSequences, for instance:"
-	echo "./$thisScript InputSequences AlignmentDirectory"
+	echo "You must give a file with InputSequences, for instance:" >&2
+	echo "./$thisScript InputSequences AlignmentDirectory" >&2
 	exit
 fi
 
 if [ -z "$alignmentDir" ]
 then
-	echo "You must give a file with InputSequences, for instance:"
-	echo "./$thisScript InputSequences AlignmentDirectory"
+	echo "You must give a file with InputSequences, for instance:" >&2
+	echo "./$thisScript InputSequences AlignmentDirectory" >&2
 	exit
 fi
 
@@ -42,16 +42,4 @@ mkdir -p $alignmentDir
 # Align the sequences with regressive MAFFT
 mafft --thread $numTreads $inputSequences > $outFile
 
-###########################################################
-# Clean alignment of empty columns
-raxml-ng --msa "$outFile" --threads $numTreads --model LG+G --check
-
-reducedOutFile="$outFile.raxml.reduced.phy"
-
-# Remove double underscores and brackets from extended sequence IDs
-sed -i -e 's/__/_/g' -e 's/[][]//g' "$reducedOutFile"
-
-if [ ! -z "$trimal" ]
-then
-	"$DIR/../trimal/source/trimal" -in "$reducedOutFile" -out "$reducedOutFile" -gt "$trimal"
-fi
+echo "$outFile"

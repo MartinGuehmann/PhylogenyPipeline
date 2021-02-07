@@ -49,7 +49,7 @@ do
             ;&
         -f)
             shift
-            seqsToAlignOrAlignment="$1"
+            inputFile="$1"
             ;;
         --shuffleSeqs)
             ;&
@@ -198,23 +198,25 @@ case $step in
 	;;
 9)
 	echo "9. Align sequences with $aligner."
-	if [ -z "$seqsToAlignOrAlignment" ]
+	if [ -z "$inputFile" ]
 	then
 		for fastaFile in "$SequencesOfInterestParts"+([0-9])".fasta"
 		do
 			if [ -f $fastaFile ]
 			then
-				"$alignerFile" "$fastaFile" "$AlignmentDir" "$trimAl"
+				alignmentFile=$("$alignerFile" "$fastaFile" "$AlignmentDir")
+				$DIR/09a_PostProcessAlignment.sh "$alignmentFile" "$trimAl"
 			fi
 		done
 	else
-		$alignerFile "$seqsToAlignOrAlignment" "$AlignmentDir" "$trimAl"
+		alignmentFile=$($alignerFile "$inputFile" "$AlignmentDir")
+		$DIR/09a_PostProcessAlignment.sh "$alignmentFile" "$trimAl"
 	fi
 	echo "9. Sequences aligned with $aligner."
 	;;
 10)
 	echo "10. Build trees with IQ-Tree."
-	if [ -z "$seqsToAlignOrAlignment" ]
+	if [ -z "$inputFile" ]
 	then
 		for phyFile in "$AlignmentParts"*"$AlignmentLastBit"
 		do
@@ -224,7 +226,7 @@ case $step in
 			fi
 		done
 	else
-		$DIR/10_MakeTreeWithIQ-Tree.sh "$seqsToAlignOrAlignment"
+		$DIR/10_MakeTreeWithIQ-Tree.sh "$inputFile"
 	fi
 	echo "10. Trees built with IQ-Tree."
 	;;
@@ -255,18 +257,18 @@ case $step in
 	;;
 14)
 	echo "14. Build trees with PASTA for pruning."
-	if [ -z "$seqsToAlignOrAlignment" ]
+	if [ -z "$inputFile" ]
 	then
 		for fastaFile in "$TreesForPruningFromPASTAParts"+([0-9])".fasta"
 		do
 			if [ -f $fastaFile ]
 			then
-				$DIR/09_AlignWithPASTA.sh "$fastaFile" "$TreesForPruningFromPASTADir"
+				alignmentFile=$($DIR/09_AlignWithPASTA.sh "$fastaFile" "$TreesForPruningFromPASTADir")
 			fi
 		done
 	else
 		#Remove the gene argument
-		$DIR/09_AlignWithPASTA.sh "$seqsToAlignOrAlignment" "$TreesForPruningFromPASTADir"
+		alignmentFile=$($DIR/09_AlignWithPASTA.sh "$inputFile" "$TreesForPruningFromPASTADir")
 	fi
 	echo "14. Trees built with PASTA for pruning."
 	;;
