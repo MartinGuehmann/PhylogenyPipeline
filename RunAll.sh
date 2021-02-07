@@ -267,7 +267,6 @@ case $step in
 			fi
 		done
 	else
-		#Remove the gene argument
 		alignmentFile=$($DIR/09_AlignWithPASTA.sh "$inputFile" "$TreesForPruningFromPASTADir")
 	fi
 	echo "14. Trees built with PASTA for pruning."

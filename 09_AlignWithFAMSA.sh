@@ -15,7 +15,6 @@ thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 # Input parameters
 inputSequences="$1"          # The input sequences to be aligned
 alignmentDir="$2"            # The output directories for the alignments
-trimal="$3"                  # Whether the alignment should be trimmed
 
 if [[ -z "$inputSequences" ]]
 then
