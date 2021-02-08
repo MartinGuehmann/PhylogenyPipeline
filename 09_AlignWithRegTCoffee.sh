@@ -41,7 +41,7 @@ outTree="$alignmentDir/$base.tree.RegTCoffee.newick"
 mkdir -p $alignmentDir
 
 # Align the sequences with regressive t-coffee
-MAX_N_PID_4_TCOFFEE=520000 t_coffee -reg -seq $inputSequences -nseq 100 -tree mbed -method mafftlinsi_msa -outfile $outFile -outtree $outTree -thread 0
+MAX_N_PID_4_TCOFFEE=520000 t_coffee -reg -seq $inputSequences -nseq 100 -tree mbed -method mafftlinsi_msa -outfile $outFile -outtree $outTree -thread 0  >&2 # In case this puts something to stdout
 
 ###########################################################
 # Restore sequence names, so that we have some idea of what we are looking when we are looking at the tree
@@ -62,4 +62,5 @@ done < $inputSequences
 seqkit replace -p '(.+)$' -k "$mapFile" -r '{kv}' -K "$outFile" > "$outFileFixed"
 mv "$outFileFixed" "$outFile"
 
+# This must be the only stuff that goes to stdout here, since we use this as a return value
 echo "$outFile"

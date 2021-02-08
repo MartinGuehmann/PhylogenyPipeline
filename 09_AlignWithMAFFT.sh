@@ -41,4 +41,5 @@ mkdir -p $alignmentDir
 # Align the sequences with regressive MAFFT
 mafft --thread $numTreads $inputSequences > $outFile
 
+# This must be the only stuff that goes to stdout here, since we use this as a return value
 echo "$outFile"

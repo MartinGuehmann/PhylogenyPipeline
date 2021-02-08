@@ -18,9 +18,14 @@ trimal="$2"                  # Whether the alignment should be trimmed
 
 if [[ -z "$alignmentFile" ]]
 then
-	echo "You must give a file with an alignment, for instance:"
-	echo "./$thisScript AlignmentFile"
+	echo "You must give a file with an alignment, for instance:"  >&2
+	echo "./$thisScript AlignmentFile" >&2
 	exit
+fi
+
+if [[ ! -f $alignmentFile ]]
+then
+	echo "Warning alignment file does not exist: $alignmentFile" >&2
 fi
 
 numTreads=$(nproc)

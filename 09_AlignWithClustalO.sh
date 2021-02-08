@@ -40,6 +40,7 @@ outTree="$alignmentDir/$base.tree.ClustalO.newick"
 mkdir -p $alignmentDir
 
 # Align the sequences with ClustalO
-clustalo  --iterations 5 --threads "$numTreads" -i "$inputSequences" -o "$outFile" --guidetree-out="$outTree"
+clustalo  --iterations 5 --threads "$numTreads" -i "$inputSequences" -o "$outFile" --guidetree-out="$outTree" >&2 # In case this puts something to stdout
 
+# This must be the only stuff that goes to stdout here, since we use this as a return value
 echo "$outFile"

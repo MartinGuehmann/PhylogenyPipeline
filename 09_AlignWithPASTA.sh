@@ -47,20 +47,13 @@ sed -i -e '/^#/!s/J/L/g' -e '/^#/!s/j/l/g' $cleanedinputSequences
 
 ###########################################################
 # Align the sequences with PASTA
+# PASTA outputs stuff to stdout, even so it should go to stderr
+# This just cloaks the return stuff of this script
 maxMB="16384"
-run_pasta.py -i $cleanedinputSequences -d protein -o $alignmentDir --num-cpus=$numTreads --max-mem-mb=$maxMB
+run_pasta.py -i $cleanedinputSequences -d protein -o $alignmentDir --num-cpus=$numTreads --max-mem-mb=$maxMB --alignment-suffix="alignment.PASTA.fasta" -j $base >&2
 
-###########################################################
-# Rename PASTA output file to $outFile
-for pastaAlnFile in "$alignmentDir/"*".$base.aln"
-do
-	# We might have more than one, some even be empty, from previous incomplete runs
-	# So just rename the first non-empty one
-	if [ -s $pastaAlnFile ]
-	then
-		mv $pastaAlnFile $outFile
-		break
-	fi
-done
+# Remove tempory output files
+rm $alignmentDir/${base}_temp_*
 
+# This must be the only stuff that goes to stdout here, since we use this as a return value
 echo "$outFile"

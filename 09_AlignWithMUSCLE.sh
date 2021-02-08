@@ -39,6 +39,7 @@ outFile="$alignmentDir/$base.alignment.MUSCLE.fasta"
 mkdir -p $alignmentDir
 
 # Align the sequences with regressive MUSCLE
-muscle -in $inputSequences -out $outFile
+muscle -in $inputSequences -out $outFile >&2 # In case this puts something to stdout
 
+# This must be the only stuff that goes to stdout here, since we use this as a return value
 echo "$outFile"
