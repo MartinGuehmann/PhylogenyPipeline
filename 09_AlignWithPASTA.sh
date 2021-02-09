@@ -69,5 +69,7 @@ run_pasta.py -i $cleanedinputSequences -d protein -o $alignmentDir --num-cpus=$n
 # Remove tempory output files
 rm $alignmentDir/${base}_temp_*
 
+sed -i -e 's/^;$//g' "$alignmentDir/${base}.tre"
+
 # This must be the only stuff that goes to stdout here, since we use this as a return value
 echo "$outFile"
