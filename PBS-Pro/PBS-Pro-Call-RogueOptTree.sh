@@ -76,7 +76,7 @@ do
         --*)
             ;&
         *)
-            echo "Bad option $1 is ignored"
+            echo "Bad option $1 is ignored" >&2
             ;;
     esac
     shift
@@ -84,9 +84,9 @@ done
 
 if [ -z "$gene" ]
 then
-	echo "GeneName missing"
-	echo "You must give a GeneName and a StepNumber, for instance:"
-	echo "./$thisScript GeneName StepNumber"
+	echo "GeneName missing" >&2
+	echo "You must give a GeneName and a StepNumber, for instance:" >&2
+	echo "./$thisScript GeneName StepNumber" >&2
 	exit
 fi
 

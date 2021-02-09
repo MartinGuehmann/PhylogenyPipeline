@@ -77,7 +77,7 @@ do
         --*)
             ;&
         *)
-            echo "Bad option $1 is ignored"
+            echo "Bad option $1 is ignored" >&2
             ;;
     esac
     shift
@@ -85,8 +85,8 @@ done
 
 if [ -z "$gene" ]
 then
-	echo "You must give a GeneName, for instance:"
-	echo "./$thisScript GeneName"
+	echo "You must give a GeneName, for instance:" >&2
+	echo "./$thisScript GeneName" >&2
 	exit
 fi
 
@@ -112,17 +112,17 @@ elif [[ $numRoundsLeft =~ ^[+-]?[0-9]+$ ]]
 then
 	if (( numRoundsLeft <= 0 ))
 	then
-		echo "Num rounds left at $numRoundsLeft rounds left, in iteration $iteration"
+		echo "Num rounds left at $numRoundsLeft rounds left, in iteration $iteration" >&2
 		exit
 	else
-		echo "$numRoundsLeft more rounds to go, next iteration: $nextIteration"
+		echo "$numRoundsLeft more rounds to go, next iteration: $nextIteration" >&2
 		((numRoundsLeft--))
 	fi
 fi
 
 if [[ ! -f $droppedFinal ]]
 then
-	echo "$droppedFinal does not exist, existing"
+	echo "$droppedFinal does not exist, existing" >&2
 	# Break if this does not exist
 	exit
 fi
