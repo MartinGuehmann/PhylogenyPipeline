@@ -35,6 +35,14 @@ numTreads=$(nproc)
 base=$(basename $inputSequences .fasta)
 outFile="$alignmentDir/$base.alignment.MAFFT.fasta"
 
+# Do not realign if the outfile already exists and is not empty
+if [ -s $outFile ]
+then
+	# In this we still want to return the outfile
+	echo "$outFile"
+	exit
+fi
+
 # Make alignment directory if it does not exist
 mkdir -p $alignmentDir
 
