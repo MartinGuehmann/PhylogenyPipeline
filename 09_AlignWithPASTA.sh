@@ -42,6 +42,12 @@ then
 	# In this we still want to return the outfile
 	echo "$outFile"
 	exit
+elif [ ! -z $outFile ]
+then
+	# Something went wrong while aligning
+	# but PASTA does not overwrite the old files if they exists
+	# so delete them manually
+	rm $alignmentDir/${base}*
 fi
 
 # Make alignment directory if it does not exist
