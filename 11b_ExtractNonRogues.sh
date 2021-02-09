@@ -61,7 +61,7 @@ do
         --*)
             ;&
         *)
-            echo "Bad option $1 is ignored"
+            echo "Bad option $1 is ignored" >&2
             ;;
     esac
     shift
@@ -71,8 +71,8 @@ shopt -s extglob
 
 if [ -z "$gene" ]
 then
-	echo "You must give a GeneName, for instance:"
-	echo "./$thisScript GeneName"
+	echo "You must give a GeneName, for instance:" >&2
+	echo "./$thisScript GeneName" >&2
 	exit
 fi
 
@@ -143,20 +143,8 @@ then
 
 		rm -f $seqIDs
 	else
-
 		seqsPerChunk="900"
-
-		seqkit shuffle -2 -j "$numTreads" "$nextSeqsOfInterest" > "$SequencesOfInterestShuffled"
-
-		numSeqs=$(grep -c '>' $SequencesOfInterestShuffled)
-
-		restSeqChunk=$(($numSeqs % $seqsPerChunk))
-		numSeqChunks=$(($numSeqs / $seqsPerChunk))
-
-		numSeqsCorrPerChunk=$(($seqsPerChunk + 1 + $restSeqChunk / $numSeqChunks))
-
-		# Warns that output directoy is not empty, but it is supposed to be non-empty
-		seqkit split2 -j $numTreads -s $numSeqsCorrPerChunk -O $rogueFreeTreesDir $SequencesOfInterestShuffled
+		$DIR/SplitSequencesRandomly.sh -c "$seqsPerChunk" -f "$nextSeqsOfInterest" -o "$SequencesOfInterestShuffled" -O $rogueFreeTreesDir
 	fi
 fi
 

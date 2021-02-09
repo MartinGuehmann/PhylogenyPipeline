@@ -13,8 +13,8 @@ gene="$1"
 
 if [ -z "$gene" ]
 then
-	echo "You must give a GeneName, for instance:"
-	echo "./$thisScript GeneName"
+	echo "You must give a GeneName, for instance:" >&2
+	echo "./$thisScript GeneName" >&2
 	exit
 fi
 
@@ -82,31 +82,13 @@ seqkit stats $SequencesOfInterest
 numExtractedSeqs=$(grep -c '>' $SequencesOfInterest)
 numExtractedLabels=$(grep -cve '^\s*$' $treeLabels)
 
-echo "$numExtractedLabels labels from subtree extracted."
-echo "$numExtractedSeqs sequences of interest extracted."
+echo "$numExtractedLabels labels from subtree extracted." >&2
+echo "$numExtractedSeqs sequences of interest extracted." >&2
 if [[ $numExtractedSeqs == $numExtractedLabels ]]
 then
-	echo "No sequence where lost while extraction"
+	echo "No sequence where lost while extraction" >&2
 else
-	echo "WARNING: Sequence lost during extraction, costum sequences might contain underscores that could not be detected."
+	echo "WARNING: Sequence lost during extraction, costum sequences might contain underscores that could not be detected." >&2
 fi
- 
-seqkit shuffle -2 -j "$numTreads" "$SequencesOfInterest" > "$SequencesOfInterestShuffled"
 
-# The IDs getting to long for t_coffee so outcomment this
-#sed -i "s/[],[]//g" $SequencesOfInterestShuffled
-#sed -i "s/[)(]//g" $SequencesOfInterestShuffled
-#sed -i "s/ /_/g" $SequencesOfInterestShuffled
-#sed -i "s/\//_/g" $SequencesOfInterestShuffled
-#sed -i "s/:/_/g" $SequencesOfInterestShuffled
-#sed -i "s/;//g" $SequencesOfInterestShuffled
-
-numSeqs=$(grep -c '>' $SequencesOfInterestShuffled)
-
-restSeqChunk=$(($numSeqs % $seqsPerChunk))
-numSeqChunks=$(($numSeqs / $seqsPerChunk))
-
-numSeqsCorrPerChunk=$(($seqsPerChunk + 1 + $restSeqChunk / $numSeqChunks))
-
-# Warns that output directoy is not empty, but it is supposed to be non-empty
-seqkit split2 -j $numTreads -s $numSeqsCorrPerChunk -O $SequencesOfInterestDir $SequencesOfInterestShuffled
+$DIR/SplitSequencesRandomly.sh -c "$seqsPerChunk" -f "$SequencesOfInterest" -o "$SequencesOfInterestShuffled" -O "$SequencesOfInterestDir"
