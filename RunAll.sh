@@ -89,7 +89,7 @@ do
         --*)
             ;&
         *)
-            echo "Bad option $1 is ignored"
+            echo "Bad option $1 is ignored" >&2
             ;;
     esac
     shift
@@ -97,17 +97,17 @@ done
 
 if [ -z "$gene" ]
 then
-	echo "GeneName missing"
-	echo "You must give a GeneName and a StepNumber, for instance:"
-	echo "./$thisScript GeneName StepNumber"
+	echo "GeneName missing" >&2
+	echo "You must give a GeneName and a StepNumber, for instance:" >&2
+	echo "./$thisScript GeneName StepNumber" >&2
 	exit
 fi
 
 if [ -z "$step" ]
 then
-	echo "StepNumber missing"
-	echo "You must give a GeneName and a StepNumber, for instance:"
-	echo "./$thisScript GeneName StepNumber"
+	echo "StepNumber missing" >&2
+	echo "You must give a GeneName and a StepNumber, for instance:" >&2
+	echo "./$thisScript GeneName StepNumber" >&2
 	exit
 fi
 
@@ -122,8 +122,8 @@ alignerFile="$alignFileStart$aligner.$bashExtension"
 
 if [ -z "$alignerFile" ]
 then
-	echo "Aligner file for $aligner does not exit."
-	echo "Use default aligner $defaultAligner instead."
+	echo "Aligner file for $aligner does not exit." >&2
+	echo "Use default aligner $defaultAligner instead." >&2
 	aligner=$defaultAligner
 	alignerFile="$alignFileStart$aligner.$bashExtension"
 fi
@@ -144,60 +144,60 @@ AllSeqs="$AlignmentDir/SequencesOfInterest$AlignmentLastBit"
 UFBootPart="$AlignmentLastBit.ufboot"
 AllSeqsUFBoot="$AllSeqs.ufboot"
 
-echo "Reconstruct phylogeny for $gene."
-echo ""
+echo "Reconstruct phylogeny for $gene." >&2
+echo "" >&2
 
 case $step in
 0)
 	# Note if you want to rerun this step you must delete the files in \$gene\Hits\
-	echo "0. Obtaining gene IDs from all databases."
-	echo "   Searching for sequences in NCBI databases remotely, takes some time."
-	echo "   Therefore, just skip if files in $DIR/$gene/Hits/ already exist."
+	echo "0. Obtaining gene IDs from all databases." >&2
+	echo "   Searching for sequences in NCBI databases remotely, takes some time." >&2
+	echo "   Therefore, just skip if files in $DIR/$gene/Hits/ already exist." >&2
 	$DIR/00_GetGenesFromAllDataBases.sh "$gene"
-	echo "0. Gene IDs from all databases were obtained."
+	echo "0. Gene IDs from all databases were obtained." >&2
 	;;
 1)
-	echo "1. Combine the gene IDs for each database into one file, remove duplicates."
+	echo "1. Combine the gene IDs for each database into one file, remove duplicates." >&2
 	$DIR/01_CombineHitsForEachDatabase.sh "$gene"
-	echo "1. Gene IDs for each database were combined into one file, duplicates were removed."
+	echo "1. Gene IDs for each database were combined into one file, duplicates were removed." >&2
 	;;
 2)
-	echo "2. Combine the gene IDs for each database into one file, remove duplicates."
+	echo "2. Combine the gene IDs for each database into one file, remove duplicates." >&2
 	$DIR/02_CombineHitsFromAllNCBIDatabases.sh "$gene"
-	echo "2. Gene IDs for each database were combined into one file, duplicates were removed."
+	echo "2. Gene IDs for each database were combined into one file, duplicates were removed." >&2
 	;;
 3)
-	echo "3. Extract sequences from the databases."
+	echo "3. Extract sequences from the databases." >&2
 	$DIR/03_ExtractSequences.sh "$gene"
-	echo "3. Sequences from the database were extracted."
+	echo "3. Sequences from the database were extracted." >&2
 	;;
 4)
-	echo "4. Make non redundant databases."
+	echo "4. Make non redundant databases." >&2
 	$DIR/04_MakeNonRedundant.sh "$gene"
-	echo "4. Non reduntant database were made."
+	echo "4. Non reduntant database were made." >&2
 	;;
 5)
-	echo "5. Prepare sequences for CLANS."
+	echo "5. Prepare sequences for CLANS." >&2
 	$DIR/05_MakeClansFile.sh "$gene"
-	echo "5. Sequences have been prepared for CLANS."
+	echo "5. Sequences have been prepared for CLANS." >&2
 	;;
 6)
-	echo "6. Cluster sequences with CLANS."
+	echo "6. Cluster sequences with CLANS." >&2
 	$DIR/06_ClusterWithClans.sh "$gene"
-	echo "6. Sequences have been clustered with CLANS."
+	echo "6. Sequences have been clustered with CLANS." >&2
 	;;
 7)
-	echo "7. Create newick tree from CLANS file with neighbor joining for pruning."
+	echo "7. Create newick tree from CLANS file with neighbor joining for pruning." >&2
 	$DIR/07_MakeTreeForPruning.sh "$gene"
-	echo "7. Newick tree from CLANS file with neighbor joining for pruning created."
+	echo "7. Newick tree from CLANS file with neighbor joining for pruning created." >&2
 	;;
 8)
-	echo "8. Extract sequences of interest."
+	echo "8. Extract sequences of interest." >&2
 	$DIR/08_ExtractSequencesOfInterest.sh "$gene"
-	echo "8. Sequences of interest extracted."
+	echo "8. Sequences of interest extracted." >&2
 	;;
 9)
-	echo "9. Align sequences with $aligner."
+	echo "9. Align sequences with $aligner." >&2
 	if [ -z "$inputFile" ]
 	then
 		for fastaFile in "$SequencesOfInterestParts"+([0-9])".fasta"
@@ -212,10 +212,10 @@ case $step in
 		alignmentFile=$($alignerFile "$inputFile" "$AlignmentDir")
 		$DIR/09a_PostProcessAlignment.sh "$alignmentFile" "$trimAl"
 	fi
-	echo "9. Sequences aligned with $aligner."
+	echo "9. Sequences aligned with $aligner." >&2
 	;;
 10)
-	echo "10. Build trees with IQ-Tree."
+	echo "10. Build trees with IQ-Tree." >&2
 	if [ -z "$inputFile" ]
 	then
 		for phyFile in "$AlignmentParts"*"$AlignmentLastBit"
@@ -228,10 +228,10 @@ case $step in
 	else
 		$DIR/10_MakeTreeWithIQ-Tree.sh "$inputFile"
 	fi
-	echo "10. Trees built with IQ-Tree."
+	echo "10. Trees built with IQ-Tree." >&2
 	;;
 11)
-	echo "11. Remove rogue sequences with RogueNaRok and TreeShrink."
+	echo "11. Remove rogue sequences with RogueNaRok and TreeShrink." >&2
 	$DIR/11a_PrepareForRemovingRogues.sh "$SequencesOfInterestDir"
 	for ufbootFile in "$AlignmentParts"*"$UFBootPart"
 	do
@@ -245,18 +245,18 @@ case $step in
 		$DIR/11_RemoveRogues.sh -g "$gene" -f $AllSeqsUFBoot -a "$aligner" -i "$iteration" $suffix $previousAligner
 	fi
 	$DIR/11b_ExtractNonRogues.sh -g "$gene" -a "$aligner" -i "$iteration" $shuffleSeqs $suffix $previousAligner $restore
-	echo "11. Rogue sequences removed with RogueNaRok and TreeShrink."
+	echo "11. Rogue sequences removed with RogueNaRok and TreeShrink." >&2
 	;;
 12)
-	echo "12. Visualise trees."
-	echo "12. Trees visualized."
+	echo "12. Visualise trees." >&2
+	echo "12. Trees visualized." >&2
 	;;
 13)
-	echo "13. Split sequences into chunks for subset extraction."
-	echo "13. Sequences split into chunks for subset extraction."
+	echo "13. Split sequences into chunks for subset extraction." >&2
+	echo "13. Sequences split into chunks for subset extraction." >&2
 	;;
 14)
-	echo "14. Build trees with PASTA for pruning."
+	echo "14. Build trees with PASTA for pruning." >&2
 	if [ -z "$inputFile" ]
 	then
 		for fastaFile in "$TreesForPruningFromPASTAParts"+([0-9])".fasta"
@@ -269,12 +269,12 @@ case $step in
 	else
 		alignmentFile=$($DIR/09_AlignWithPASTA.sh "$inputFile" "$TreesForPruningFromPASTADir")
 	fi
-	echo "14. Trees built with PASTA for pruning."
+	echo "14. Trees built with PASTA for pruning." >&2
 	;;
 15)
-	echo "15. Extract sequences of interest."
-	echo "15. Sequences of interest extracted."
+	echo "15. Extract sequences of interest." >&2
+	echo "15. Sequences of interest extracted." >&2
 	;;
 *)
-	echo "Step $i is not a valid step."
+	echo "Step $i is not a valid step." >&2
 esac

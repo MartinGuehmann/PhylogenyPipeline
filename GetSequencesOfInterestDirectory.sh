@@ -54,7 +54,7 @@ do
         --*)
             ;&
         *)
-            echo "Bad option $1 is ignored"
+            echo "Bad option $1 is ignored" >&2
             ;;
     esac
     shift
@@ -73,9 +73,9 @@ fi
 if [ -z "$gene" ]
 then
 	thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
-	echo "You must give a GeneName, for instance:"
-	echo "./$thisScript --gene GeneName"
-	echo "./$thisScript -g GeneName"
+	echo "You must give a GeneName, for instance:" >&2
+	echo "./$thisScript --gene GeneName" >&2
+	echo "./$thisScript -g GeneName" >&2
 	exit
 fi
 

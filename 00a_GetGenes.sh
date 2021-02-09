@@ -14,8 +14,8 @@ gene="$1"
 
 if [ -z "$gene" ]
 then
-	echo "You must give a GeneName, for instance:"
-	echo "./$thisScript GeneName"
+	echo "You must give a GeneName, for instance:" >&2
+	echo "./$thisScript GeneName" >&2
 	exit
 fi
 
@@ -51,7 +51,7 @@ do
 
 		if [ ! -f "$outFile" ]
 		then
-			echo "Writing to $outFile"
+			echo "Writing to $outFile" >&2
 			blastp -query "$seqFile" -db $DB -evalue $evalue -max_target_seqs $maxkeep $remoteOrNumThreads -out $outFile -outfmt "6 saccver stitle evalue"
 		fi
 	done
@@ -65,14 +65,14 @@ do
 		if [ ! -s "$hitFile" ]
 		then
 			needMoreTrials="true"
-			echo "File is empty: $hitFile"
+			echo "File is empty: $hitFile" >&2
 			rm "$hitFile"
 		fi
 	done
 
 	if [ $needMoreTrials == "true" ]
 	then
-		echo "Not all files were downloaded, correctly. Trying $((maxTrials - trials -1)) more time(s)."
+		echo "Not all files were downloaded, correctly. Trying $((maxTrials - trials -1)) more time(s)." >&2
 		((++trials))
 	else
 		trials=$maxTrials

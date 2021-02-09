@@ -14,8 +14,8 @@ seqsOfInterestDir="$1"
 
 if [ -z "$seqsOfInterestDir" ]
 then
-	echo "You must give a SeqsOfInterestDir, for instance:"
-	echo "./$thisScript SeqsOfInterestDir"
+	echo "You must give a SeqsOfInterestDir, for instance:" >&2
+	echo "./$thisScript SeqsOfInterestDir" >&2
 	exit
 fi
 

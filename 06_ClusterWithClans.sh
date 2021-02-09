@@ -14,8 +14,8 @@ rounds="5000"
 
 if [ -z "$gene" ]
 then
-	echo "You must give a GeneName, for instance:"
-	echo "./$thisScript GeneName"
+	echo "You must give a GeneName, for instance:" >&2
+	echo "./$thisScript GeneName" >&2
 	exit
 fi
 

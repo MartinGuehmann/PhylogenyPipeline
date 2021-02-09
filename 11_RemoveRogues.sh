@@ -57,7 +57,7 @@ do
         --*)
             ;&
         *)
-            echo "Bad option $1 is ignored"
+            echo "Bad option $1 is ignored" >&2
             ;;
     esac
     shift
@@ -65,14 +65,14 @@ done
 
 if [ -z "$gene" ]
 then
-	echo "You must give a GeneName, for instance:"
-	echo "./$thisScript GeneName"
+	echo "You must give a GeneName, for instance:" >&2
+	echo "./$thisScript GeneName" >&2
 	exit
 fi
 
 if [ ! -f $inputTrees ]
 then
-	echo "File $inputTrees does not exist. Existing."
+	echo "File $inputTrees does not exist. Existing." >&2
 	exit
 fi
 

@@ -14,8 +14,8 @@ inputAlignment="$1"
 
 if [[ -z "$inputAlignment" ]]
 then
-	echo "You must give a InputAlignmentFile, for instance:"
-	echo "./$thisScript InputAlignmentFile.fasta"
+	echo "You must give a InputAlignmentFile, for instance:" >&2
+	echo "./$thisScript InputAlignmentFile.fasta" >&2
 	exit
 fi
 
