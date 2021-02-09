@@ -29,7 +29,7 @@ SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 SequencesOfInterestShuffled="$SequencesOfInterestDir/SequencesOfInterestShuffled.fasta"
 treeLabels="$TreeForPruningDir/LabelsOfInterest.txt"
 BaitDir="$DIR/$gene/BaitSequences/"
-AdditionalSequences="$DIR/$gene/AdditionalSequencesOfInterest/"
+AdditionalSequences="$DIR/$gene/OutgroupSequences/"
 seqsPerChunk="900"
 
 
