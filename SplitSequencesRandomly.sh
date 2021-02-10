@@ -75,10 +75,7 @@ seqkit shuffle -2 -j "$numTreads" "$inputSequences" > "$shuffledSequences"
 
 numSeqs=$(grep -c '>' $shuffledSequences)
 
-restSeqChunk=$(($numSeqs % $seqsPerChunk))
 numSeqChunks=$(($numSeqs / $seqsPerChunk))
 
-numSeqsCorrPerChunk=$(($seqsPerChunk + 1 + $restSeqChunk / $numSeqChunks))
-
 # Warns that output directoy is not empty, but it is supposed to be non-empty
-seqkit split2 -j $numTreads -s $numSeqsCorrPerChunk -O $outputDir $shuffledSequences
+seqkit split2 -j $numTreads -p $numSeqChunks -O $outputDir $shuffledSequences
