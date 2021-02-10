@@ -42,7 +42,7 @@ then
 	do
 		if [ -f $fastaFile ]
 		then
-			cat $fastaFile >> $nrSequenceFile90
+			grep -v '^ *$' $fastaFile >> $nrSequenceFile90
 		fi
 	done
 fi
