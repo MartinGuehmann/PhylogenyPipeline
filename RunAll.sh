@@ -98,16 +98,16 @@ done
 if [ -z "$gene" ]
 then
 	echo "GeneName missing" >&2
-	echo "You must give a GeneName and a StepNumber, for instance:" >&2
-	echo "./$thisScript GeneName StepNumber" >&2
+	echo "You must give a GeneName, for instance:" >&2
+	echo "./$thisScript -g GeneName" >&2
 	exit
 fi
 
 if [ -z "$step" ]
 then
 	echo "StepNumber missing" >&2
-	echo "You must give a GeneName and a StepNumber, for instance:" >&2
-	echo "./$thisScript GeneName StepNumber" >&2
+	echo "You must give a StepNumber, for instance:" >&2
+	echo "./$thisScript -s StepNumber" >&2
 	exit
 fi
 
@@ -134,8 +134,9 @@ partSequences="SequencesOfInterestShuffled.part_"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 SequencesOfInterestParts="$SequencesOfInterestDir/$partSequences"
 
+SeqenceChunksForPruningDir="$DIR/$gene/SeqenceChunksForPruning"
+SeqencesForPruningParts="$SeqenceChunksForPruningDir/SequencesForPruning.part_"
 TreesForPruningFromPASTADir="$DIR/$gene/TreesForPruningFromPASTA"
-TreesForPruningFromPASTAParts="SequencesForPruning.part_"
 
 AlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix)
 AlignmentParts="$AlignmentDir/$partSequences"
@@ -174,7 +175,7 @@ case $step in
 4)
 	echo "4. Make non redundant databases." >&2
 	$DIR/04_MakeNonRedundant.sh "$gene"
-	echo "4. Non reduntant database were made." >&2
+	echo "4. Non reduntant database was made." >&2
 	;;
 5)
 	echo "5. Prepare sequences for CLANS." >&2
@@ -253,13 +254,14 @@ case $step in
 	;;
 13)
 	echo "13. Split sequences into chunks for subset extraction." >&2
+	$DIR/13_SplitNonRedundantSequences.sh -O "$SeqenceChunksForPruningDir" -g "$gene"
 	echo "13. Sequences split into chunks for subset extraction." >&2
 	;;
 14)
 	echo "14. Build trees with PASTA for pruning." >&2
 	if [ -z "$inputFile" ]
 	then
-		for fastaFile in "$TreesForPruningFromPASTAParts"+([0-9])".fasta"
+		for fastaFile in "$SeqencesForPruningParts"+([0-9])".fasta"
 		do
 			if [ -f $fastaFile ]
 			then
