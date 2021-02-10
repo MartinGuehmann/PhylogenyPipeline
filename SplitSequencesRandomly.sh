@@ -60,6 +60,15 @@ then
 	exit
 fi
 
+if [ -z "$shuffledSequences" ]
+then
+	shuffleInfix="Shuffled"
+	inFileName=$(basename $inputSequences)
+	inFileBase=${inFileName%.*}
+	inFileExt=${inFileName##*.}
+	shuffledSequences="$outputDir/$inFileBase$shuffleInfix.$inFileExt"
+fi
+
 numTreads=$(nproc)
 
 seqkit shuffle -2 -j "$numTreads" "$inputSequences" > "$shuffledSequences"
