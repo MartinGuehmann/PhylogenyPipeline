@@ -250,6 +250,7 @@ case $step in
 	;;
 12)
 	echo "12. Visualise trees." >&2
+	echo "Step $step not implemented." >&2
 	echo "12. Trees visualized." >&2
 	;;
 13)
@@ -275,6 +276,7 @@ case $step in
 	;;
 15)
 	echo "15. Extract sequences of interest." >&2
+	$DIR/15_ExtractSequencesOfInterest.sh "$gene" "$TreesForPruningFromPASTADir"
 	echo "15. Sequences of interest extracted." >&2
 	;;
 *)
