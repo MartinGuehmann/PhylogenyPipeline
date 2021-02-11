@@ -144,6 +144,11 @@ partSequences="SequencesOfInterestShuffled.part_"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 SequencesOfInterestParts="$SequencesOfInterestDir/$partSequences"
 
+SeqenceChunksForPruningDir="$DIR/$gene/SeqenceChunksForPruning"
+SeqencesForPruningParts="$SeqenceChunksForPruningDir/SequencesForPruning.part_"
+TreesForPruningFromPASTADir="$DIR/$gene/TreesForPruningFromPASTA"
+seqFiles="$SeqenceChunksForPruningDir/SequenceFiles.txt"
+
 AlignmentDir=$("$DIR/../GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix)
 AlignmentParts="$AlignmentDir/$partSequences"
 AlignmentLastBit=".alignment.$aligner.fasta.raxml.reduced.phy"
@@ -211,6 +216,20 @@ case $step in
 	;;
 11)
 	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, shuffleSeqs=$shuffleSeqs, suffix=$suffix, previousAligner=$previousAligner, restore=$restore" "$DIR/11_PBS-Pro-RemoveRogues.sh")
+	;;
+12)
+	echo "Step $step not implemented." >&2
+	;;
+13)
+	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/13_PBS-Pro-SplitNonRedundantSequences.sh")
+	;;
+14)
+	echo "$SeqencesForPruningParts"+([0-9])".fasta" > seqFiles
+	numFiles=(wc -w $seqFiles | cut -d " " -f1)
+	jobIDs+=:$(qsub $hold $depend -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, seqFiles=$seqFiles, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" "$DIR/14_PBS-Pro-AlignWithPASTAForPruning.sh")
+	;;
+15)
+	echo "Step $step not implemented." >&2
 	;;
 
 *)
