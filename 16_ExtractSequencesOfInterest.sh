@@ -69,7 +69,7 @@ done
 echo $LeavesOfSubTreeToKeep
 rm -f $treeLabels
 
-for TreeForPruning in "$TreesForPruningFromPASTADir/"*"tre"
+for TreeForPruning in "$TreesForPruningFromPASTADir/"*"contree"
 do
 	sed -e "s/ [^']*//g" "$TreeForPruning" | \
 	"$DIR/../newick_utils/src/nw_clade" - $LeavesOfSubTreeToKeep | \
