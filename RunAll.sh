@@ -275,9 +275,14 @@ case $step in
 	echo "14. Trees built with PASTA for pruning." >&2
 	;;
 15)
-	echo "15. Extract sequences of interest." >&2
-	$DIR/15_ExtractSequencesOfInterest.sh "$gene" "$TreesForPruningFromPASTADir"
-	echo "15. Sequences of interest extracted." >&2
+	echo "15. Visualise trees." >&2
+	echo "Step $step not implemented." >&2
+	echo "15. Trees visualized." >&2
+	;;
+16)
+	echo "16. Extract sequences of interest." >&2
+	$DIR/16_ExtractSequencesOfInterest.sh "$gene" "$TreesForPruningFromPASTADir"
+	echo "16. Sequences of interest extracted." >&2
 	;;
 *)
 	echo "Step $i is not a valid step." >&2
