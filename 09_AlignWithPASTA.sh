@@ -39,10 +39,10 @@ cleanedinputSequences="$alignmentDir/$base.fasta"
 # Do not realign if the outfile already exists and is not empty
 if [ -s $outFile ]
 then
-	# In this we still want to return the outfile
+	# In this case we still want to return the outfile
 	echo "$outFile"
 	exit
-elif [ ! -f $outFile ]
+elif [ -f $outFile ]
 then
 	# Something went wrong while aligning
 	# but PASTA does not overwrite the old files if they exists
