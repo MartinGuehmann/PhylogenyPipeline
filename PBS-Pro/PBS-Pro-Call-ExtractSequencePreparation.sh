@@ -53,17 +53,11 @@ fi
 # so that the standard and error output files to the directory of this script
 cd $DIR
 
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "14" --hold)
-jobIDs=${jobIDs#* }
+jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "13" --hold)
+echo $jobIDs
 holdJobs=$jobIDs
-echo $jobIDs
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "15" -d "$jobIDs")
-echo $jobIDs
 
-if [ $continue == "--continue" ]
-then
-	echo "Continue is not implemented"
-fi
+qsub -v "DIR=$DIR, gene=$gene, continue=$continue" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-Call-ExtractSequencesOfInterestWithPASTA.sh"
 
 # Start hold jobs
 holdJobs=$(echo $holdJobs | sed "s/:/ /g")
