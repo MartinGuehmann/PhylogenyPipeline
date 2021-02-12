@@ -16,7 +16,7 @@ then
 	exit
 fi
 
-seqsToAlign=(cut -d " " -f ${PBS_ARRAY_INDEX} $seqFiles)
+seqsToAlign=$(cut -d " " -f ${PBS_ARRAY_INDEX} $seqFiles)
 
 date
 time "$DIR/../RunAll.sh" -g "$gene" -s "14" -i "$iteration" -a "PASTA" -f "$seqsToAlign" $suffix $previousAligner $trimAl

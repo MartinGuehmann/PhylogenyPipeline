@@ -42,7 +42,7 @@ then
 	# In this we still want to return the outfile
 	echo "$outFile"
 	exit
-elif [ ! -z $outFile ]
+elif [ ! -f $outFile ]
 then
 	# Something went wrong while aligning
 	# but PASTA does not overwrite the old files if they exists

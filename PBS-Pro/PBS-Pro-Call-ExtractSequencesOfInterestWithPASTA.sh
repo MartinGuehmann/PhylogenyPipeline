@@ -54,7 +54,7 @@ fi
 cd $DIR
 
 jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "14" --hold)
-jobIDs=${jobIDs#* }
+jobIDs=:${jobIDs#*:}
 holdJobs=$jobIDs
 echo $jobIDs
 jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "15" -d "$jobIDs")
