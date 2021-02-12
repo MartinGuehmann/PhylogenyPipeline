@@ -60,6 +60,7 @@ NonRedundandSequences90="$DIR/$gene/Sequences/NonRedundantSequences90.fasta"
 BaitDir="$DIR/$gene/BaitSequences/"
 OutgroupDir="$DIR/$gene/OutgroupSequences/"
 
+numTreads=$(nproc)
 seqsPerChunk="700"
 $DIR/SplitSequencesRandomly.sh -c "$seqsPerChunk" -f "$NonRedundandSequences90" -O $outputDir
 
@@ -74,6 +75,10 @@ do
 	do
 		grep -v '^ *$' $fastaFile >> $partSeqFile
 	done
+
+	partSeqFileCleaned="$partSeqFile.cleaned"
+	seqkit rmdup -j $numTreads $partSeqFile > $partSeqFileCleaned
+	mv $partSeqFileCleaned $partSeqFile
 done
 
 seqkit stats "$outputDir/"*".fasta" > "$outputDir/Stats.txt"
