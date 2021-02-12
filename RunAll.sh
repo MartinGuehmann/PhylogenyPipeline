@@ -137,6 +137,9 @@ SequencesOfInterestParts="$SequencesOfInterestDir/$partSequences"
 SeqenceChunksForPruningDir="$DIR/$gene/SeqenceChunksForPruning"
 SeqencesForPruningParts="$SeqenceChunksForPruningDir/SequencesForPruning.part_"
 TreesForPruningFromPASTADir="$DIR/$gene/TreesForPruningFromPASTA"
+partPruning="NonRedundantSequences90Shuffled.part_"
+AllPruningSeqs="$TreesForPruningFromPASTADir/$partPruning"
+PruningLastBit=".alignment.$aligner.fasta.raxml.reduced.phy"
 
 AlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix)
 AlignmentParts="$AlignmentDir/$partSequences"
@@ -277,9 +280,20 @@ case $step in
 	echo "14. Trees built with PASTA for pruning." >&2
 	;;
 15)
-	echo "15. Visualise trees." >&2
-	echo "Step $step not implemented." >&2
-	echo "15. Trees visualized." >&2
+	echo "15. Build trees with IQ-Tree for pruning." >&2
+	if [ -z "$inputFile" ]
+	then
+		for phyFile in "$AllPruningSeqs"*"$PruningLastBit"
+		do
+			if [ -f $phyFile ]
+			then
+				$DIR/10_MakeTreeWithIQ-Tree.sh "$phyFile"
+			fi
+		done
+	else
+		$DIR/10_MakeTreeWithIQ-Tree.sh "$inputFile"
+	fi
+	echo "15. Trees built with IQ-Tree for pruning." >&2
 	;;
 16)
 	echo "16. Extract sequences of interest." >&2

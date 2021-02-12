@@ -59,11 +59,16 @@ fi
 # so that the standard and error output files to the directory of this script
 cd $DIR
 
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "14" --hold $trimAl)
+jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "15" --hold)
 holdJobs=$jobIDs
 echo $jobIDs
+jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "16" -d "$jobIDs")
+echo $jobIDs
 
-qsub -v "DIR=$DIR, gene=$gene, trimAl=$trimAl, continue=$continue" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-Call-ExtractSequencesOfInterestWithIQ-Tree.sh"
+if [ $continue == "--continue" ]
+then
+	echo "Continue is not implemented"
+fi
 
 # Start hold jobs
 holdJobs=$(echo $holdJobs | sed "s/:/ /g")

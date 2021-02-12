@@ -148,6 +148,7 @@ SeqenceChunksForPruningDir="$DIR/../$gene/SeqenceChunksForPruning"
 SeqencesForPruningParts="$SeqenceChunksForPruningDir/SequencesForPruning.part_"
 TreesForPruningFromPASTADir="$DIR/../$gene/TreesForPruningFromPASTA"
 seqFiles="$SeqenceChunksForPruningDir/SequenceFiles.txt"
+alignmentFiles="$SeqenceChunksForPruningDir/AlignmentFiles.txt"
 
 AlignmentDir=$("$DIR/../GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix)
 AlignmentParts="$AlignmentDir/$partSequences"
@@ -226,11 +227,12 @@ case $step in
 14)
 	echo "$SeqenceChunksForPruningDir/"*".part_"+([0-9])".fasta" > $seqFiles
 	numFiles=$(wc -w $seqFiles | cut -d " " -f1)
-	echo $numFiles
-	jobIDs+=:$(qsub $hold $depend -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, seqFiles=$seqFiles, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" "$DIR/14_PBS-Pro-AlignWithPASTAForPruning.sh")
+	jobIDs+=:$(qsub $hold $depend -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, seqFiles=$seqFiles, trimAl=$trimAl" "$DIR/14_PBS-Pro-AlignWithPASTAForPruning.sh")
 	;;
 15)
-	echo "Step $step not implemented." >&2
+	echo "$SeqenceChunksForPruningDir/"*".part_"+([0-9])".fasta" > $alignmentFiles
+	numFiles=$(wc -w $alignmentFiles | cut -d " " -f1)
+	jobIDs+=:$(qsub $hold $depend -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, alignmentFiles=$alignmentFiles" "$DIR/15_PBS-Pro-AlignWithPASTAForPruning.sh")
 	;;
 16)
 	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/16_PBS-Pro-ExtractSequencesOfInterest.sh")
