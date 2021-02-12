@@ -30,6 +30,12 @@ do
         -c)
             continue="--continue"
             ;;
+        --trimAl)
+            ;&
+        -t)
+            shift
+            trimAl="-t $1"
+            ;;
         -*)
             ;&
         --*)
@@ -53,11 +59,11 @@ fi
 # so that the standard and error output files to the directory of this script
 cd $DIR
 
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "14" --hold)
+jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "14" --hold $trimAl)
 jobIDs=:${jobIDs#*:}
 holdJobs=$jobIDs
 echo $jobIDs
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "15" -d "$jobIDs")
+jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "16" -d "$jobIDs")
 echo $jobIDs
 
 if [ $continue == "--continue" ]

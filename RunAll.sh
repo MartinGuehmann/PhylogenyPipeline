@@ -267,10 +267,12 @@ case $step in
 			if [ -f $fastaFile ]
 			then
 				alignmentFile=$($DIR/09_AlignWithPASTA.sh "$fastaFile" "$TreesForPruningFromPASTADir")
+				$DIR/09a_PostProcessAlignment.sh "$alignmentFile" "$trimAl"
 			fi
 		done
 	else
 		alignmentFile=$($DIR/09_AlignWithPASTA.sh "$inputFile" "$TreesForPruningFromPASTADir")
+		$DIR/09a_PostProcessAlignment.sh "$alignmentFile" "$trimAl"
 	fi
 	echo "14. Trees built with PASTA for pruning." >&2
 	;;

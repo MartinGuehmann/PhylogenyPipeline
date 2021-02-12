@@ -30,6 +30,12 @@ do
         -c)
             continue="--continue"
             ;;
+        --trimAl)
+            ;&
+        -t)
+            shift
+            trimAl="-t $1"
+            ;;
         -*)
             ;&
         --*)
@@ -57,7 +63,7 @@ jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "13" --hold)
 echo $jobIDs
 holdJobs=$jobIDs
 
-qsub -v "DIR=$DIR, gene=$gene, continue=$continue" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-Call-ExtractSequencesOfInterestWithPASTA.sh"
+qsub -v "DIR=$DIR, gene=$gene, trimAl=$trimAl, continue=$continue" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-Call-ExtractSequencesOfInterestWithPASTA.sh"
 
 # Start hold jobs
 holdJobs=$(echo $holdJobs | sed "s/:/ /g")
