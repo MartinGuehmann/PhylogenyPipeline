@@ -144,9 +144,9 @@ partSequences="SequencesOfInterestShuffled.part_"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 SequencesOfInterestParts="$SequencesOfInterestDir/$partSequences"
 
-SeqenceChunksForPruningDir="$DIR/$gene/SeqenceChunksForPruning"
+SeqenceChunksForPruningDir="$DIR/../$gene/SeqenceChunksForPruning"
 SeqencesForPruningParts="$SeqenceChunksForPruningDir/SequencesForPruning.part_"
-TreesForPruningFromPASTADir="$DIR/$gene/TreesForPruningFromPASTA"
+TreesForPruningFromPASTADir="$DIR/../$gene/TreesForPruningFromPASTA"
 seqFiles="$SeqenceChunksForPruningDir/SequenceFiles.txt"
 
 AlignmentDir=$("$DIR/../GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix)
@@ -224,12 +224,13 @@ case $step in
 	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/13_PBS-Pro-SplitNonRedundantSequences.sh")
 	;;
 14)
-	echo "$SeqencesForPruningParts"+([0-9])".fasta" > seqFiles
-	numFiles=(wc -w $seqFiles | cut -d " " -f1)
+	echo "$SeqenceChunksForPruningDir/"*".part_"+([0-9])".fasta" > $seqFiles
+	numFiles=$(wc -w $seqFiles | cut -d " " -f1)
+	echo $numFiles
 	jobIDs+=:$(qsub $hold $depend -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, seqFiles=$seqFiles, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" "$DIR/14_PBS-Pro-AlignWithPASTAForPruning.sh")
 	;;
 15)
-	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/08_PBS-Pro-ExtractSequencesOfInterest.sh")
+	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/15_PBS-Pro-ExtractSequencesOfInterest.sh")
 	;;
 
 *)
