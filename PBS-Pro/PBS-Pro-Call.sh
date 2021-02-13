@@ -236,7 +236,7 @@ case $step in
 15)
 	echo "$AllPruningSeqs"+([0-9])"$PruningLastBit" > $alignmentFiles
 	numFiles=$(wc -w $alignmentFiles | cut -d " " -f1)
-	jobIDs+=:$(qsub $hold $depend -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, alignmentFiles=$alignmentFiles" "$DIR/15_PBS-Pro-AlignWithPASTAForPruning.sh")
+	jobIDs+=:$(qsub $hold $depend -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, alignmentFiles=$alignmentFiles" "$DIR/15_PBS-Pro-MakeTreeWithIQ-TreeForPruning.sh")
 	;;
 16)
 	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/16_PBS-Pro-ExtractSequencesOfInterest.sh")

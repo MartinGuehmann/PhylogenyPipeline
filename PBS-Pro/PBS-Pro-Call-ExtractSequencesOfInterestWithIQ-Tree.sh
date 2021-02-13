@@ -67,7 +67,7 @@ echo $jobIDs
 
 if [ $continue == "--continue" ]
 then
-	echo "Continue is not implemented"
+	echo "Continue is not implemented" >&2
 fi
 
 # Start hold jobs
