@@ -150,6 +150,10 @@ TreesForPruningFromPASTADir="$DIR/../$gene/TreesForPruningFromPASTA"
 seqFiles="$SeqenceChunksForPruningDir/SequenceFiles.txt"
 alignmentFiles="$SeqenceChunksForPruningDir/AlignmentFiles.txt"
 
+partPruning="NonRedundantSequences90Shuffled.part_"
+AllPruningSeqs="$TreesForPruningFromPASTADir/$partPruning"
+PruningLastBit=".alignment.PASTA.fasta.raxml.reduced.phy"
+
 AlignmentDir=$("$DIR/../GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix)
 AlignmentParts="$AlignmentDir/$partSequences"
 AlignmentLastBit=".alignment.$aligner.fasta.raxml.reduced.phy"
@@ -230,7 +234,7 @@ case $step in
 	jobIDs+=:$(qsub $hold $depend -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, seqFiles=$seqFiles, trimAl=$trimAl" "$DIR/14_PBS-Pro-AlignWithPASTAForPruning.sh")
 	;;
 15)
-	echo "$SeqenceChunksForPruningDir/"*".part_"+([0-9])".fasta" > $alignmentFiles
+	echo "$AllPruningSeqs"+([0-9])"$PruningLastBit" > $alignmentFiles
 	numFiles=$(wc -w $alignmentFiles | cut -d " " -f1)
 	jobIDs+=:$(qsub $hold $depend -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, alignmentFiles=$alignmentFiles" "$DIR/15_PBS-Pro-AlignWithPASTAForPruning.sh")
 	;;
