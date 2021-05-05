@@ -297,7 +297,7 @@ case $step in
 	;;
 16)
 	echo "16. Extract sequences of interest." >&2
-	$DIR/16_ExtractSequencesOfInterest.sh "$gene" "$TreesForPruningFromPASTADir"
+	$DIR/16_ExtractSequencesOfInterest.sh -g "$gene" -d "$TreesForPruningFromPASTADir" -c $SeqenceChunksForPruningDir $suffix
 	echo "16. Sequences of interest extracted." >&2
 	;;
 *)

@@ -9,8 +9,49 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
-gene="$1"
-TreesForPruningFromPASTADir="$2"
+
+extension="tre"
+
+# Idiomatic parameter and option handling in sh
+# Adapted from https://superuser.com/questions/186272/check-if-any-of-the-parameters-to-a-bash-script-match-a-string
+# And advanced version is here https://stackoverflow.com/questions/7069682/how-to-get-arguments-with-flags-in-bash/7069755#7069755
+while test $# -gt 0
+do
+    case "$1" in
+        --gene)
+            ;&
+        -g)
+            shift
+            gene="$1"
+            ;;
+        --directory)
+            ;&
+        -d)
+            shift
+            TreesForPruningFromPASTADir="$1"
+            ;;
+        --suffix)
+            ;&
+        -x)
+            shift
+            extension="$1"
+            ;;
+        --chunkDir)
+            ;&
+        -c)
+            shift
+            SeqenceChunksForPruningDir="$1"
+            ;;
+        -*)
+            ;&
+        --*)
+            ;&
+        *)
+            echo "Bad option $1 is ignored" >&2
+            ;;
+    esac
+    shift
+done
 
 if [ -z "$gene" ]
 then
