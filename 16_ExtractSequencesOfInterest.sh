@@ -38,7 +38,7 @@ treeLabels="$SequencesOfInterestDir/LabelsOfInterest.txt"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 #treeLabels="$TreeForPruningDir/LabelsOfInterest.txt"
 BaitDir="$DIR/$gene/BaitSequences/"
-AdditionalSequences="$DIR/$gene/OutgroupSequences/"
+OutgroupSequences="$DIR/$gene/OutgroupSequences/"
 seqsPerChunk="900"
 
 
@@ -46,9 +46,9 @@ LeavesOfSubTreeToKeep=""
 
 declare -a seqFiles=( $BaitDir*.fasta )
 
-if [ -d $AdditionalSequences ]
+if [ -d $OutgroupSequences ]
 then
-	seqFiles+=($AdditionalSequences*.fasta)
+	seqFiles+=($OutgroupSequences*.fasta)
 fi
 
 for seqFile in ${seqFiles[@]}
