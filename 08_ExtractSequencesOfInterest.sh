@@ -29,6 +29,7 @@ SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 SequencesOfInterestShuffled="$SequencesOfInterestDir/SequencesOfInterestShuffled.fasta"
 treeLabels="$TreeForPruningDir/LabelsOfInterest.txt"
 BaitDir="$DIR/$gene/BaitSequences/"
+AdditionalBaitDir="$DIR/$gene/AdditionalBaitSequences/"
 AdditionalSequences="$DIR/$gene/OutgroupSequences/"
 seqsPerChunk="900"
 
@@ -36,6 +37,11 @@ seqsPerChunk="900"
 LeavesOfSubTreeToKeep=""
 
 declare -a seqFiles=( $BaitDir*.fasta )
+
+if [ -d $AdditionalBaitDir ]
+then
+	seqFiles+=($AdditionalBaitDir*.fasta)
+fi
 
 if [ -d $AdditionalSequences ]
 then

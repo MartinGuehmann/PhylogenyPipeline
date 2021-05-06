@@ -58,7 +58,20 @@ mkdir -p $outputDir
 
 NonRedundandSequences90="$DIR/$gene/Sequences/NonRedundantSequences90.fasta"
 BaitDir="$DIR/$gene/BaitSequences/"
+AdditionalBaitDir="$DIR/$gene/AdditionalBaitSequences/"
 OutgroupDir="$DIR/$gene/OutgroupSequences/"
+
+declare -a seqFiles=( $BaitDir*.fasta )
+
+if [ -d $AdditionalBaitDir ]
+then
+	seqFiles+=($AdditionalBaitDir*.fasta)
+fi
+
+if [ -d $AdditionalSequences ]
+then
+	seqFiles+=($AdditionalSequences*.fasta)
+fi
 
 numTreads=$(nproc)
 seqsPerChunk="700"
@@ -66,12 +79,7 @@ $DIR/SplitSequencesRandomly.sh -c "$seqsPerChunk" -f "$NonRedundandSequences90" 
 
 for partSeqFile in $outputDir/*".part_"*".fasta"
 do
-	for fastaFile in "$BaitDir/"*".fasta"
-	do
-		grep -v '^ *$' $fastaFile >> $partSeqFile
-	done
-
-	for fastaFile in "$OutgroupDir/"*".fasta"
+	for fastaFile in ${seqFiles[@]}
 	do
 		grep -v '^ *$' $fastaFile >> $partSeqFile
 	done

@@ -27,6 +27,14 @@ outfmt="\"6 saccver evalue stitle\"" # Is not replaced properly
 
 HitDir="$DIR/$gene/Hits/$databaseName/"
 BaitDir="$DIR/$gene/BaitSequences/"
+AdditionalBaitDir="$DIR/$gene/AdditionalBaitSequences/"
+
+declare -a seqFiles=( $BaitDir*.fasta )
+
+if [ -d $AdditionalBaitDir ]
+then
+	seqFiles+=($AdditionalBaitDir*.fasta)
+fi
 
 if [ $DB == $databaseName ]
 then
@@ -42,7 +50,7 @@ maxTrials=16
 
 while [ $trials -lt $maxTrials ]
 do
-	for seqFile in $BaitDir*.fasta
+	for seqFile in ${seqFiles[@]}
 	do
 		[ -f "$seqFile" ] || continue # In case you put a folder with the *.fasta extension into that folder
 
