@@ -56,7 +56,7 @@ mkdir -p $alignmentDir
 ###########################################################
 # Copy sequences and replace Js by Ls
 # since PASTA cannot cope with that
-sed -i -e '/^>/!s/J/L/g' -e '/^>/!s/j/l/g' $inputSequences > $cleanedinputSequences
+sed -e '/^>/!s/J/L/g' -e '/^>/!s/j/l/g' $inputSequences > $cleanedinputSequences
 
 ###########################################################
 # Align the sequences with PASTA
