@@ -87,10 +87,10 @@ LeavesOfSubTreeToKeep=""
 
 declare -a seqFiles=( $BaitDir*.fasta )
 
-if [ -d $OutgroupSequences ]
-then
-	seqFiles+=($OutgroupSequences*.fasta)
-fi
+#if [ -d $OutgroupSequences ]
+#then
+#	seqFiles+=($OutgroupSequences*.fasta)
+#fi
 
 for seqFile in ${seqFiles[@]}
 do
@@ -101,28 +101,51 @@ do
 			long="${line#?}"
 			long="${long%% *}"
 
-			LeavesOfSubTreeToKeep="$LeavesOfSubTreeToKeep '$long'"
+			LeavesOfSubTreeToKeep="$LeavesOfSubTreeToKeep $long"
 		fi
 
 	done < $seqFile
 done
 
 echo $LeavesOfSubTreeToKeep
+#exit
 rm -f $treeLabels
 
-for TreeForPruning in "$TreesForPruningFromPASTADir/"*"contree"
+numTreads=$(nproc)
+
+#sedScript="$sequences/NonRedundantSequencesSedScript.txt"
+
+#seqFiles+=($nrSequenceFile90)
+
+#rm -f "$sedScript"
+
+#for seqFile in ${seqFiles[@]}
+#do
+#	seqkit seq -j $numTreads -i -n "$seqFile" | sed "s|\(^.*$\)|s/\1\[^:]\*/\1/g|g" >> "$sedScript"
+#done
+
+for TreeForPruning in "$TreesForPruningFromPASTADir/"*"$extension"
 do
-	sed -e "s/ [^']*//g" "$TreeForPruning" | \
+	base=$(basename $TreeForPruning)
+	mainBase=${base%%.*}
+	partBase=${base#$mainBase.*}
+	partBase=${partBase%%.*}
+#	origSeqFile="$SeqenceChunksForPruningDir/$mainBase.$partBase.fasta"
+	origSeqFile="$TreesForPruningFromPASTADir/$mainBase.$partBase.fasta"
+	sedScript="$TreesForPruningFromPASTADir/$mainBase.$partBase.script"
+	echo $origSeqFile
+
+#	grep -o '^>\S*' "$origSeqFile" | sed "s|>||g" | sed "s|\(^.*$\)|s/\1\[^']\*/\1/g|g" > "$sedScript"
+	seqkit seq -j $numTreads -n -i "$origSeqFile" | sed "s|\(^.*$\)|s/\1\[^']\*/\1/g|g" > "$sedScript"
+
+	sed -f $sedScript "$TreeForPruning" | \
+	sed -e "s/'//g" | \
 	"$DIR/../newick_utils/src/nw_clade" - $LeavesOfSubTreeToKeep | \
-	"$DIR/../newick_utils/src/nw_labels" - | \
-	sed -e "s/'//g" >> $treeLabels
+	"$DIR/../newick_utils/src/nw_labels" - >> $treeLabels
 done
 
 sequences="$DIR/$gene/Sequences"
-nrSequenceFile90="$sequences/NonRedundantSequences90.fasta"
-numTreads=$(nproc)
-
-echo $nrSequenceFile90
+nrSequenceFile90="$sequences/NonRedundantSequences.fasta"
 
 seqkit grep -j $numTreads -f $treeLabels -t protein $nrSequenceFile90 > $SequencesOfInterest
 
