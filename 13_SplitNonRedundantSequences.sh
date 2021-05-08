@@ -60,6 +60,7 @@ NonRedundandSequences90="$DIR/$gene/Sequences/NonRedundantSequences90.fasta"
 BaitDir="$DIR/$gene/BaitSequences/"
 AdditionalBaitDir="$DIR/$gene/AdditionalBaitSequences/"
 OutgroupDir="$DIR/$gene/OutgroupSequences/"
+RerootSequences="$DIR/$gene/RerootSequences/"
 
 declare -a seqFiles=( $BaitDir*.fasta )
 
@@ -68,9 +69,14 @@ then
 	seqFiles+=($AdditionalBaitDir*.fasta)
 fi
 
-if [ -d $AdditionalSequences ]
+if [ -d $OutgroupDir ]
 then
-	seqFiles+=($AdditionalSequences*.fasta)
+	seqFiles+=($OutgroupDir*.fasta)
+fi
+
+if [ -d $RerootSequences ]
+then
+	seqFiles+=($RerootSequences*.fasta)
 fi
 
 numTreads=$(nproc)
