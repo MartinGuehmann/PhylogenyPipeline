@@ -79,11 +79,10 @@ treeLabels="$SequencesOfInterestDir/LabelsOfInterest.txt"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 #treeLabels="$TreeForPruningDir/LabelsOfInterest.txt"
 BaitDir="$DIR/$gene/BaitSequences/"
-OutgroupSequences="$DIR/$gene/OutgroupSequences/"
+RerootSequences="$DIR/$gene/RerootSequences/"
+#OutgroupSequences="$DIR/$gene/OutgroupSequences/"
 seqsPerChunk="900"
 
-
-LeavesOfSubTreeToKeep=""
 
 declare -a seqFiles=( $BaitDir*.fasta )
 
@@ -92,6 +91,7 @@ declare -a seqFiles=( $BaitDir*.fasta )
 #	seqFiles+=($OutgroupSequences*.fasta)
 #fi
 
+LeavesOfSubTreeToKeep=""
 for seqFile in ${seqFiles[@]}
 do
 	while read line
@@ -107,8 +107,27 @@ do
 	done < $seqFile
 done
 
-echo $LeavesOfSubTreeToKeep
-#exit
+declare -a rerootFiles=($RerootSequences*.fasta)
+RerootLeaves=""
+for rerootFile in ${rerootFiles[@]}
+do
+	while read line
+	do
+		if [[ ">" == "${line:0:1}" ]]
+		then
+			long="${line#?}"
+			long="${long%% *}"
+
+			RerootLeaves="$RerootLeaves $long"
+		fi
+
+	done < $rerootFile
+done
+
+echo $RerootLeaves
+
+echo $LeavesOfSubTreeToKeep > "$TreesForPruningFromPASTADir/LeavesToKeep.txt"
+
 rm -f $treeLabels
 
 numTreads=$(nproc)
@@ -130,18 +149,24 @@ do
 	mainBase=${base%%.*}
 	partBase=${base#$mainBase.*}
 	partBase=${partBase%%.*}
-#	origSeqFile="$SeqenceChunksForPruningDir/$mainBase.$partBase.fasta"
-	origSeqFile="$TreesForPruningFromPASTADir/$mainBase.$partBase.fasta"
+	origSeqFile="$SeqenceChunksForPruningDir/$mainBase.$partBase.fasta"
 	sedScript="$TreesForPruningFromPASTADir/$mainBase.$partBase.script"
-	echo $origSeqFile
 
-#	grep -o '^>\S*' "$origSeqFile" | sed "s|>||g" | sed "s|\(^.*$\)|s/\1\[^']\*/\1/g|g" > "$sedScript"
 	seqkit seq -j $numTreads -n -i "$origSeqFile" | sed "s|\(^.*$\)|s/\1\[^']\*/\1/g|g" > "$sedScript"
 
+	# Shorten the long labels to IDs only
 	sed -f $sedScript "$TreeForPruning" | \
+	# Remove the single quotation marks
 	sed -e "s/'//g" | \
+	# And reroot the tree
+	"$DIR/../newick_utils/src/nw_reroot" - $RerootLeaves | \
+	# Extract the clade with the proteins of interest
 	"$DIR/../newick_utils/src/nw_clade" - $LeavesOfSubTreeToKeep | \
-	"$DIR/../newick_utils/src/nw_labels" - >> $treeLabels
+	# And then extract all the lables
+	"$DIR/../newick_utils/src/nw_labels" -I - >> $treeLabels
+
+	count=$(wc -l "$treeLabels" | sed 's\ .*$\\g')
+	echo $origSeqFile $count
 done
 
 sequences="$DIR/$gene/Sequences"
@@ -151,4 +176,4 @@ seqkit grep -j $numTreads -f $treeLabels -t protein $nrSequenceFile90 > $Sequenc
 
 $DIR/SplitSequencesRandomly.sh -c "$seqsPerChunk" -f "$SequencesOfInterest" -O "$SequencesOfInterestDir"
 
-seqkit stats $SequencesOfInterest > "$SequencesOfInterestDir/Stats.txt"
+seqkit stats "$SequencesOfInterestDir/"*.fasta > "$SequencesOfInterestDir/Stats.txt"
