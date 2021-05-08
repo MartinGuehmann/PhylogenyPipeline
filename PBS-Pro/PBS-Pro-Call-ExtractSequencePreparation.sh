@@ -36,6 +36,12 @@ do
             shift
             trimAl="-t $1"
             ;;
+        --suffix)
+            ;&
+        -x)
+            shift
+            suffix="-x $1"
+            ;;
         -*)
             ;&
         --*)
@@ -63,7 +69,7 @@ jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "13" --hold)
 echo $jobIDs
 holdJobs=$jobIDs
 
-qsub -v "DIR=$DIR, gene=$gene, trimAl=$trimAl, continue=$continue" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-Call-ExtractSequencesOfInterestWithPASTA.sh"
+qsub -v "DIR=$DIR, gene=$gene, trimAl=$trimAl, continue=$continue, suffix=$suffix" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-Call-ExtractSequencesOfInterestWithPASTA.sh"
 
 # Start hold jobs
 holdJobs=$(echo $holdJobs | sed "s/:/ /g")

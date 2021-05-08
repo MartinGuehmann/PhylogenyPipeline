@@ -36,6 +36,12 @@ do
             shift
             trimAl="-t $1"
             ;;
+        --suffix)
+            ;&
+        -x)
+            shift
+            suffix="-x $1"
+            ;;
         -*)
             ;&
         --*)
@@ -63,7 +69,19 @@ jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "14" --hold $trimAl)
 holdJobs=$jobIDs
 echo $jobIDs
 
-qsub -v "DIR=$DIR, gene=$gene, trimAl=$trimAl, continue=$continue" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-Call-ExtractSequencesOfInterestWithIQ-Tree.sh"
+if [ -z $suffix ]
+then
+	jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "16" -d "$jobIDs")
+	echo $jobIDs
+
+	if [ $continue == "--continue" ]
+	then
+		echo "Continue is not implemented" >&2
+	fi
+
+else
+	qsub -v "DIR=$DIR, gene=$gene, trimAl=$trimAl, continue=$continue, suffix=$suffix" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-Call-ExtractSequencesOfInterestWithIQ-Tree.sh"
+fi
 
 # Start hold jobs
 holdJobs=$(echo $holdJobs | sed "s/:/ /g")

@@ -36,6 +36,12 @@ do
             shift
             trimAl="-t $1"
             ;;
+        --suffix)
+            ;&
+        -x)
+            shift
+            suffix="-x $1"
+            ;;
         -*)
             ;&
         --*)
@@ -62,7 +68,7 @@ cd $DIR
 jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "15" --hold)
 holdJobs=$jobIDs
 echo $jobIDs
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "16" -d "$jobIDs")
+jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "16" -d "$jobIDs" "$suffix")
 echo $jobIDs
 
 if [ $continue == "--continue" ]
