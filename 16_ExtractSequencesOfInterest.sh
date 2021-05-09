@@ -143,6 +143,12 @@ numTreads=$(nproc)
 #	seqkit seq -j $numTreads -i -n "$seqFile" | sed "s|\(^.*$\)|s/\1\[^:]\*/\1/g|g" >> "$sedScript"
 #done
 
+echo "Counts should be in the same order of magnitude across files" >&2
+echo "otherwise check the trees with LeavesToKeep.txt in Dendroscope." >&2
+echo "SeqenceFile" "AccumulativeCount" "Count" >&2
+
+accCount=0
+
 for TreeForPruning in "$TreesForPruningFromPASTADir/"*"$extension"
 do
 	base=$(basename $TreeForPruning)
@@ -165,8 +171,10 @@ do
 	# And then extract all the lables
 	"$DIR/../newick_utils/src/nw_labels" -I - >> $treeLabels
 
-	count=$(wc -l "$treeLabels" | sed 's\ .*$\\g')
-	echo $origSeqFile $count
+	count=$accCount
+	accCount=$(wc -l "$treeLabels" | sed 's\ .*$\\g')
+	count=$((accCount - count))
+	echo $origSeqFile $accCount $count  >&2
 done
 
 sequences="$DIR/$gene/Sequences"
