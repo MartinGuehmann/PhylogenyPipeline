@@ -62,6 +62,7 @@ sed -e '/^>/!s/J/L/g' \
     -e '/^>/!s/j/l/g' \
     -e 's/[],[]//g' \
     -e 's/[);(]//g' \
+    -e 's/ $//g' \
     -e 's/[: /]/_/g' \
     $inputSequences > $cleanedinputSequences
 
