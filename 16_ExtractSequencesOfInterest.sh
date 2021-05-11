@@ -178,7 +178,7 @@ do
 done
 
 sequences="$DIR/$gene/Sequences"
-nrSequenceFile90="$sequences/NonRedundantSequences.fasta"
+nrSequenceFile90="$sequences/NonRedundantSequences90.fasta"
 
 seqkit grep -j $numTreads -f $treeLabels -t protein $nrSequenceFile90 > $SequencesOfInterest
 
