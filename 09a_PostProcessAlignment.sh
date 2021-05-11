@@ -32,7 +32,7 @@ numTreads=$(nproc)
 
 ###########################################################
 # Remove empty columns from alignment
-raxml-ng --msa "$alignmentFile" --threads $numTreads --model LG+G --check
+raxml-ng --msa "$alignmentFile" --threads $numTreads --model LG+G --check >&2
 
 reducedAlignmentFile="$alignmentFile.raxml.reduced.phy"
 
