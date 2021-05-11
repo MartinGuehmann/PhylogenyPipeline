@@ -158,7 +158,10 @@ do
 	origSeqFile="$SeqenceChunksForPruningDir/$mainBase.$partBase.fasta"
 	sedScript="$TreesForPruningFromPASTADir/$mainBase.$partBase.script"
 
-	seqkit seq -j $numTreads -n -i "$origSeqFile" | sed "s|\(^.*$\)|s/\1\[^']\*/\1/g|g" > "$sedScript"
+	# Create the regular expressions for stripping the long parts of the sequence IDs
+	# We need to store those in a file, since we may hit the character and argument limit
+	# for the command line
+	seqkit seq -j $numTreads -n -i "$origSeqFile" | sed "s|\(^.*$\)|s/\1\[^:]\*/\1/g|g" > "$sedScript"
 
 	# Shorten the long labels to IDs only
 	sed -f $sedScript "$TreeForPruning" | \
