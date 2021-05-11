@@ -76,8 +76,6 @@ seqkit shuffle -j "$numTreads" "$inputSequences" > "$shuffledSequences"
 numSeqs=$(grep -c '>' $shuffledSequences)
 
 numSeqChunks=$(($numSeqs / $seqsPerChunk))
-echo $numSeqs
-echo $numSeqChunks
 
 # In case we have less than the number of sequences per chunk
 if [ $numSeqChunks == 0 ]
@@ -85,5 +83,5 @@ then
 	numSeqChunks="1"
 fi
 
-# Warns that output directoy is not empty, but it is supposed to be non-empty
+# Warns that output directory is not empty, but it is supposed to be non-empty
 seqkit split2 -j $numTreads -p $numSeqChunks -O $outputDir $shuffledSequences
