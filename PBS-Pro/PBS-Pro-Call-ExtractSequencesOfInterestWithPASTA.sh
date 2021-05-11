@@ -62,7 +62,7 @@ then
 fi
 
 # Change the working directory to the directory of this script
-# so that the standard and error output files to the directory of this script
+# so that the standard and error output files go to the directory of this script
 cd $DIR
 
 jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "14" --hold $trimAl)
