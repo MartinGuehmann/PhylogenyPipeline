@@ -74,7 +74,7 @@ sed -e '/^>/!s/J/L/g' \
 maxMB="16384"
 run_pasta.py -i $cleanedinputSequences -d protein -o $alignmentDir --num-cpus=$numTreads --max-mem-mb=$maxMB --alignment-suffix="alignment.PASTA.fasta" -j $base >&2
 
-# Remove tempory output files
+# Remove temporary output files
 rm $alignmentDir/${base}_temp_*
 
 sed -i -e 's/^;$//g' "$alignmentDir/${base}.tre"
