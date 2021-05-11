@@ -69,12 +69,12 @@ jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "14" --hold $trimAl)
 holdJobs=$jobIDs
 echo $jobIDs
 
-if [ -z $suffix ]
+if [ -z "$suffix" ]
 then
 	jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "16" -d "$jobIDs")
 	echo $jobIDs
 
-	if [ $continue == "--continue" ]
+	if [ "$continue" == "--continue" ]
 	then
 		echo "Continue is not implemented" >&2
 	fi

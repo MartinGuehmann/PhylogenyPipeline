@@ -71,7 +71,7 @@ echo $jobIDs
 jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "16" -d "$jobIDs" "$suffix")
 echo $jobIDs
 
-if [ $continue == "--continue" ]
+if [ "$continue" == "--continue" ]
 then
 	echo "Continue is not implemented" >&2
 fi
