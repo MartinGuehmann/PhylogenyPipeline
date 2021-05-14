@@ -184,7 +184,7 @@ do
 	count=$accCount
 	accCount=$(wc -l "$treeLabels" | sed 's\ .*$\\g')
 	count=$((accCount - count))
-	echo $origSeqFile $accCount $count  >&2
+	echo $TreeForPruning $accCount $count  >&2
 done
 
 # Get the file of all the reduced set of non redundant sequences to extract the sequences of interest from
