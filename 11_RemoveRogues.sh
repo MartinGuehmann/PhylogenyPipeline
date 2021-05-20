@@ -66,14 +66,21 @@ done
 if [ -z "$gene" ]
 then
 	echo "You must give a GeneName, for instance:" >&2
-	echo "./$thisScript GeneName" >&2
-	exit
+	echo "./$thisScript -g GeneName" >&2
+	exit 1
+fi
+
+if [ -z $inputTrees ]
+then
+	echo "You must give a file with InputTrees, for instance:" >&2
+	echo "./$thisScript -f InputTrees" >&2
+	exit 1
 fi
 
 if [ ! -f $inputTrees ]
 then
 	echo "File $inputTrees does not exist. Existing." >&2
-	exit
+	exit 2
 fi
 
 seqsOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix $previousAligner)

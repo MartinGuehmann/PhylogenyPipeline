@@ -77,15 +77,15 @@ done
 if [ -z "$gene" ]
 then
 	echo "You must give a GeneName, for instance:" >&2
-	echo "./$thisScript GeneName" >&2
-	exit
+	echo "./$thisScript -g GeneName" >&2
+	exit 1
 fi
 
 if [ -z "$TreesForPruningFromPASTADir" ]
 then
 	echo "You must give a directory with tree files for pruning, for instance:" >&2
-	echo "./$thisScript TreeFileDirectory" >&2
-	exit
+	echo "./$thisScript -d TreeFileDirectory" >&2
+	exit 1
 fi
 
 # Get the name of the sequences of interest directory and make it if it does not exist

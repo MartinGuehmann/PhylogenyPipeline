@@ -100,7 +100,7 @@ then
 	echo "GeneName missing" >&2
 	echo "You must give a GeneName, for instance:" >&2
 	echo "./$thisScript -g GeneName" >&2
-	exit
+	exit 1
 fi
 
 if [ -z "$step" ]
@@ -108,7 +108,7 @@ then
 	echo "StepNumber missing" >&2
 	echo "You must give a StepNumber, for instance:" >&2
 	echo "./$thisScript -s StepNumber" >&2
-	exit
+	exit 1
 fi
 
 if [ -z "$aligner" ]

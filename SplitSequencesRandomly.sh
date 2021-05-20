@@ -57,7 +57,7 @@ if [ -z "$outputDir" ]
 then
 	echo "You must give an output directory OutDir, for instance:" >&2
 	echo "./$thisScript -O OutDir" >&2
-	exit
+	exit 1
 fi
 
 if [ -z "$shuffledSequences" ]

@@ -76,7 +76,7 @@ then
 	echo "You must give a GeneName, for instance:" >&2
 	echo "./$thisScript --gene GeneName" >&2
 	echo "./$thisScript -g GeneName" >&2
-	exit
+	exit 1
 fi
 
 if [ $iteration == 0 ]

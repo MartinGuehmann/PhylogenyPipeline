@@ -14,7 +14,7 @@ if [ -z "$gene" ]
 then
 	echo "You must give a GeneName, for instance:" >&2
 	echo "./$thisScript GeneName" >&2
-	exit
+	exit 1
 fi
 
 alignmentToUse=$(cut -d " " -f ${PBS_ARRAY_INDEX} $alignmentFiles)

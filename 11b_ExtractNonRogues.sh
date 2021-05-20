@@ -72,8 +72,8 @@ shopt -s extglob
 if [ -z "$gene" ]
 then
 	echo "You must give a GeneName, for instance:" >&2
-	echo "./$thisScript GeneName" >&2
-	exit
+	echo "./$thisScript -g GeneName" >&2
+	exit 1
 fi
 
 seqsOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix $previousAligner)

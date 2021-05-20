@@ -43,7 +43,7 @@ if [[ -z "$outputDir" ]]
 then
 	echo "You must give an output directory OutputDir, for instance:" >&2
 	echo "./$thisScript -O OutputDir" >&2
-	exit
+	exit 1
 fi
 
 if [ -z "$gene" ]
@@ -51,7 +51,7 @@ then
 	echo "GeneName missing" >&2
 	echo "You must give a GeneName, for instance:" >&2
 	echo "./$thisScript -g GeneName" >&2
-	exit
+	exit 1
 fi
 
 mkdir -p $outputDir

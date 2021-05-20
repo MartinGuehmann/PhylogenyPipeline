@@ -16,7 +16,7 @@ if [[ -z "$inputAlignment" ]]
 then
 	echo "You must give a InputAlignmentFile, for instance:" >&2
 	echo "./$thisScript InputAlignmentFile.fasta" >&2
-	exit
+	exit 1
 fi
 
 numTreads=$(nproc)

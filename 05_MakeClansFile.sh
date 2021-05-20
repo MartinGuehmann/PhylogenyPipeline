@@ -15,7 +15,7 @@ if [ -z "$gene" ]
 then
 	echo "You must give a GeneName, for instance:" >&2
 	echo "./$thisScript GeneName" >&2
-	exit
+	exit 1
 fi
 
 numThreads=$(nproc)             # Get the number of the currently available processing units to this process, which maybe less than the number of online processors

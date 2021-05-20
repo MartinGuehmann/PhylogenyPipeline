@@ -20,14 +20,14 @@ if [[ -z "$inputSequences" ]]
 then
 	echo "You must give a file with InputSequences, for instance:" >&2
 	echo "./$thisScript InputSequences AlignmentDirectory" >&2
-	exit
+	exit 1
 fi
 
 if [ -z "$alignmentDir" ]
 then
 	echo "You must give a file with InputSequences, for instance:" >&2
 	echo "./$thisScript InputSequences AlignmentDirectory" >&2
-	exit
+	exit 1
 fi
 
 # Make input and output file names
@@ -41,7 +41,7 @@ if [ -s $outFile ]
 then
 	# In this case we still want to return the outfile
 	echo "$outFile"
-	exit
+	exit 0
 elif [ -f $outFile ]
 then
 	# Something went wrong while aligning

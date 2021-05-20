@@ -87,7 +87,7 @@ then
 	echo "GeneName missing" >&2
 	echo "You must give a GeneName and a StepNumber, for instance:" >&2
 	echo "./$thisScript GeneName StepNumber" >&2
-	exit
+	exit 1
 fi
 
 if [ -z "$iteration" ]

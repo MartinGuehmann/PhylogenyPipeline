@@ -16,7 +16,7 @@ if [ -z "$seqsOfInterestDir" ]
 then
 	echo "You must give a SeqsOfInterestDir, for instance:" >&2
 	echo "./$thisScript SeqsOfInterestDir" >&2
-	exit
+	exit 1
 fi
 
 numTreads=$(nproc)
