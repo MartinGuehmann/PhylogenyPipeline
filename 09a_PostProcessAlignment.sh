@@ -18,14 +18,15 @@ trimal="$2"                  # Whether the alignment should be trimmed
 
 if [[ -z "$alignmentFile" ]]
 then
-	echo "You must give a file with an alignment, for instance:"  >&2
+	echo "You must give a file with an alignment, for instance:" >&2
 	echo "./$thisScript AlignmentFile" >&2
-	exit
+	exit 1
 fi
 
 if [[ ! -f $alignmentFile ]]
 then
 	echo "Warning alignment file does not exist: $alignmentFile" >&2
+	exit 2
 fi
 
 numTreads=$(nproc)
@@ -35,6 +36,16 @@ numTreads=$(nproc)
 raxml-ng --msa "$alignmentFile" --threads $numTreads --model LG+G --check >&2
 
 reducedAlignmentFile="$alignmentFile.raxml.reduced.phy"
+
+# If there is nothing to remove for raxml-ng it will not
+# create a phylip file and we have to do it ourselves.
+if [ ! -f "$reducedAlignmentFile" ]
+then
+	seqNum=$(grep -c '>' "$alignmentFile")
+	seqLength=$(seqkit head -j $numTreads -n 1 "$alignmentFile" | seqkit seq -j $numTreads -s | tr -d '\n' | wc -m)
+	echo "$seqNum $seqLength" > "$reducedAlignmentFile"
+	seqkit fx2tab -j $numTreads "$alignmentFile" | sed -e "s/	$//" -e "s/	/ /g" >> "$reducedAlignmentFile"
+fi
 
 # Remove double underscores and brackets from extended sequence IDs
 sed -i -e 's/__/_/g' -e 's/[][]//g' "$reducedAlignmentFile"
