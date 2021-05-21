@@ -68,7 +68,7 @@ cd $DIR
 jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "15" --hold)
 holdJobs=$jobIDs
 echo $jobIDs
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "16" -d "$jobIDs" "$suffix")
+jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "16" -d "$jobIDs" $suffix)
 echo $jobIDs
 
 if [ "$continue" == "--continue" ]
