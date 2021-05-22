@@ -198,6 +198,27 @@ seqkit grep -v -j $numTreads -f $treeLabels -t protein $nrSequenceFile90 | \
 seqkit shuffle -j $numTreads | \
 seqkit head -n 1000 >> $SequencesOfInterest
 
+namesOfInterestsFile="$DIR/$gene/NamesOfInterests.txt"
+
+if [ -f $namesOfInterestsFile ]
+then
+	while read line
+	do
+		if [[ "#" == "${line:0:1}" ]]
+		then
+			continue
+		fi
+
+		if [[ "\n" == "${line:0:1}" ]]
+		then
+			continue
+		fi
+
+		seqkit grep -j $numTreads -n -r -p "Trichoplax" $nrSequenceFile90 >> $SequencesOfInterest
+
+	done < $namesOfInterestsFile
+fi
+
 # Randomly shuffle the sequences of interests and split them into chunks of
 # about 900 sequences, this is not exactly set, since the actual number of sequences
 # won't be devidabel by 900 without rest. However, the rest is distributed over the files.
