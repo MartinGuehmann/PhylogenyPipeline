@@ -69,9 +69,9 @@ jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "14" --hold $trimAl)
 holdJobs=$jobIDs
 echo $jobIDs
 
-if [ -z "$suffix" ]
+if [ "$suffix" == "-x tre" ]
 then
-	jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "16" -d "$jobIDs")
+	jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "16" -d "$jobIDs" $suffix)
 	echo $jobIDs
 
 	if [ "$continue" == "--continue" ]
