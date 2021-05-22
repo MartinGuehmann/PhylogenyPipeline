@@ -10,6 +10,8 @@ done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
+seqsPerChunk="700"
+
 # Idiomatic parameter and option handling in sh
 # Adapted from https://superuser.com/questions/186272/check-if-any-of-the-parameters-to-a-bash-script-match-a-string
 # And advanced version is here https://stackoverflow.com/questions/7069682/how-to-get-arguments-with-flags-in-bash/7069755#7069755
@@ -27,6 +29,12 @@ do
         -O)
             shift
             outputDir="$1"
+            ;;
+        --seqsPerChunk)
+            ;&
+        -h)
+            shift
+            seqsPerChunk="$1"
             ;;
         -*)
             ;&
@@ -80,7 +88,6 @@ then
 fi
 
 numTreads=$(nproc)
-seqsPerChunk="700"
 $DIR/SplitSequencesRandomly.sh -c "$seqsPerChunk" -f "$NonRedundandSequences90" -O $outputDir
 
 for partSeqFile in $outputDir/*".part_"*".fasta"
@@ -91,7 +98,7 @@ do
 	done
 
 	partSeqFileCleaned="$partSeqFile.cleaned"
-	seqkit rmdup -j $numTreads $partSeqFile > $partSeqFileCleaned
+	seqkit rmdup -s -j $numTreads $partSeqFile > $partSeqFileCleaned
 	mv $partSeqFileCleaned $partSeqFile
 done
 
