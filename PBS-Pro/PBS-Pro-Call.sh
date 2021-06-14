@@ -82,7 +82,7 @@ do
             ;&
         -e)
             shift
-            $extension="-e $1"
+            extension="-e $1"
             ;;
         --previousAligner)
             ;&
@@ -163,7 +163,7 @@ PruningLastBit=$("$DIR/../GetAlignmentBit.sh" -a "PASTA")
 
 AlignmentDir=$("$DIR/../GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix)
 AlignmentParts="$AlignmentDir/$partSequences"
-AlignmentLastBit=$("$DIR/../GetAlignmentBit.sh"-a $aligner)
+AlignmentLastBit=$("$DIR/../GetAlignmentBit.sh" -a $aligner)
 AllSeqs="$AlignmentDir/SequencesOfInterest$AlignmentLastBit"
 
 jobIDs=""

@@ -66,7 +66,7 @@ do
             ;&
         -e)
             shift
-            $extension="-e $1"
+            extension="-e $1"
             ;;
         --previousAligner)
             ;&
