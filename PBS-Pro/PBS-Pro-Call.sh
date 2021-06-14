@@ -19,6 +19,7 @@ depend=""
 allSeqs=""
 shuffleSeqs=""
 suffix=""
+extension=""
 
 # Idiomatic parameter and option handling in sh
 # Adapted from https://superuser.com/questions/186272/check-if-any-of-the-parameters-to-a-bash-script-match-a-string
@@ -76,6 +77,12 @@ do
         -x)
             shift
             suffix="-x $1"
+            ;;
+        --extension)
+            ;&
+        -e)
+            shift
+            $extension="-e $1"
             ;;
         --previousAligner)
             ;&
@@ -239,7 +246,7 @@ case $step in
 	jobIDs+=:$(qsub $hold $depend -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, alignmentFiles=$alignmentFiles" "$DIR/15_PBS-Pro-MakeTreeWithIQ-TreeForPruning.sh")
 	;;
 16)
-	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, suffix=$suffix" "$DIR/16_PBS-Pro-ExtractSequencesOfInterest.sh")
+	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, extension=$extension" "$DIR/16_PBS-Pro-ExtractSequencesOfInterest.sh")
 	;;
 
 *)

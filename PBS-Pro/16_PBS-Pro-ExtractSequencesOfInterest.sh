@@ -17,5 +17,5 @@ then
 fi
 
 date
-time "$DIR/../RunAll.sh" -g "$gene" -s "16" $suffix
+time "$DIR/../RunAll.sh" -g "$gene" -s "16" $extension
 date
