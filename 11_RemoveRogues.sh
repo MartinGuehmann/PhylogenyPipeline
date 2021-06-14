@@ -89,7 +89,8 @@ rogueFreeTreesDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$((
 mkdir -p $rogueFreeTreesDir
 
 numTreads=$(nproc)
-base=$(basename $inputTrees ".alignment.$aligner.fasta.raxml.reduced.phy.ufboot")
+extensionToRemove=$("$DIR/GetAlignmentBit.sh" -a $aligner)
+base=$(basename $inputTrees "$extensionToRemove.ufboot")
 bbase="$base.bipartition"
 alignmentBase=$(basename $inputTrees ".ufboot")
 alignmentDir=$(dirname $inputTrees)

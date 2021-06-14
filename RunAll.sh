@@ -145,11 +145,11 @@ SeqencesForPruningParts="$SeqenceChunksForPruningDir/SequencesForPruning.part_"
 TreesForPruningFromPASTADir="$DIR/$gene/TreesForPruningFromPASTA"
 partPruning="NonRedundantSequences90Shuffled.part_"
 AllPruningSeqs="$TreesForPruningFromPASTADir/$partPruning"
-PruningLastBit=".alignment.PASTA.fasta.raxml.reduced.phy"
+PruningLastBit=$("$DIR/GetAlignmentBit.sh" -a "PASTA")
 
 AlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix)
 AlignmentParts="$AlignmentDir/$partSequences"
-AlignmentLastBit=".alignment.$aligner.fasta.raxml.reduced.phy"
+AlignmentLastBit=$("$DIR/GetAlignmentBit.sh" -a $aligner)
 AllSeqs="$AlignmentDir/SequencesOfInterest$AlignmentLastBit"
 UFBootPart="$AlignmentLastBit.ufboot"
 AllSeqsUFBoot="$AllSeqs.ufboot"

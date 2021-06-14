@@ -45,7 +45,7 @@ then
 elif [ -f $outFile ]
 then
 	# Something went wrong while aligning
-	# but PASTA does not overwrite the old files if they exists
+	# but PASTA does not overwrite the old files if they exist
 	# so delete them manually
 	rm $alignmentDir/${base}*
 fi
