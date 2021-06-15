@@ -93,14 +93,17 @@ do
         --update)
             ;&
         -u)
-            shift
             update="-u"
             ;;
         --updateBig)
             ;&
         -U)
-            shift
             updateBig="-U"
+            ;;
+        --ignoreIfMasterFileDoesNotExist)
+            ;&
+        -X)
+            ignoreIfMasterFileDoesNotExist="-X"
             ;;
         -*)
             ;&
@@ -271,7 +274,7 @@ case $step in
 	;;
 12)
 	echo "12. Visualise trees." >&2
-	$DIR/12_ConvertTreesToFigures.sh -g "$gene" -i "$iteration" -a "$aligner" $suffix $extension $update $updateBig
+	$DIR/12_ConvertTreesToFigures.sh -g "$gene" -i "$iteration" -a "$aligner" $suffix $extension $update $updateBig $ignoreIfMasterFileDoesNotExist
 	echo "12. Trees visualized." >&2
 	;;
 13)

@@ -51,15 +51,18 @@ do
         --update)
             ;&
         -u)
-            shift
             update="True"
             ;;
         --updateBig)
             ;&
         -U)
-            shift
             updateBig="True"
             update="True"
+            ;;
+        --ignoreIfMasterFileDoesNotExist)
+            ;&
+        -X)
+            ignoreIfMasterFileDoesNotExist="True"
             ;;
         -*)
             ;&
@@ -95,15 +98,22 @@ cladeTreeFile="$inputTreeDir/$inputTreeBase.cladeTrees"
 
 if [ ! -f $inputTree ]
 then
-	echo "In ./$thisScript" >&2
-	echo "File $inputTree does not exist. Existing." >&2
-	echo "Check the parameters:" >&2
-	echo "--gene $gene" >&2
-	echo "--iteration $iteration" >&2
-	echo "--aliner $aligner" >&2
-	echo "--extension $extension" >&2
-	echo "--suffix $suffix" >&2
-	exit 2
+	if [ -z $ignoreIfMasterFileDoesNotExist ]
+	then
+		echo "In ./$thisScript" >&2
+		echo "File $inputTree does not exist. Exiting." >&2
+		echo "Check the parameters:" >&2
+		echo "--gene $gene" >&2
+		echo "--iteration $iteration" >&2
+		echo "--aliner $aligner" >&2
+		echo "--extension $extension" >&2
+		echo "--suffix $suffix" >&2
+		exit 2
+	else
+		echo "In ./$thisScript" >&2
+		echo "Master File $inputTree does not exist, yet. Exiting." >&2
+		exit 0
+	fi
 fi
 
 echo "Using $cladeFile" >&2
