@@ -90,6 +90,18 @@ do
         -r)
             restore="--restore"
             ;;
+        --update)
+            ;&
+        -u)
+            shift
+            update="-u"
+            ;;
+        --updateBig)
+            ;&
+        -U)
+            shift
+            updateBig="-U"
+            ;;
         -*)
             ;&
         --*)
@@ -259,7 +271,7 @@ case $step in
 	;;
 12)
 	echo "12. Visualise trees." >&2
-	echo "Step $step not implemented." >&2
+	$DIR/12_ConvertTreesToFigures.sh -g "$gene" -i "$iteration" -a "$aligner" $suffix $extension $update $updateBig
 	echo "12. Trees visualized." >&2
 	;;
 13)
