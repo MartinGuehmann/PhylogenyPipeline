@@ -97,17 +97,21 @@ if [ ! -f $inputTree ]
 then
 	echo "In ./$thisScript" >&2
 	echo "File $inputTree does not exist. Existing." >&2
-	echo "Check the parameters:"
-	echo "--gene $gene"
-	echo "--iteration $iteration"
-	echo "--aliner $aligner"
-	echo "--extension $extension"
-	echo "--suffix $suffix"
+	echo "Check the parameters:" >&2
+	echo "--gene $gene" >&2
+	echo "--iteration $iteration" >&2
+	echo "--aliner $aligner" >&2
+	echo "--extension $extension" >&2
+	echo "--suffix $suffix" >&2
 	exit 2
 fi
 
+echo "Using $cladeFile" >&2
+
 if [[ ! -f $cladeTreeFile || ! -z $updateBig ]]
 then
+	echo "Processing $inputTree" >&2
+	echo "Creating $cladeTreeFile" >&2
 	python3 "$DIR/12_ConvertTreesToFigures.py" -i $inputTree -c $cladeFile
 fi
 
@@ -116,8 +120,11 @@ inputTreeBase=$(basename $inputTree ".$extension")
 inputTreeDir=$(dirname $inputTree)
 outputFile="$inputTreeDir/$inputTreeBase.collapsedTree.pdf"
 
-if [[ -f $inputTree && ! -f $outputFile || -f $inputTree && ! -z $update ]]
+echo "Using $cladeTreeFile" >&2
+
+if [[ -f $inputTree && ! -f $outputFile || -f $inputTree && ! -z $update && $iteration != "0" ]]
 then
+	echo "Processing $inputTree" >&2
 	python3 "$DIR/12_ConvertTreesToFigures.py" -i $inputTree -c $cladeFile -t $cladeTreeFile
 fi
 
@@ -129,6 +136,7 @@ do
 
 	if [[ ! -f $outputFile || ! -z $update ]]
 	then
+		echo "Processing $inputTree" >&2
 		python3 "$DIR/12_ConvertTreesToFigures.py" -i $inputTree -c $cladeFile -t $cladeTreeFile
 	fi
 done
