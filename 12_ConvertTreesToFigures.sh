@@ -147,7 +147,7 @@ then
 		echo "--aliner $aligner" >&2
 		echo "--extension $extension" >&2
 		echo "--suffix $suffix" >&2
-		exit 2
+		exit 1
 	else
 		echo "In ./$thisScript" >&2
 		echo "Master File $inputTree does not exist, yet. Exiting." >&2
