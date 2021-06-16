@@ -62,14 +62,26 @@ then
 fi
 
 # Change the working directory to the directory of this script
-# so that the standard and error output files to the directory of this script
+# so that the standard and error output files go to the directory of this script
 cd $DIR
 
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "13" --hold)
-echo $jobIDs
+jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "14" --hold $trimAl)
 holdJobs=$jobIDs
+echo $jobIDs
 
-qsub -v "DIR=$DIR, gene=$gene, trimAl=$trimAl, continue=$continue, extension=$extension" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-Call-ExtractSequencesOfInterestWithPASTA.sh"
+if [ "$extension" == "-e tre" ]
+then
+	jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "16" -d "$jobIDs" $extension)
+	echo $jobIDs
+
+	if [ "$continue" == "--continue" ]
+	then
+		echo "Continue is not implemented" >&2
+	fi
+
+else
+	qsub -v "DIR=$DIR, gene=$gene, trimAl=$trimAl, continue=$continue, extension=$extension" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-15-ExtractSequencesOfInterestWithIQ-Tree.sh"
+fi
 
 # Start hold jobs
 holdJobs=$(echo $holdJobs | sed "s/:/ /g")

@@ -119,7 +119,7 @@ then
 	if (( numRoundsLeft <= 0 ))
 	then
 		echo "Num rounds left at $numRoundsLeft rounds left, in iteration $iteration" >&2
-		exit
+		exit 0
 	else
 		echo "$numRoundsLeft more rounds to go, next iteration: $nextIteration" >&2
 		((numRoundsLeft--))
@@ -143,4 +143,4 @@ then
 	fi
 fi
 
-"$DIR/PBS-Pro-Call-RogueOptAlign.sh" -g "$gene" -i "$nextIteration" -a "$aligner" -n "$numRoundsLeft" $shuffleSeqs $allSeqs $suffix $extension $trimAl
+"$DIR/PBS-Pro-09-RogueOptAlign.sh" -g "$gene" -i "$nextIteration" -a "$aligner" -n "$numRoundsLeft" $shuffleSeqs $allSeqs $suffix $extension $trimAl
