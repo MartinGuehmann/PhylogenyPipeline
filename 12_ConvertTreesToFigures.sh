@@ -10,6 +10,9 @@
 #  --aligner (-a) <AlignerName>
 #     The name for the aligner used, determines the
 #     input and output directory
+#  --folder (-f) <inputFolderName>
+#     The input folder name, for overriding the automatic generated
+#     one, useful if the master files comes from another aligner
 #  --extension (-e) <TreeFileExtension>
 #     The extension of the Newick tree files, for instance
 #     "tre", which is used by PASTA, alternatives
@@ -70,6 +73,12 @@ do
             shift
             aligner="$1"
             ;;
+        --folder)
+            ;&
+        -f)
+            shift
+            inputDir="$1"
+            ;;
         --extension)
             ;&
         -e)
@@ -117,8 +126,17 @@ then
 fi
 
 # Get the names of the input files, first for the master tree
+
+# Use the input directory if supplied
+# Note that for some reason [ -d "" ] returns true
+if [[ ! -z $inputDir && -d $inputDir ]]
+then
+	AlignmentDir=$inputDir
+else
+	AlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix)
+fi
+
 firstAlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "0" -a "$aligner" $suffix)
-AlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix)
 alignmentExtension=$("$DIR/GetAlignmentBit.sh" -a $aligner)
 partSequences="SequencesOfInterestShuffled.part_"
 AlignmentParts="$AlignmentDir/$partSequences"
@@ -181,7 +199,7 @@ then
 fi
 
 # Get the names of the input files, third for the nth iteration sub trees
-for inputTree in "$AlignmentParts"*"$AlignmentLastBit.$extension"
+for inputTree in "$AlignmentParts"*".$extension"
 do
 	inputTreeBase=$(basename $inputTree ".$extension")
 	inputTreeDir=$(dirname $inputTree)

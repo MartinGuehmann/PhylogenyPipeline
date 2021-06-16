@@ -50,6 +50,7 @@ do
         -f)
             shift
             inputFile="$1"
+            inputDir="-f $1"
             ;;
         --shuffleSeqs)
             ;&
@@ -274,7 +275,7 @@ case $step in
 	;;
 12)
 	echo "12. Visualise trees." >&2
-	$DIR/12_ConvertTreesToFigures.sh -g "$gene" -i "$iteration" -a "$aligner" $suffix $extension $update $updateBig $ignoreIfMasterFileDoesNotExist
+	$DIR/12_ConvertTreesToFigures.sh -g "$gene" -i "$iteration" -a "$aligner" $inputDir $suffix $extension $update $updateBig $ignoreIfMasterFileDoesNotExist
 	echo "12. Trees visualized." >&2
 	;;
 13)

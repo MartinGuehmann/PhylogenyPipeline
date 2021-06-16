@@ -122,7 +122,8 @@ if [[ "$allSeqs" == "--allSeqs" && $numRoundsLeft == "0" ]]
 then
 	jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "12" -i "$iteration" -a "$aligner" -d "$holdJobs" $suffix $extension -U)
 
-	# ToDo: Call script to update all pdf files
+	# Update all pdf files
+	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, extension=$extension" -W "depend=afternotok$jobIds" "$DIR/12_PBS-ConvertTreesToFigures.sh"
 else
 	# Depends only on the jobs from step 10
 	jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "12" -i "$iteration" -a "$aligner" -d "$holdJobs" $suffix $extension -u -X)

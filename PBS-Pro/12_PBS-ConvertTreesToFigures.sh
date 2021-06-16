@@ -17,5 +17,5 @@ then
 fi
 
 date
-time "$DIR/../RunAll.sh" -g "$gene" -s "12" -i "$iteration" -a "$aligner" $suffix $extension $update $updateBig $ignoreIfMasterFileDoesNotExist
+time "$DIR/../RunAll.sh" -g "$gene" -s "12" -i "$iteration" -a "$aligner" $suffix $extension $update $updateBig $inputDir $ignoreIfMasterFileDoesNotExist
 date
