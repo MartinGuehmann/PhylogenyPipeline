@@ -66,6 +66,12 @@ do
             shift
             suffix="-x $1"
             ;;
+        --extension)
+            ;&
+        -e)
+            shift
+            extension="-e $1"
+            ;;
         --trimAl)
             ;&
         -t)
@@ -122,7 +128,7 @@ fi
 
 if [[ ! -f $droppedFinal ]]
 then
-	echo "$droppedFinal does not exist, existing" >&2
+	echo "$droppedFinal does not exist, exiting" >&2
 	# Break if this does not exist
 	exit
 fi
@@ -137,4 +143,4 @@ then
 	fi
 fi
 
-"$DIR/PBS-Pro-Call-RogueOptAlign.sh" -g "$gene" -i "$nextIteration" -a "$aligner" -n "$numRoundsLeft" $shuffleSeqs $allSeqs $suffix $trimAl
+"$DIR/PBS-Pro-Call-RogueOptAlign.sh" -g "$gene" -i "$nextIteration" -a "$aligner" -n "$numRoundsLeft" $shuffleSeqs $allSeqs $suffix $extension $trimAl

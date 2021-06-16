@@ -101,6 +101,21 @@ do
         -r)
             restore="--restore"
             ;;
+        --update)
+            ;&
+        -u)
+            update="-u"
+            ;;
+        --updateBig)
+            ;&
+        -U)
+            updateBig="-U"
+            ;;
+        --ignoreIfMasterFileDoesNotExist)
+            ;&
+        -X)
+            ignoreIfMasterFileDoesNotExist="-X"
+            ;;
         -*)
             ;&
         --*)
@@ -230,7 +245,7 @@ case $step in
 	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, shuffleSeqs=$shuffleSeqs, suffix=$suffix, previousAligner=$previousAligner, restore=$restore" "$DIR/11_PBS-Pro-RemoveRogues.sh")
 	;;
 12)
-	echo "Step $step not implemented." >&2
+	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, suffix=$suffix extension=$extension update=$update updateBig=$updateBig ignoreIfMasterFileDoesNotExist=$ignoreIfMasterFileDoesNotExist" "$DIR/12_PBS-Pro-ConvertTreesToFigures.sh")
 	;;
 13)
 	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/13_PBS-Pro-SplitNonRedundantSequences.sh")
