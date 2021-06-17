@@ -31,6 +31,12 @@ do
             shift
             iteration="$1"
             ;;
+        --bigTreeIteration)
+            ;&
+        -b)
+            shift
+            bigTreeIteration="-b $1"
+            ;;
         --aligner)
             ;&
         -a)
@@ -116,7 +122,8 @@ holdJobs=$jobIDs
 jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "11" -i "$iteration" -a "$aligner" $allSeqs -d "$jobIDs" $shuffleSeqs $suffix $previousAligner)
 echo $jobIDs
 
-qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, trimAl=$trimAl" -W "depend=afterok$jobIDs" "$DIR/PBS-11-RemoveMoreRougues.sh"
+qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" -W "depend=afterok$jobIDs" \
+    "$DIR/PBS-11-RemoveMoreRougues.sh"
 
 if [[ "$allSeqs" == "--allSeqs" && $numRoundsLeft == "0" ]]
 then
@@ -133,7 +140,8 @@ fi
 if [[ "$allSeqs" == "--allSeqs" ]]
 then
 	# If we run against the wall, just restart the main task
-	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" -W "depend=afternotok$holdJobs" "$DIR/PBS-Pro-Call-10-RogueOptTree.sh"
+	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" -W "depend=afternotok$holdJobs" \
+	    "$DIR/PBS-Pro-Call-10-RogueOptTree.sh"
 fi
 
 # Start hold jobs

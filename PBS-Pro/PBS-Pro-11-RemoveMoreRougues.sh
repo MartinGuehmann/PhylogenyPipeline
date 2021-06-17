@@ -38,6 +38,12 @@ do
             shift
             iteration="$1"
             ;;
+        --bigTreeIteration)
+            ;&
+        -b)
+            shift
+            bigTreeIteration="$1"
+            ;;
         --aligner)
             ;&
         -a)
@@ -111,6 +117,13 @@ rogueFreeTreesDir=$("$DIR/../GetSequencesOfInterestDirectory.sh" -g "$gene" -i "
 droppedFinal="$rogueFreeTreesDir/SequencesOfInterest.dropped.fasta"
 
 
+if [[ ! -z "$bigTreeIteration" && $bigTreeIteration == $iteration ]]
+then
+	allSeqs="--allSeqs"
+	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=0, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+	    "$DIR/PBS-Pro-09-RogueOptAlign.sh"
+fi
+
 if [ -z "$numRoundsLeft" ] # Should be an unset variable or an empty string
 then
 	numRoundsLeft=""
@@ -130,7 +143,7 @@ if [[ ! -f $droppedFinal ]]
 then
 	echo "$droppedFinal does not exist, exiting" >&2
 	# Break if this does not exist
-	exit
+	exit 1
 fi
 
 numDropped=$(grep -c ">" $droppedFinal)
@@ -143,4 +156,9 @@ then
 	fi
 fi
 
-"$DIR/PBS-Pro-09-RogueOptAlign.sh" -g "$gene" -i "$nextIteration" -a "$aligner" -n "$numRoundsLeft" $shuffleSeqs $allSeqs $suffix $extension $trimAl
+if [[ ! -z $bigTreeIteration ]]
+then
+	bigTreeIteration = "-b $bigTreeIteration"
+fi
+
+"$DIR/PBS-Pro-09-RogueOptAlign.sh" -g "$gene" -i "$nextIteration" -a "$aligner" -n "$numRoundsLeft" $bigTreeIteration $shuffleSeqs $allSeqs $suffix $extension $trimAl

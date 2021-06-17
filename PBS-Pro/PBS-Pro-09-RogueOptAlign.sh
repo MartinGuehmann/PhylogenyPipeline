@@ -31,6 +31,12 @@ do
             shift
             iteration="$1"
             ;;
+        --bigTreeIteration)
+            ;&
+        -b)
+            shift
+            bigTreeIteration="-b $1"
+            ;;
         --aligner)
             ;&
         -a)
@@ -110,10 +116,13 @@ fi
 # so that the standard and error output files to the directory of this script
 cd $DIR
 
+# Align all the sequences
 jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "9" -i "$iteration" -a "$aligner" --hold $allSeqs $suffix $previousAligner $trimAl)
 echo $jobIDs
 
-qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" -W "depend=afterok$jobIDs" "$DIR/PBS-Pro-10-RogueOptTree.sh"
+# Schedule tree reconstruction, can only run when all alignments are ready
+qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" -W "depend=afterok$jobIDs" \
+    "$DIR/PBS-Pro-10-RogueOptTree.sh"
 
 # Start hold jobs
 jobIDs=$(echo $jobIDs | sed "s/:/ /g")

@@ -102,8 +102,9 @@ qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRounds
 
 allSeqs=""
 numRoundsLeft="20"
-# Make 20 iterations with the main aligner
-qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+bigTreeIteration="10"
+# Make 20 iterations with the main aligner, make a big tree after 10 iterations
+qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" \
     "$DIR/PBS-Pro-09-RogueOptAlign.sh"
 
 # Make an alignment only with the sequences of the gene
