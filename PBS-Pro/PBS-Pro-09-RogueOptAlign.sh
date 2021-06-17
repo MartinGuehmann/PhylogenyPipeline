@@ -140,6 +140,6 @@ echo $jobIDs
 qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" -W "depend=afterok$jobIDs" \
     "$DIR/PBS-Pro-10-RogueOptTree.sh"
 
-# Start hold jobs
+# Start held jobs
 jobIDs=$(echo $jobIDs | sed "s/:/ /g")
 qrls $jobIDs

@@ -123,6 +123,6 @@ then
 	    "$DIR/PBS-13-ExtractSequencePreparation.sh"
 fi
 
-# Start hold jobs
+# Start held jobs
 holdJobs=$(echo $holdJobs | sed "s/:/ /g")
 qrls $holdJobs

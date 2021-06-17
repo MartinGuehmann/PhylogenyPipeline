@@ -108,6 +108,6 @@ holdJobs=$jobIDs
 qsub -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl" -W "depend=afterok$jobIDs" \
     "$DIR/PBS-Pro-14-ExtractSequencesOfInterestWithPASTA.sh"
 
-# Start hold jobs
+# Start held jobs
 holdJobs=$(echo $holdJobs | sed "s/:/ /g")
 qrls $holdJobs

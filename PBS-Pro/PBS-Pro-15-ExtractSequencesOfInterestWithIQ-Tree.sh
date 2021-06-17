@@ -113,6 +113,6 @@ then
 	    "$DIR/PBS-Pro-16-TreeBuildScheduler.sh"
 fi
 
-# Start hold jobs
+# Start held jobs
 holdJobs=$(echo $holdJobs | sed "s/:/ /g")
 qrls $holdJobs

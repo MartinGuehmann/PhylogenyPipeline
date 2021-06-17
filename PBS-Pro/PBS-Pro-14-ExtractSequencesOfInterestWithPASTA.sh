@@ -121,6 +121,6 @@ else
 	    "$DIR/PBS-Pro-15-ExtractSequencesOfInterestWithIQ-Tree.sh"
 fi
 
-# Start hold jobs
+# Start held jobs
 holdJobs=$(echo $holdJobs | sed "s/:/ /g")
 qrls $holdJobs

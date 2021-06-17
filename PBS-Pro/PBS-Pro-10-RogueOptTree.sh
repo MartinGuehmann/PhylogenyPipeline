@@ -160,6 +160,6 @@ then
 	    "$DIR/PBS-Pro-Call-10-RogueOptTree.sh"
 fi
 
-# Start hold jobs
+# Start held jobs
 holdJobs=$(echo $holdJobs | sed "s/:/ /g")
 qrls $holdJobs
