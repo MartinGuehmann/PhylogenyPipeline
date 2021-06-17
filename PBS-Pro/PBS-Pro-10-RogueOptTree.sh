@@ -94,6 +94,22 @@ do
     shift
 done
 
+# Print the parameters to stderr for debugging
+echo "Running $thisScript with"            >&2
+echo "gene:             $gene"             >&2
+echo "iteration:        $iteration"        >&2
+echo "bigTreeIteration: $bigTreeIteration" >&2
+echo "aligner:          $aligner"          >&2
+echo "numRoundsLeft:    $numRoundsLeft"    >&2
+echo "allSeqs:          $allSeqs"          >&2
+echo "shuffleSeqs:      $shuffleSeqs"      >&2
+echo "suffix:           $suffix"           >&2
+echo "extension:        $extension"        >&2
+echo "previousAligner:  $previousAligner"  >&2
+echo "trimAl:           $trimAl"           >&2
+echo "Note PBS-Pro copies the scrip to"    >&2
+echo "another place with another name"     >&2
+
 if [ -z "$gene" ]
 then
 	echo "GeneName missing" >&2
