@@ -95,6 +95,7 @@ treeLabels="$SequencesOfInterestDir/LabelsOfInterest.txt"
 rm -f $treeLabels
 
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
+SequencesOfGene="$SequencesOfInterestDir/SequencesOf$gene.fasta"
 BaitDir="$DIR/$gene/BaitSequences/"
 RerootSequences="$DIR/$gene/RerootSequences/"
 seqsPerChunk="900"
@@ -192,6 +193,8 @@ nrSequenceFile90="$sequences/NonRedundantSequences90.fasta"
 # Extract the sequences of interests
 seqkit grep -j $numTreads -f $treeLabels -t protein $nrSequenceFile90 > $SequencesOfInterest
 
+cp $SequencesOfInterest $SequencesOfGene
+
 # Extract 1000 randomly chosen outgroup sequences and add them to the sequence of interest file.
 seqkit grep -v -j $numTreads -f $treeLabels -t protein $nrSequenceFile90 | \
 seqkit shuffle -j $numTreads | \
@@ -213,7 +216,7 @@ then
 			continue
 		fi
 
-		seqkit grep -j $numTreads -n -r -p "Trichoplax" $nrSequenceFile90 >> $SequencesOfInterest
+		seqkit grep -j $numTreads -n -r -p $line $nrSequenceFile90 >> $SequencesOfInterest
 
 	done < $namesOfInterestsFile
 fi

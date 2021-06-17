@@ -106,6 +106,11 @@ numRoundsLeft="20"
 qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
     "$DIR/PBS-Pro-09-RogueOptAlign.sh"
 
+# Make an alignment only with the sequences of the gene
+SequencesOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene")
+SequencesOfGene="$SequencesOfInterestDir/SequencesOf$gene.fasta"
+jobIDs=$($DIR/PBS-Pro-Call.sh             -f "$SequencesOfGene" -g "$gene" -s "9" -i "$iteration" -a "$aligner" $allSeqs -x $gene $previousAligner $trimAl)
+
 if [ -z $trimAl ]
 then
 	# Switch pruning on if it was off

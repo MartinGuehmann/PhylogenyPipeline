@@ -51,6 +51,12 @@ do
             shift
             aligner="$1"
             ;;
+        --file)
+            ;&
+        -f)
+            shift
+            inputFile="$1"
+            ;;
         --depend)
             ;&
         -d)
@@ -220,7 +226,10 @@ case $step in
 	jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/08_PBS-Pro-ExtractSequencesOfInterest.sh")
 	;;
 9)
-	if [[ $allSeqs == "allSeqs" ]]
+	if [[ ! -z $inputFile ]]
+	then
+		jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$inputFile, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" "$alignerFile")
+	elif [[ $allSeqs == "allSeqs" ]]
 	then
 		jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" "$alignerFile")
 	else
