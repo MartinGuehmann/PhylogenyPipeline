@@ -25,6 +25,12 @@ do
             shift
             gene="$1"
             ;;
+        --bigTreeIteration)
+            ;&
+        -b)
+            shift
+            bigTreeIteration="-b $1"
+            ;;
         --aligner)
             ;&
         -a)
@@ -36,17 +42,28 @@ do
         -c)
             continue="--continue"
             ;;
-        --trimAl)
+        --numRoundsLeft)
             ;&
-        -t)
+        -n)
             shift
-            trimAl="-t $1"
+            numRoundsLeft="$1"
+            ;;
+        --shuffleSeqs)
+            ;&
+        -l)
+            shuffleSeqs="--shuffleSeqs"
             ;;
         --extension)
             ;&
         -e)
             shift
             extension="-e $1"
+            ;;
+        --trimAl)
+            ;&
+        -t)
+            shift
+            trimAl="-t $1"
             ;;
         -*)
             ;&
@@ -62,10 +79,13 @@ done
 # Print the parameters to stderr for debugging
 echo "Running $thisScript with"            >&2
 echo "gene:             $gene"             >&2
+echo "bigTreeIteration: $bigTreeIteration" >&2
 echo "aligner:          $aligner"          >&2
 echo "continue:         $continue"         >&2
-echo "trimAl:           $trimAl"           >&2
+echo "numRoundsLeft:    $numRoundsLeft"    >&2
+echo "shuffleSeqs:      $shuffleSeqs"      >&2
 echo "extension:        $extension"        >&2
+echo "trimAl:           $trimAl"           >&2
 echo "Note PBS-Pro copies the scrip to"    >&2
 echo "another place with another name"     >&2
 
@@ -92,12 +112,12 @@ then
 
 	if [ "$continue" == "--continue" ]
 	then
-		qsub -v "DIR=$DIR, gene=$gene, aligner=$aligner, trimAl=$trimAl, continue=$continue, extension=$extension" -W "depend=afterok$jobIDs"
+		qsub -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl" -W "depend=afterok$jobIDs" \
 		    "$DIR/PBS-Pro-16-TreeBuildScheduler.sh"
 	fi
 
 else
-	qsub -v "DIR=$DIR, gene=$gene, aligner=$aligner, trimAl=$trimAl, continue=$continue, extension=$extension" -W "depend=afterok$jobIDs"
+	qsub -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl" -W "depend=afterok$jobIDs" \
 	    "$DIR/PBS-Pro-15-ExtractSequencesOfInterestWithIQ-Tree.sh"
 fi
 

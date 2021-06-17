@@ -25,17 +25,28 @@ do
             shift
             gene="$1"
             ;;
+        --bigTreeIteration)
+            ;&
+        -b)
+            shift
+            bigTreeIteration="-b $1"
+            ;;
         --aligner)
             ;&
         -a)
             shift
             aligner="$1"
             ;;
-        --trimAl)
+        --numRoundsLeft)
             ;&
-        -t)
+        -n)
             shift
-            trimAl="-t $1"
+            numRoundsLeft="$1"
+            ;;
+        --shuffleSeqs)
+            ;&
+        -l)
+            shuffleSeqs="--shuffleSeqs"
             ;;
         --extension)
             ;&
@@ -43,6 +54,12 @@ do
             shift
             # Actually ignored
             extension="-e $1"
+            ;;
+        --trimAl)
+            ;&
+        -t)
+            shift
+            trimAl="-t $1"
             ;;
         -*)
             ;&
@@ -58,11 +75,15 @@ done
 # Print the parameters to stderr for debugging
 echo "Running $thisScript with"            >&2
 echo "gene:             $gene"             >&2
+echo "bigTreeIteration: $bigTreeIteration" >&2
 echo "aligner:          $aligner"          >&2
+echo "numRoundsLeft:    $numRoundsLeft"    >&2
+echo "shuffleSeqs:      $shuffleSeqs"      >&2
 echo "extension:        $extension"        >&2
 echo "trimAl:           $trimAl"           >&2
 echo "Note PBS-Pro copies the scrip to"    >&2
 echo "another place with another name"     >&2
+
 
 if [ -z "$gene" ]
 then
@@ -70,6 +91,16 @@ then
 	echo "You must give a GeneName, for instance:" >&2
 	echo "./$thisScript -g GeneName" >&2
 	exit 1
+fi
+
+if [ -z $bigTreeIteration ]
+then
+	bigTreeIteration="10"
+fi
+
+if [ -z $numRoundsLeft ]
+then
+	numRoundsLeft="20"
 fi
 
 if [ -z $aligner ]
@@ -83,7 +114,6 @@ cd $DIR
 
 iteration="0"
 numRoundsLeft="0"
-shuffleSeqs="--shuffleSeqs"
 allSeqs=""
 suffix=""
 extension="-e treefile"
