@@ -29,7 +29,7 @@ do
             ;&
         -a)
             shift
-            mainAligner="$1"
+            aligner="$1"
             ;;
         --trimAl)
             ;&
@@ -55,6 +55,15 @@ do
     shift
 done
 
+# Print the parameters to stderr for debugging
+echo "Running $thisScript with"            >&2
+echo "gene:             $gene"             >&2
+echo "aligner:          $aligner"          >&2
+echo "extension:        $extension"        >&2
+echo "trimAl:           $trimAl"           >&2
+echo "Note PBS-Pro copies the scrip to"    >&2
+echo "another place with another name"     >&2
+
 if [ -z "$gene" ]
 then
 	echo "GeneName missing" >&2
@@ -63,9 +72,9 @@ then
 	exit 1
 fi
 
-if [ -z $mainAligner ]
+if [ -z $aligner ]
 then
-	mainAligner="$DIR/../GetDefaultAligner.sh"
+	aligner="$DIR/../GetDefaultAligner.sh"
 fi
 
 # Change the working directory to the directory of this script
@@ -85,17 +94,16 @@ for alignerScript in "$DIR/09_PBS-Pro-AlignWith"*".sh"*
 do
 	if [[ $alignerScript =~ 09_PBS-Pro-AlignWith(.*)\.sh ]]
 	then
-		aligner=${BASH_REMATCH[1]}
-		if [[ $aligner != $mainAligner ]]
+		usedAligner=${BASH_REMATCH[1]}
+		if [[ $usedAligner != $aligner ]]
 		then
-			qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+			qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$usedAligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
 			    "$DIR/PBS-Pro-09-RogueOptAlign.sh"
 		fi
 	fi
 done
 
 # Make the big tree with the main aligner
-aligner=$mainAligner
 allSeqs="--allSeqs"
 qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
     "$DIR/PBS-Pro-09-RogueOptAlign.sh"

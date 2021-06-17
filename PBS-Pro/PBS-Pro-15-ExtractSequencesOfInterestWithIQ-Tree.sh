@@ -25,6 +25,12 @@ do
             shift
             gene="$1"
             ;;
+        --aligner)
+            ;&
+        -a)
+            shift
+            aligner="$1"
+            ;;
         --continue)
             ;&
         -c)
@@ -53,6 +59,16 @@ do
     shift
 done
 
+# Print the parameters to stderr for debugging
+echo "Running $thisScript with"            >&2
+echo "gene:             $gene"             >&2
+echo "aligner:          $aligner"          >&2
+echo "continue:         $continue"         >&2
+echo "trimAl:           $trimAl"           >&2
+echo "extension:        $extension"        >&2
+echo "Note PBS-Pro copies the scrip to"    >&2
+echo "another place with another name"     >&2
+
 if [ -z "$gene" ]
 then
 	echo "GeneName missing" >&2
@@ -73,7 +89,7 @@ echo $jobIDs
 
 if [ "$continue" == "--continue" ]
 then
-	qsub -v "DIR=$DIR, gene=$gene, trimAl=$trimAl, extension=$extension" -W "depend=afterok$jobIDs"
+	qsub -v "DIR=$DIR, gene=$gene, aligner=$aligner, trimAl=$trimAl, extension=$extension" -W "depend=afterok$jobIDs"
 	    "$DIR/PBS-Pro-16-TreeBuildScheduler.sh"
 fi
 
