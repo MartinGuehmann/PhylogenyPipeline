@@ -73,7 +73,8 @@ echo $jobIDs
 
 if [ "$continue" == "--continue" ]
 then
-	echo "Continue is not implemented" >&2
+	qsub -v "DIR=$DIR, gene=$gene, trimAl=$trimAl, extension=$extension" -W "depend=afterok$jobIDs"
+	    "$DIR/PBS-Pro-16-TreeBuildScheduler.sh"
 fi
 
 # Start hold jobs
