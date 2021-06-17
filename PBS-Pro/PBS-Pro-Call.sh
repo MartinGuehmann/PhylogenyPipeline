@@ -197,7 +197,7 @@ jobIDs=""
 
 case $step in
 #0)
-#	Depends on the server of NCBI, thus quite slow and thus a cluster is not useful
+#	# Depends on the server of NCBI, thus quite slow and thus a cluster is not useful
 #	jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/00_PBS-Pro-GetGenesFromAllDataBases.sh")
 #	;;
 1)
@@ -206,10 +206,10 @@ case $step in
 2)
 	jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/02_PBS-Pro-CombineHitsFromAllNCBIDatabases.sh")
 	;;
-#3)
-#	Efetch is missing for that, anyway this can be done on a laptop
-#	jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/03_PBS-Pro-ExtractSequences.sh")
-#	;;
+3)
+	# Efetch is missing for that, anyway this can be done on a laptop
+	jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/03_PBS-Pro-ExtractSequences.sh")
+	;;
 4)
 	jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/04_PBS-Pro-MakeNonRedundant.sh")
 	;;
