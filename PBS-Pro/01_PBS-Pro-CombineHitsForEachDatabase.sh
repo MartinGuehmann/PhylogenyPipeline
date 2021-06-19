@@ -1,6 +1,9 @@
 #!/bin/bash
 
-#PBS -l select=1:ncpus=1:mem=8gb
+# We either need the maximum number of nodes
+# or more than we have database otherwise
+# we would use more nodes than allowed
+#PBS -l select=1:ncpus=8:mem=8gb
 #PBS -l walltime=2:00:00
 
 # Go to the first program line,

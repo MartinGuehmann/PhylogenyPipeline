@@ -1,7 +1,9 @@
 #!/bin/bash
 
+# We need quite some time since we
+# interact with the server of NCBI
 #PBS -l select=1:ncpus=8:mem=8gb
-#PBS -l walltime=4:00:00
+#PBS -l walltime=24:00:00
 
 # Go to the first program line,
 # any PBS directive below that is ignored.
