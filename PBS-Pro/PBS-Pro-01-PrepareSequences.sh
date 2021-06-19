@@ -86,7 +86,7 @@ echo "numRoundsLeft:    $numRoundsLeft"    >&2
 echo "shuffleSeqs:      $shuffleSeqs"      >&2
 echo "extension:        $extension"        >&2
 echo "trimAl:           $trimAl"           >&2
-echo "Note PBS-Pro copies the scrip to"    >&2
+echo "Note PBS-Pro copies the script to"   >&2
 echo "another place with another name"     >&2
 
 if [ -z "$gene" ]
@@ -120,7 +120,7 @@ echo $jobIDs
 if [ "$continue" == "--continue" ]
 then
 	qsub -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl" -W "depend=afterok$jobIDs" \
-	    "$DIR/PBS-13-ExtractSequencePreparation.sh"
+	    "$DIR/PBS-Pro-13-ExtractSequencePreparation.sh"
 fi
 
 # Start held jobs
