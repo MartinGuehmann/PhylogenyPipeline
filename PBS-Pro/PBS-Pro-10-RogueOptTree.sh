@@ -107,7 +107,7 @@ echo "suffix:           $suffix"           >&2
 echo "extension:        $extension"        >&2
 echo "previousAligner:  $previousAligner"  >&2
 echo "trimAl:           $trimAl"           >&2
-echo "Note PBS-Pro copies the scrip to"    >&2
+echo "Note PBS-Pro copies the script to"   >&2
 echo "another place with another name"     >&2
 
 if [ -z "$gene" ]
