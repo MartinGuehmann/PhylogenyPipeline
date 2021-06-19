@@ -156,8 +156,8 @@ partSequences="SequencesOfInterestShuffled.part_"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 SequencesOfInterestParts="$SequencesOfInterestDir/$partSequences"
 
-SeqenceChunksForPruningDir="$DIR/$gene/SeqenceChunksForPruning"
-SeqencesForPruningParts="$SeqenceChunksForPruningDir/SequencesForPruning.part_"
+SequenceChunksForPruningDir="$DIR/$gene/SequenceChunksForPruning"
+SeqencesForPruningParts="$SequenceChunksForPruningDir/SequencesForPruning.part_"
 TreesForPruningFromPASTADir="$DIR/$gene/TreesForPruningFromPASTA"
 partPruning="NonRedundantSequences90Shuffled.part_"
 AllPruningSeqs="$TreesForPruningFromPASTADir/$partPruning"
@@ -280,7 +280,7 @@ case $step in
 	;;
 13)
 	echo "13. Split sequences into chunks for subset extraction." >&2
-	$DIR/13_SplitNonRedundantSequences.sh -O "$SeqenceChunksForPruningDir" -g "$gene"
+	$DIR/13_SplitNonRedundantSequences.sh -O "$SequenceChunksForPruningDir" -g "$gene"
 	echo "13. Sequences split into chunks for subset extraction." >&2
 	;;
 14)
@@ -319,7 +319,7 @@ case $step in
 	;;
 16)
 	echo "16. Extract sequences of interest." >&2
-	$DIR/16_ExtractSequencesOfInterest.sh -g "$gene" -d "$TreesForPruningFromPASTADir" -c $SeqenceChunksForPruningDir $extension
+	$DIR/16_ExtractSequencesOfInterest.sh -g "$gene" -d "$TreesForPruningFromPASTADir" -c $SequenceChunksForPruningDir $extension
 	echo "16. Sequences of interest extracted." >&2
 	;;
 *)

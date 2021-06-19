@@ -178,11 +178,11 @@ partSequences="SequencesOfInterestShuffled.part_"
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 SequencesOfInterestParts="$SequencesOfInterestDir/$partSequences"
 
-SeqenceChunksForPruningDir="$DIR/../$gene/SeqenceChunksForPruning"
-SeqencesForPruningParts="$SeqenceChunksForPruningDir/SequencesForPruning.part_"
+SequenceChunksForPruningDir="$DIR/../$gene/SequenceChunksForPruning"
+SeqencesForPruningParts="$SequenceChunksForPruningDir/SequencesForPruning.part_"
 TreesForPruningFromPASTADir="$DIR/../$gene/TreesForPruningFromPASTA"
-seqFiles="$SeqenceChunksForPruningDir/SequenceFiles.txt"
-alignmentFiles="$SeqenceChunksForPruningDir/AlignmentFiles.txt"
+seqFiles="$SequenceChunksForPruningDir/SequenceFiles.txt"
+alignmentFiles="$SequenceChunksForPruningDir/AlignmentFiles.txt"
 
 partPruning="NonRedundantSequences90Shuffled.part_"
 AllPruningSeqs="$TreesForPruningFromPASTADir/$partPruning"
@@ -266,7 +266,7 @@ case $step in
 	jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/13_PBS-Pro-SplitNonRedundantSequences.sh")
 	;;
 14)
-	echo "$SeqenceChunksForPruningDir/"*".part_"+([0-9])".fasta" > $seqFiles
+	echo "$SequenceChunksForPruningDir/"*".part_"+([0-9])".fasta" > $seqFiles
 	numFiles=$(wc -w $seqFiles | cut -d " " -f1)
 	jobIDs+=:$(qsub $hold $depend -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, seqFiles=$seqFiles, trimAl=$trimAl" "$DIR/14_PBS-Pro-AlignWithPASTAForPruning.sh")
 	;;
