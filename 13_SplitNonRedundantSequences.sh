@@ -98,7 +98,7 @@ do
 	done
 
 	partSeqFileCleaned="$partSeqFile.cleaned"
-	seqkit rmdup -s -j $numTreads $partSeqFile > $partSeqFileCleaned
+	seqkit rmdup -s -j $numTreads $partSeqFile | seqkit rename -j $numTreads > $partSeqFileCleaned
 	mv $partSeqFileCleaned $partSeqFile
 done
 
