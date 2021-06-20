@@ -29,7 +29,7 @@ do
             ;&
         -b)
             shift
-            bigTreeIteration="-b $1"
+            bigTreeIteration="$1"
             ;;
         --aligner)
             ;&
@@ -93,7 +93,7 @@ then
 	exit 1
 fi
 
-if [ -z $bigTreeIteration ]
+if [ -z "$bigTreeIteration" ]
 then
 	bigTreeIteration="10"
 fi
@@ -113,7 +113,7 @@ fi
 cd $DIR
 
 iteration="0"
-numRoundsLeft="0"
+numRoundsLeftZero="0"
 allSeqs=""
 suffix=""
 extension="-e treefile"
@@ -127,7 +127,7 @@ do
 		usedAligner=${BASH_REMATCH[1]}
 		if [[ $usedAligner != $aligner ]]
 		then
-			qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$usedAligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+			qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$usedAligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
 			    "$DIR/PBS-Pro-09-RogueOptAlign.sh"
 		fi
 	fi
@@ -135,22 +135,20 @@ done
 
 # Make the big tree with the main aligner
 allSeqs="--allSeqs"
-qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
     "$DIR/PBS-Pro-09-RogueOptAlign.sh"
 
 allSeqs=""
-numRoundsLeft="20"
-bigTreeIteration="10"
 # Make 20 iterations with the main aligner, make a big tree after 10 iterations
 qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" \
     "$DIR/PBS-Pro-09-RogueOptAlign.sh"
 
 # Make an alignment only with the sequences of the gene
-SequencesOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene")
+SequencesOfInterestDir=$("$DIR/../GetSequencesOfInterestDirectory.sh" -g "$gene")
 SequencesOfGene="$SequencesOfInterestDir/SequencesOf$gene.fasta"
 jobIDs=$($DIR/PBS-Pro-Call.sh             -f "$SequencesOfGene" -g "$gene" -s "9" -i "$iteration" -a "$aligner" $allSeqs -x $gene $previousAligner $trimAl)
 
-if [ -z $trimAl ]
+if [ -z "$trimAl" ]
 then
 	# Switch pruning on if it was off
 	suffix="-x trimAl"
@@ -163,5 +161,5 @@ fi
 
 numRoundsLeft="0"
 # Make an iteration for the main aligner, with switched pruning settings
-qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
     "$DIR/PBS-Pro-09-RogueOptAlign.sh"

@@ -29,7 +29,7 @@ do
             ;&
         -b)
             shift
-            bigTreeIteration="-b $1"
+            bigTreeIteration="$1"
             ;;
         --aligner)
             ;&
