@@ -70,7 +70,7 @@ sed -e '/^>/!s/J/L/g' \
 ###########################################################
 # Align the sequences with PASTA
 # PASTA outputs stuff to stdout, even so it should go to stderr
-# This just cloaks the return stuff of this script
+# This just clogs the return stuff of this script
 maxMB="16384"
 run_pasta.py -i $cleanedinputSequences -d protein -o $alignmentDir --num-cpus=$numTreads --max-mem-mb=$maxMB --alignment-suffix="alignment.PASTA.fasta" -j $base >&2
 

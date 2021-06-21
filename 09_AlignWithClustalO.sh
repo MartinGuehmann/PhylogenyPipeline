@@ -39,7 +39,7 @@ outTree="$alignmentDir/$base.tree.ClustalO.newick"
 # Do not realign if the outfile already exists and is not empty
 if [ -s $outFile ]
 then
-	# In this we still want to return the outfile
+	# In this case we still want to return the outfile
 	echo "$outFile"
 	exit
 fi
