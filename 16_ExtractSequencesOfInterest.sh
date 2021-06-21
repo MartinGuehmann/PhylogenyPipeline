@@ -221,6 +221,10 @@ then
 	done < $namesOfInterestsFile
 fi
 
+# Remove duplicates
+seqkit rmdup -s -j $numTreads $SequencesOfInterest > "$SequencesOfInterest.tmp"
+mv "$SequencesOfInterest.tmp" "$SequencesOfInterest"
+
 # Randomly shuffle the sequences of interests and split them into chunks of
 # about 900 sequences, this is not exactly set, since the actual number of sequences
 # won't be devidabel by 900 without rest. However, the rest is distributed over the files.

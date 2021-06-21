@@ -47,6 +47,9 @@ then
 	done
 fi
 
+seqkit rmdup -s -j $numTreads $nrSequenceFile90 > "$nrSequenceFile90.tmp"
+mv "$nrSequenceFile90.tmp" "$nrSequenceFile90"
+
 # Record the statistics of all files, including the one we have just created.
 # The expression in $seqFiles is re-evaluated.
 seqkit stats $seqFiles > "$sequences/Stats.txt"
