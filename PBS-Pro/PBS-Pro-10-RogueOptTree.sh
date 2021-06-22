@@ -139,14 +139,14 @@ jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "11" -i "$iteration" -a 
 echo $jobIDs
 
 qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" -W "depend=afterok$jobIDs" \
-    "$DIR/PBS-11-RemoveMoreRougues.sh"
+    "$DIR/PBS-Pro-11-RemoveMoreRougues.sh"
 
 if [[ "$allSeqs" == "--allSeqs" && $numRoundsLeft == "0" ]]
 then
 	jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "12" -i "$iteration" -a "$aligner" -d "$holdJobs" $suffix $extension -U)
 
 	# Update all pdf files
-	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, extension=$extension" -W "depend=afternotok$jobIds" "$DIR/12_PBS-ConvertTreesToFigures.sh"
+	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, extension=$extension" -W "depend=afternotok$jobIds" "$DIR/PBS-Pro-12-RevisualizeAllTrees.sh"
 else
 	# Depends only on the jobs from step 10
 	jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "12" -i "$iteration" -a "$aligner" -d "$holdJobs" $suffix $extension -u -X)
@@ -157,7 +157,7 @@ if [[ "$allSeqs" == "--allSeqs" ]]
 then
 	# If we run against the wall, just restart the main task
 	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" -W "depend=afternotok$holdJobs" \
-	    "$DIR/PBS-Pro-Call-10-RogueOptTree.sh"
+	    "$DIR/PBS-Pro-10-RogueOptTree.sh"
 fi
 
 # Start held jobs
