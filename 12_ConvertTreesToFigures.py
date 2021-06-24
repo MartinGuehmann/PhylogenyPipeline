@@ -358,7 +358,14 @@ if __name__ == "__main__":
 
 	isFullTree = (cladeTreeFile == "")
 
-	tree = Tree(inputTree, format=3)
+	formats = [3, 1]
+	for f in formats:
+		try:
+			tree = Tree(inputTree, format=f)
+			break
+		except:
+			print(f)
+			continue
 
 	clades = loadCladeInfo(tree, inputClades, cladeTreeFile)
 	cladifyNodes(tree, clades)
