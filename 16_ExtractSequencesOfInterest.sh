@@ -195,6 +195,17 @@ seqkit grep -j $numTreads -f $treeLabels -t protein $nrSequenceFile90 > $Sequenc
 
 cp $SequencesOfInterest $SequencesOfGene
 
+OutgroupDir="$DIR/$gene/OutgroupSequences/"
+declare -a seqFiles=( $BaitDir*.fasta )
+
+if [ -d $OutgroupDir ]
+then
+	for seqFile in "$OutgroupDir"*".fasta"
+	do
+		cat $seqFile >> $SequencesOfInterest
+	done
+fi
+
 # Extract 1000 randomly chosen outgroup sequences and add them to the sequence of interest file.
 seqkit grep -v -j $numTreads -f $treeLabels -t protein $nrSequenceFile90 | \
 seqkit shuffle -j $numTreads | \
