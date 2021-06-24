@@ -141,7 +141,7 @@ alignmentExtension=$("$DIR/GetAlignmentBit.sh" -a $aligner)
 partSequences="SequencesOfInterestShuffled.part_"
 AlignmentParts="$AlignmentDir/$partSequences"
 
-cladeFile="$DIR/$gene/Clades.cvs"
+cladeFile="$DIR/$gene/Clades.csv"
 
 inputTree="$firstAlignmentDir/SequencesOfInterest$alignmentExtension.$extension"
 inputTreeBase=$(basename $inputTree ".$extension")
