@@ -364,7 +364,6 @@ if __name__ == "__main__":
 			tree = Tree(inputTree, format=f)
 			break
 		except:
-			print(f)
 			continue
 
 	clades = loadCladeInfo(tree, inputClades, cladeTreeFile)
