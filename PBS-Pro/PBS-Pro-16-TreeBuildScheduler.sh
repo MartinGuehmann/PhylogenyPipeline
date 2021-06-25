@@ -138,15 +138,19 @@ allSeqs="--allSeqs"
 qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
     "$DIR/PBS-Pro-09-RogueOptAlign.sh"
 
+# Make a big tree with the main aligner and without outgroup
+qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$gene, extension=$extension, previousAligner=$gene, trimAl=$trimAl" \
+    "$DIR/PBS-Pro-09-RogueOptAlign.sh"
+
 allSeqs=""
+
+# Make also small trees with the main aligner and without outgroup
+qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$gene, extension=$extension, previousAligner=$gene, trimAl=$trimAl" \
+    "$DIR/PBS-Pro-09-RogueOptAlign.sh"
+
 # Make 20 iterations with the main aligner, make a big tree after 10 iterations
 qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" \
     "$DIR/PBS-Pro-09-RogueOptAlign.sh"
-
-# Make an alignment only with the sequences of the gene
-SequencesOfInterestDir=$("$DIR/../GetSequencesOfInterestDirectory.sh" -g "$gene")
-SequencesOfGene="$SequencesOfInterestDir/SequencesOf$gene.fasta"
-jobIDs=$($DIR/PBS-Pro-Call.sh             -f "$SequencesOfGene" -g "$gene" -s "9" -i "$iteration" -a "$aligner" $allSeqs -x $gene $previousAligner $trimAl)
 
 if [ -z "$trimAl" ]
 then

@@ -95,7 +95,11 @@ treeLabels="$SequencesOfInterestDir/LabelsOfInterest.txt"
 rm -f $treeLabels
 
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
-SequencesOfGene="$SequencesOfInterestDir/SequencesOf$gene.fasta"
+
+SequencesOfGeneDir="$SequencesOfInterestDir/$gene"
+mkdir -p $SequencesOfGeneDir
+SequencesOfGene="$SequencesOfInterestDir/SequencesOfInterest.fasta"
+
 BaitDir="$DIR/$gene/BaitSequences/"
 RerootSequences="$DIR/$gene/RerootSequences/"
 seqsPerChunk="900"

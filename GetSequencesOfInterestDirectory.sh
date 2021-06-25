@@ -79,14 +79,14 @@ then
 	exit 1
 fi
 
-if [ $iteration == 0 ]
+if [ ! -z $previousAligner ]
+then
+	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest/$previousAligner/RogueIter_$iteration"
+elif [ $iteration == 0 ]
 then
 	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest/RogueIter_$iteration"
-elif [ -z $previousAligner ]
-then
-	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest/$aligner$suffix/RogueIter_$iteration"
 else
-	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest/$previousAligner/RogueIter_$iteration"
+	seqsOfInterestDir="$DIR/$gene/SequencesOfInterest/$aligner$suffix/RogueIter_$iteration"
 fi
 
 echo $seqsOfInterestDir
