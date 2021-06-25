@@ -78,6 +78,12 @@ do
             shift
             extension="-e $1"
             ;;
+        --previousAligner)
+            ;&
+        -p)
+            shift
+            previousAligner="-p $1"
+            ;;
         --trimAl)
             ;&
         -t)
@@ -106,6 +112,7 @@ echo "allSeqs:          $allSeqs"          >&2
 echo "shuffleSeqs:      $shuffleSeqs"      >&2
 echo "suffix:           $suffix"           >&2
 echo "extension:        $extension"        >&2
+echo "previousAligner:  $previousAligner"  >&2
 echo "trimAl:           $trimAl"           >&2
 echo "Note PBS-Pro copies the script to"   >&2
 echo "another place with another name"     >&2
