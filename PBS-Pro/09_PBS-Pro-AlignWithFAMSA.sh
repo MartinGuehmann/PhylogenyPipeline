@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#PBS -l select=1:ncpus=24:mem=100gb
+#PBS -l select=1:ncpus=8:mem=30gb
 #PBS -l walltime=4:00:00
 
 # Go to the first program line,
@@ -14,6 +14,11 @@ then
 	echo "You must give a GeneName, for instance:" >&2
 	echo "./$thisScript GeneName" >&2
 	exit 1
+fi
+
+if [ ! -z $seqFiles ]
+then
+	seqsToAlign=$(cut -d " " -f ${PBS_ARRAY_INDEX} $seqFiles)
 fi
 
 date

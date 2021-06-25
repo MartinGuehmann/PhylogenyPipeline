@@ -172,6 +172,9 @@ then
 	alignerFile="$alignFileStart$aligner.$bashExtension"
 fi
 
+AlingmentFilesFile="AlignmentFiles.txt"
+SequenceFilesFile="SequenceFiles.txt"
+
 SequencesOfInterestDir=$("$DIR/../GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix $previousAligner)
 
 partSequences="SequencesOfInterestShuffled.part_"
@@ -181,8 +184,8 @@ SequencesOfInterestParts="$SequencesOfInterestDir/$partSequences"
 SequenceChunksForPruningDir="$DIR/../$gene/SequenceChunksForPruning"
 SeqencesForPruningParts="$SequenceChunksForPruningDir/SequencesForPruning.part_"
 TreesForPruningFromPASTADir="$DIR/../$gene/TreesForPruningFromPASTA"
-seqFiles="$SequenceChunksForPruningDir/SequenceFiles.txt"
-alignmentFiles="$SequenceChunksForPruningDir/AlignmentFiles.txt"
+seqFiles="$SequenceChunksForPruningDir/$SequenceFilesFile"
+alignmentFiles="$SequenceChunksForPruningDir/$AlingmentFilesFile"
 
 partPruning="NonRedundantSequences90Shuffled.part_"
 AllPruningSeqs="$TreesForPruningFromPASTADir/$partPruning"
@@ -233,13 +236,15 @@ case $step in
 	then
 		jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" "$alignerFile")
 	else
-		for fastaFile in "$SequencesOfInterestParts"+([0-9])".fasta"
-		do
-			if [[ -f $fastaFile ]]
-			then
-				jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$fastaFile, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" "$alignerFile")
-			fi
-		done
+		# Make alignment directory if it does not exist
+		mkdir -p $AlignmentDir
+
+		seqFiles="$AlignmentDir/$SequenceFilesFile"
+		alignmentFiles="$AlignmentDir/$AlingmentFilesFile"
+
+		echo "$SequencesOfInterestParts"+([0-9])".fasta" > $seqFiles
+		numFiles=$(wc -w $seqFiles | cut -d " " -f1)
+		jobIDs+=:$(qsub $hold $depend -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, seqFiles=$seqFiles, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" "$alignerFile")
 	fi
 	;;
 10)
@@ -247,13 +252,11 @@ case $step in
 	then
 		jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner, suffix=$suffix, previousAligner=$previousAligner" "$DIR/10_PBS-Pro-Long-MakeTreeWithIQ-Tree.sh")
 	else
-		for phyFile in "$AlignmentParts"*"$AlignmentLastBit"
-		do
-			if [[ -f $phyFile ]]
-			then
-				jobIDs+=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$phyFile, iteration=$iteration, aligner=$aligner, suffix=$suffix, previousAligner=$previousAligner" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh")
-			fi
-		done
+		alignmentFiles="$AlignmentDir/$AlingmentFilesFile"
+
+		echo "$AlignmentParts"*"$AlignmentLastBit" > $alignmentFiles
+		numFiles=$(wc -w $alignmentFiles | cut -d " " -f1)
+		jobIDs+=:$(qsub $hold $depend -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, alignmentFiles=$alignmentFiles, iteration=$iteration, aligner=$aligner, suffix=$suffix, previousAligner=$previousAligner" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh")
 	fi
 	;;
 11)

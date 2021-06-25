@@ -17,6 +17,11 @@ then
 	exit 1
 fi
 
+if [ ! -z $seqFiles ]
+then
+	seqsToAlign=$(cut -d " " -f ${PBS_ARRAY_INDEX} $seqFiles)
+fi
+
 date
 time "$DIR/../RunAll.sh" -g "$gene" -s "9" -i "$iteration" -a "MUSCLE" -f "$seqsToAlign" $suffix $previousAligner $trimAl
 date

@@ -17,6 +17,11 @@ then
 	exit 1
 fi
 
+if [ ! -z $alignmentFiles ]
+then
+	alignmentToUse=$(cut -d " " -f ${PBS_ARRAY_INDEX} $alignmentFiles)
+fi
+
 date
 time "$DIR/../RunAll.sh" -g "$gene" -s "10" -i "$iteration" -a "$aligner" -f "$alignmentToUse" $suffix $previousAligner
 date
