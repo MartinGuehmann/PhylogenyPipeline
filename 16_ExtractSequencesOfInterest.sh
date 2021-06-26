@@ -98,7 +98,7 @@ SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 
 SequencesOfGeneDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -p "$gene")
 mkdir -p $SequencesOfGeneDir
-SequencesOfGene="$SequencesOfInterestDir/SequencesOfInterest.fasta"
+SequencesOfGene="$SequencesOfGeneDir/SequencesOfInterest.fasta"
 
 BaitDir="$DIR/$gene/BaitSequences/"
 RerootSequences="$DIR/$gene/RerootSequences/"
