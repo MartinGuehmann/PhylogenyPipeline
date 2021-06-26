@@ -237,7 +237,7 @@ then
 fi
 
 # Remove duplicates
-seqkit rmdup -s -j $numTreads $SequencesOfInterest > "$SequencesOfInterest.tmp"
+seqkit rmdup -s -j $numTreads $SequencesOfInterest | seqkit rename -j $numTreads > "$SequencesOfInterest.tmp"
 mv "$SequencesOfInterest.tmp" "$SequencesOfInterest"
 
 # Randomly shuffle the sequences of interests and split them into chunks of

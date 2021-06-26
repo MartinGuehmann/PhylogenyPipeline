@@ -47,7 +47,7 @@ then
 	done
 fi
 
-seqkit rmdup -s -j $numTreads $nrSequenceFile90 > "$nrSequenceFile90.tmp"
+seqkit rmdup -s -j $numTreads $nrSequenceFile90 | seqkit rename -j $numTreads > "$nrSequenceFile90.tmp"
 mv "$nrSequenceFile90.tmp" "$nrSequenceFile90"
 
 # Record the statistics of all files, including the one we have just created.
