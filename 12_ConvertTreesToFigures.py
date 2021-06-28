@@ -33,7 +33,6 @@ def fullTreeLayout(node):
 		if node.cladeName != "":
 #			clade_face = TextFace(node.cladeName, fgcolor=node.img_style["fgcolor"], fsize=100)
 			clade_face = TextFace(node.cladeName, fsize=100)
-			clade_face.rotation = 90
 			node.add_face(clade_face, column=2, position="float-right")
 
 	else:
