@@ -201,6 +201,11 @@ fi
 # Get the names of the input files, third for the nth iteration sub trees
 for inputTree in "$AlignmentParts"*".$extension"
 do
+	if [ ! -f $inputTree ]
+	then
+		continue
+	fi
+
 	inputTreeBase=$(basename $inputTree ".$extension")
 	inputTreeDir=$(dirname $inputTree)
 	outputFile="$inputTreeDir/$inputTreeBase.collapsedTree.pdf"
