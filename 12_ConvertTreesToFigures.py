@@ -255,9 +255,11 @@ def saveCladesAsTrees(tree, clades, outputFile):
 			cladeName = clade[1]
 
 			cladeRoot = getCladeRootNode(node)
+			tmpName = cladeRoot.name
 			cladeRoot.name = cladeName
 			outFile.write(cladeRoot.write(format=3) + "\n")
 #			outFile.write("(" + cladeRoot.write()[:-1] + ")" + cladeName + ";\n")
+			cladeRoot.name = tmpName
 
 ###############################################################################
 def collapseTree(tree, clades):
