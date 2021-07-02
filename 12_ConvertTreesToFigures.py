@@ -201,7 +201,7 @@ def rerootToOutgroup(tree, clades):
 		node = clade[-1] # Get the last element
 		cladeName = clade[1]
 		while node:
-			if node.up.clades == 1:
+			if node.up and node.up.clades == 1:
 				node = node.up
 			else:
 				if cladeName == "Outgroup":
@@ -211,7 +211,7 @@ def rerootToOutgroup(tree, clades):
 ###############################################################################
 def getCladeRootNode(node):
 	while node:
-		if node.up.clades == 1:
+		if node.up and node.up.clades == 1:
 			node = node.up
 		else:
 			return node
