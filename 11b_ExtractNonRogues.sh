@@ -56,6 +56,12 @@ do
             shift
             previousAligner="-p $1"
             ;;
+        --hasFullFile)
+            ;&
+        -C)
+            shift
+            hasFullFile="--hasFullFile"
+            ;;
         -*)
             ;&
         --*)
@@ -90,22 +96,34 @@ droppedAll="$rogueFreeTreesDir/SequencesOfInterestAll.dropped.fasta"
 sequencesAll="$rogueFreeTreesDir/SequencesOfInterestAll.fasta"
 droppedListAll=""
 
-if [ -f $droppedFinal ]
+if [ ! -z $hasFullFile ]
 then
 	mv $droppedFinal "$droppedAll"
 fi
 
-if [ -f $nextSeqsOfInterest ]
+if [ ! -z $hasFullFile ]
 then
 	mv $nextSeqsOfInterest "$sequencesAll"
 fi
 
-if [ -f "$droppedAll" ]
+# Remove previous file of dropped sequences, if it exits
+rm -f "$rogueNaRokDropped"
+
+if [ ! -z "$hasFullFile" ]
 then
-	cat "$rogueFreeTreesDir/SequencesOfInterest.csv" "$baseRogueNaRokDropped"*".csv" > "$rogueNaRokDropped"
-else
-	cat "$baseRogueNaRokDropped"*".csv" > "$rogueNaRokDropped"
+	cat "$rogueFreeTreesDir/RogueNaRok_droppedRogues.SequencesOfInterest.csv" >> "$rogueNaRokDropped"
 fi
+
+for csvFile in "$baseRogueNaRokDropped"*".csv"
+do
+	# Check if one of those files exit
+	if [ -f $csvFile ]
+	then
+		# If yes, just append them to the rogues dropped
+		cat "$baseRogueNaRokDropped"*".csv" >> "$rogueNaRokDropped"
+		break
+	fi
+done
 
 seqkit grep -f "$rogueNaRokDropped" -j $numTreads "$seqsOfInterest" > "$droppedFinal"
 

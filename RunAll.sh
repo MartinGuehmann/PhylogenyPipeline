@@ -269,8 +269,9 @@ case $step in
 	if [ -f $AllSeqsUFBoot ]
 	then
 		$DIR/11_RemoveRogues.sh -g "$gene" -f $AllSeqsUFBoot -a "$aligner" -i "$iteration" $suffix $previousAligner
+		hasFullFile="--hasFullFile"
 	fi
-	$DIR/11b_ExtractNonRogues.sh -g "$gene" -a "$aligner" -i "$iteration" $shuffleSeqs $suffix $previousAligner $restore
+	$DIR/11b_ExtractNonRogues.sh -g "$gene" -a "$aligner" -i "$iteration" $shuffleSeqs $suffix $previousAligner $restore $hasFullFile
 	echo "11. Rogue sequences removed with RogueNaRok and TreeShrink." >&2
 	;;
 12)
