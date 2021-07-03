@@ -141,11 +141,21 @@ droppedFinal="$rogueFreeTreesDir/SequencesOfInterest.dropped.fasta"
 
 if [[ ! -z "$bigTreeIteration" && $bigTreeIteration == $iteration ]]
 then
+	olfSuffix=$suffix
+
+	if [ -z $suffix ]
+	then
+		suffix="-x BigTree$iteration"
+	else
+		suffix="$suffix.BigTree$iteration"
+	fi
+
 	oldAllSeqs=$allSeqs
 	allSeqs="--allSeqs"
 	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=0, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
 	    "$DIR/PBS-Pro-09-RogueOptAlign.sh"
 	allSeqs=$oldAllSeqs
+	suffix=$olfSuffix
 fi
 
 if [ -z "$numRoundsLeft" ] # Should be an unset variable or an empty string
