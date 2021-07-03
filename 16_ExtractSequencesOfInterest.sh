@@ -198,6 +198,14 @@ nrSequenceFile90="$sequences/NonRedundantSequences90.fasta"
 seqkit grep -j $numTreads -f $treeLabels -t protein $nrSequenceFile90 > $SequencesOfInterest
 
 cp $SequencesOfInterest $SequencesOfGene
+# Randomly shuffle the sequences of interests and split them into chunks of
+# about 900 sequences, this is not exactly set, since the actual number of sequences
+# won't be devidabel by 900 without rest. However, the rest is distributed over the files.
+$DIR/SplitSequencesRandomly.sh -c "$seqsPerChunk" -f "$SequencesOfGene" -O "$SequencesOfGeneDir"
+
+# Get statistics about the generated files
+seqkit stats "$SequencesOfGeneDir/"*.fasta > "$SequencesOfGeneDir/Stats.txt"
+
 
 OutgroupDir="$DIR/$gene/OutgroupSequences/"
 declare -a seqFiles=( $BaitDir*.fasta )
