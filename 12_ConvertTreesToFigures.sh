@@ -137,7 +137,13 @@ else
 fi
 
 firstAlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "0" -a "$aligner" $suffix)
-alignmentExtension=$("$DIR/GetAlignmentBit.sh" -a $aligner)
+
+alignmentExtension=""
+if [ "$extension" != "tre" ]
+then
+	alignmentExtension=$("$DIR/GetAlignmentBit.sh" -a $aligner)
+fi
+
 partSequences="SequencesOfInterestShuffled.part_"
 AlignmentParts="$AlignmentDir/$partSequences"
 
