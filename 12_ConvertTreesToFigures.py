@@ -351,7 +351,8 @@ if __name__ == "__main__":
 
 	inputTree, inputClades, cladeTreeFile = parseArgs(sys.argv[0], sys.argv[1:])
 
-	extStripped            = os.path.splitext(inputTree)[0]
+#	extStripped            = os.path.splitext(inputTree)[0]
+	extStripped            = inputTree
 	cladeTrees             = extStripped + ".cladeTrees"
 	outFullTree            = extStripped + ".fullTree.pdf"
 	outFullTreeNeXML       = extStripped + ".fullTree.NeXML"

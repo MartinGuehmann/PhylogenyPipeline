@@ -147,7 +147,7 @@ inputTree="$firstAlignmentDir/SequencesOfInterest$alignmentExtension.$extension"
 inputTreeBase=$(basename $inputTree ".$extension")
 inputTreeDir=$(dirname $inputTree)
 
-cladeTreeFile="$inputTreeDir/$inputTreeBase.cladeTrees"
+cladeTreeFile="$inputTreeDir/$inputTreeBase.$extension.cladeTrees"
 
 # Check whether the master tree file already exists, if not fail
 # Fail gracefully if the according option is set, this might
@@ -187,7 +187,7 @@ fi
 inputTree="$AlignmentDir/SequencesOfInterest$alignmentExtension.$extension"
 inputTreeBase=$(basename $inputTree ".$extension")
 inputTreeDir=$(dirname $inputTree)
-outputFile="$inputTreeDir/$inputTreeBase.collapsedTree.pdf"
+outputFile="$inputTreeDir/$inputTreeBase.$extension.collapsedTree.pdf"
 
 echo "Using $cladeTreeFile" >&2
 
@@ -208,7 +208,7 @@ do
 
 	inputTreeBase=$(basename $inputTree ".$extension")
 	inputTreeDir=$(dirname $inputTree)
-	outputFile="$inputTreeDir/$inputTreeBase.collapsedTree.pdf"
+	outputFile="$inputTreeDir/$inputTreeBase.$extension.collapsedTree.pdf"
 
 	if [[ ! -f $outputFile || ! -z $update ]]
 	then
