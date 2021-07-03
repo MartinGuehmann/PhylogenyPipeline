@@ -158,7 +158,7 @@ def loadCladeInfo(tree, fileName, cladeTreeFile):
 def cladifyNodes(tree, clades):
 	initClades(tree)
 	for clade in clades:
-		# Browse the tree from the clade defining leaf to the root
+		# Browse the tree from the clade defining leaf to root
 		node = clade[-1]
 		while node:
 			node.clades += 1
@@ -367,6 +367,9 @@ if __name__ == "__main__":
 			break
 		except:
 			continue
+
+	for node in tree.traverse():
+		node.name = node.name.replace('\'', '')
 
 	clades = loadCladeInfo(tree, inputClades, cladeTreeFile)
 	cladifyNodes(tree, clades)
