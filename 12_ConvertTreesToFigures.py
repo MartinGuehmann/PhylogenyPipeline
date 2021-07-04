@@ -173,6 +173,10 @@ def getLeaveOfClade(tree, clade, cladeTreeFile):
 		else:
 			return None
 	else:
+		node = tree.search_nodes(name=clade[0])
+		if len(node) > 0:
+			return node[0]
+
 		with open(cladeTreeFile, "r") as cladeTrees:
 			cladeName = clade[1]
 			for line in cladeTrees:
