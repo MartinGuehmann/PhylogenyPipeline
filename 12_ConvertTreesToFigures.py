@@ -13,11 +13,13 @@ nodeShapeSize = lineWidth - 1
 
 ###############################################################################
 def fullTreeLayout(node):
-	if node.name == "":
-		return
 	if node.is_leaf():
-		# If terminal node, draws its name
-		name_face = AttrFace("name")
+		# If terminal node, draw its name
+		if node.name == "":
+			name_face = TextFace(" ", fsize=10)
+		else:
+			name_face = AttrFace("name")
+
 		if hasattr(node.img_style, 'faces_bgcolor'):
 			name_face.background.color = node.img_style.faces_bgcolor
 			name_face.margin_top = 2
@@ -37,17 +39,23 @@ def fullTreeLayout(node):
 
 	else:
 		# If internal node, draws label with smaller font size
-		name_face = AttrFace("name", fsize=10) # 
+		if node.name == "":
+			name_face = TextFace(" ", fsize=10)
+		else:
+			name_face = AttrFace("name", fsize=10) # 
+
 		# Add the name face to the image at the preferred position
 		faces.add_face_to_node(name_face, node, column=0, position="branch-top")
 
 ###############################################################################
 def collapsedTreeLayout(node):
-	if node.name == "":
-		return
 	if node.is_leaf():
-		# If terminal node, draws its name
-		name_face = AttrFace("name")
+		# If terminal node, draws it name
+		if node.name == "":
+			name_face =  TextFace(" ")
+		else:
+			name_face = AttrFace("name")
+
 		name_face.margin_top = -2
 		# Add the name face to the image at the preferred position
 		node.add_face(TextFace(" "), column=0, position="branch-right")
@@ -69,7 +77,11 @@ def collapsedTreeLayout(node):
 		node.add_face(seq_face, column=0, position="branch-right")
 
 		# If internal node, draws label with smaller font size
-		name_face = AttrFace("name", fsize=10) # 
+		if node.name == "":
+			name_face = TextFace(" ", fsize=10)
+		else:
+			name_face = AttrFace("name", fsize=10) # 
+
 		# Add the name face to the image at the preferred position
 		node.add_face(name_face, column=0, position="branch-top")
 		# If terminal node, draws its name
@@ -82,7 +94,10 @@ def collapsedTreeLayout(node):
 
 	else:
 		# If internal node, draws label with smaller font size
-		name_face = AttrFace("name", fsize=10) # 
+		if node.name == "":
+			name_face = TextFace(" ", fsize=10)
+		else:
+			name_face = AttrFace("name", fsize=10) # 
 		# Add the name face to the image at the preferred position
 		node.add_face(name_face, column=0, position="branch-top")
 
@@ -203,7 +218,6 @@ def initialReroot(tree, clades):
 		node = clade[-1] # Get the last element
 		cladeName = clade[1]
 		if cladeName == "Outgroup":
-			tree.unroot()
 			tree.set_outgroup(node)
 
 
@@ -226,7 +240,6 @@ def rerootToOutgroup(tree, clades):
 				if node.up:
 					node = node.up
 
-				tree.unroot()
 				tree.set_outgroup(node)
 				break
 		break
