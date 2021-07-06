@@ -197,20 +197,39 @@ def getLeaveOfClade(tree, clade, cladeTreeFile):
 
 		return None
 
+###############################################################################
+def initialReroot(tree, clades):
+	for clade in clades:
+		node = clade[-1] # Get the last element
+		cladeName = clade[1]
+		if cladeName == "Outgroup":
+			tree.unroot()
+			tree.set_outgroup(node)
+
 
 ###############################################################################
 def rerootToOutgroup(tree, clades):
+
+	cladesNum = tree.clades - 1
 	for clade in clades:
 		# Browse the tree from the clade defining leaf to the root
 		node = clade[-1] # Get the last element
 		cladeName = clade[1]
+
+		if cladeName == "Outgroup":
+			continue
+
 		while node:
-			if node.up and node.up.clades == 1:
+			if node.up and node.up.clades < cladesNum:
 				node = node.up
 			else:
-				if cladeName == "Outgroup":
-					tree.set_outgroup(node)
+				if node.up:
+					node = node.up
+
+				tree.unroot()
+				tree.set_outgroup(node)
 				break
+		break
 
 ###############################################################################
 def getCladeRootNode(node):
@@ -376,6 +395,7 @@ if __name__ == "__main__":
 		node.name = node.name.replace('\'', '')
 
 	clades = loadCladeInfo(tree, inputClades, cladeTreeFile)
+	initialReroot(tree, clades)
 	cladifyNodes(tree, clades)
 
 	# Root the tree at the outgroup
