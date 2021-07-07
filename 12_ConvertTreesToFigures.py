@@ -298,6 +298,23 @@ def saveCladesAsTrees(tree, clades, outputFile):
 			cladeRoot.name = tmpName
 
 ###############################################################################
+def nameCladeRoots(tree, clades):
+	for clade in clades:
+		# Browse the tree from the clade defining leaf to the root
+		node = clade[-1] # Get the last element
+		cladeName = clade[1]
+
+		cladeRoot = getCladeRootNode(node)
+		if cladeRoot.name == "":
+			for child in cladeRoot.children:
+				if child.is_leaf():
+					continue
+
+				if child.name != "":
+					cladeRoot.name = child.name + "*"
+					break
+
+###############################################################################
 def collapseTree(tree, clades):
 	for clade in clades:
 		# Browse the tree from the clade defining leaf to the root
@@ -416,6 +433,7 @@ if __name__ == "__main__":
 
 	# Reinitialize the clades, since they were changed by rerooting
 	cladifyNodes(tree, clades)
+	nameCladeRoots(tree, clades)
 
 	colorAndNameClades(tree, clades)
 
