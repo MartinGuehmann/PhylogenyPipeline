@@ -67,6 +67,12 @@ do
             shift
             iteration="$1"
             ;;
+        --baseIteration)
+            ;&
+        -I)
+            shift
+            baseIteration="$1"
+            ;;
         --aligner)
             ;&
         -a)
@@ -136,7 +142,13 @@ else
 	AlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix)
 fi
 
-firstAlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "0" -a "$aligner" $suffix)
+# Set default for baseIteration if it is not defined.
+if [[ -z $baseIteration ]]
+then
+	baseIteration="0"
+fi
+
+firstAlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i $baseIteration -a "$aligner" $suffix)
 
 alignmentExtension=""
 if [ "$extension" != "tre" ]
@@ -198,7 +210,7 @@ outputFile="$inputTreeDir/$inputTreeBase.$extension.collapsedTree.pdf"
 echo "Using $cladeTreeFile" >&2
 
 # Process the nth iteration master tree file if it does not exist or should be updated.
-if [[ -f $inputTree && ! -f $outputFile || -f $inputTree && ! -z $update && $iteration != "0" ]]
+if [[ -f $inputTree && ! -f $outputFile || -f $inputTree && ! -z $update && $iteration != $baseIteration ]]
 then
 	echo "Processing $inputTree" >&2
 	python3 "$DIR/12_ConvertTreesToFigures.py" -i $inputTree -c $cladeFile -t $cladeTreeFile
