@@ -120,7 +120,7 @@ do
         --ignoreIfMasterFileDoesNotExist)
             ;&
         -X)
-            ignoreIfMasterFileDoesNotExist="-X"
+            ignoreIfMasterFileDoesNotExist="-M"
             ;;
         --folder)
             ;&

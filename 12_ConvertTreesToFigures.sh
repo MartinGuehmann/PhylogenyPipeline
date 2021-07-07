@@ -110,7 +110,7 @@ do
             ;;
         --ignoreIfMasterFileDoesNotExist)
             ;&
-        -X)
+        -M)
             ignoreIfMasterFileDoesNotExist="True"
             ;;
         -*)

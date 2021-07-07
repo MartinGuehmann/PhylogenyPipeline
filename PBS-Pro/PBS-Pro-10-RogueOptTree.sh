@@ -149,7 +149,7 @@ then
 	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, extension=$extension" -W "depend=afternotok$jobIds" "$DIR/PBS-Pro-12-RevisualizeAllTrees.sh"
 else
 	# Depends only on the jobs from step 10
-	jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "12" -i "$iteration" -a "$aligner" -d "$holdJobs" $suffix $extension -u -X)
+	jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "12" -i "$iteration" -a "$aligner" -d "$holdJobs" $suffix $extension -u -M)
 	echo $jobIDs
 fi
 
