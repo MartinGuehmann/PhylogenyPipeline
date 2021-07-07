@@ -97,6 +97,12 @@ do
             shift
             suffix="-x $1"
             ;;
+        --masterSuffix)
+            ;&
+        -X)
+            shift
+            suffix="-x $1"
+            ;;
         --update)
             ;&
         -u)
@@ -148,7 +154,7 @@ then
 	baseIteration="0"
 fi
 
-firstAlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i $baseIteration -a "$aligner" $suffix)
+firstAlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i $baseIteration -a "$aligner" $masterSuffix)
 
 alignmentExtension=""
 if [ "$extension" != "tre" ]
