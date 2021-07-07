@@ -64,8 +64,10 @@ sed -e '/^>/!s/J/L/g' \
     -e 's/[);(]//g' \
     -e "s/[']//g" \
     -e 's/ $//g' \
-    -e 's/[: /]/_/g' \
-    $inputSequences > $cleanedinputSequences
+    -e 's/[=: /]/_/g' \
+    $inputSequences | \
+sed -e 's/__/_/g' \
+    -e 's/_$//g' > $cleanedinputSequences
 
 ###########################################################
 # Align the sequences with PASTA
