@@ -79,6 +79,12 @@ do
             shift
             aligner="$1"
             ;;
+        --masterAligner)
+            ;&
+        -A)
+            shift
+            amasterAligner="$1"
+            ;;
         --folder)
             ;&
         -f)
@@ -101,7 +107,7 @@ do
             ;&
         -X)
             shift
-            suffix="-x $1"
+            masterSuffix="-x $1"
             ;;
         --update)
             ;&
@@ -137,6 +143,16 @@ then
 	exit 1
 fi
 
+if [[ -z $aligner ]]
+then
+	aligner=$("$DIR/GetDefaultAligner.sh")
+fi
+
+if [[ -z $amasterAligner ]]
+then
+	masterAligner=$aligner
+fi
+
 # Get the names of the input files, first for the master tree
 
 # Use the input directory if supplied
@@ -154,12 +170,14 @@ then
 	baseIteration="0"
 fi
 
-firstAlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i $baseIteration -a "$aligner" $masterSuffix)
+firstAlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i $baseIteration -a "$masterAligner" $masterSuffix)
 
 alignmentExtension=""
+masterAlignmentExtension=""
 if [ "$extension" != "tre" ]
 then
 	alignmentExtension=$("$DIR/GetAlignmentBit.sh" -a $aligner)
+	masterAlignmentExtension=$("$DIR/GetAlignmentBit.sh" -a $masterAligner)
 fi
 
 partSequences="SequencesOfInterestShuffled.part_"
@@ -167,7 +185,7 @@ AlignmentParts="$AlignmentDir/$partSequences"
 
 cladeFile="$DIR/$gene/Clades.csv"
 
-inputTree="$firstAlignmentDir/SequencesOfInterest$alignmentExtension.$extension"
+inputTree="$firstAlignmentDir/SequencesOfInterest$masterAlignmentExtension.$extension"
 inputTreeBase=$(basename $inputTree ".$extension")
 inputTreeDir=$(dirname $inputTree)
 
@@ -187,8 +205,10 @@ then
 		echo "--gene $gene" >&2
 		echo "--iteration $iteration" >&2
 		echo "--aliner $aligner" >&2
+		echo "--masterAliner $masterAligner" >&2
 		echo "--extension $extension" >&2
 		echo "--suffix $suffix" >&2
+		echo "--masterSuffix $masterSuffix" >&2
 		exit 1
 	else
 		echo "In ./$thisScript" >&2
