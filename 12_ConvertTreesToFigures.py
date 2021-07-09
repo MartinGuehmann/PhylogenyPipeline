@@ -11,6 +11,38 @@ lineWidth = 4
 margin = 4 / 2
 nodeShapeSize = lineWidth - 1
 
+SHaLRTTreshold = 80
+aBayesTreshold = 0.95
+UFBootTreshold = 95
+
+###############################################################################
+def countLeaves(tree):
+	numLeaves = 0
+	for leaf in tree.iter_leaves():
+		numLeaves += 1
+
+	return numLeaves
+
+###############################################################################
+def getSupportOverThresholdColor(supports):
+	supportValues = supports.split("/")
+	if len(supportValues) > 2:
+		try:
+			if(float(supportValues[0]) >= SHaLRTTreshold and
+			   float(supportValues[1]) >= aBayesTreshold and
+			     int(supportValues[2]) >= UFBootTreshold):
+				return 'Black'
+		except ValueError:
+			pass
+	else:
+		try:
+			if(  int(supportValues[0]) > UFBootTreshold):
+				return 'Black'
+		except ValueError:
+			pass
+
+	return 'Gray'
+
 ###############################################################################
 def fullTreeLayout(node):
 	if node.is_leaf():
@@ -42,7 +74,8 @@ def fullTreeLayout(node):
 		if node.name == "":
 			name_face = TextFace(" ", fsize=10)
 		else:
-			name_face = AttrFace("name", fsize=10) # 
+			color = getSupportOverThresholdColor(node.name)
+			name_face = AttrFace("name", fsize=10, fgcolor=color)
 
 		# Add the name face to the image at the preferred position
 		faces.add_face_to_node(name_face, node, column=0, position="branch-top")
