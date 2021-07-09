@@ -113,24 +113,25 @@ def collapsedTreeLayout(node):
 		if node.name == "":
 			name_face = TextFace(" ", fsize=10)
 		else:
-			name_face = AttrFace("name", fsize=10) # 
+			color = getSupportOverThresholdColor(node.name)
+			name_face = AttrFace("name", fsize=10, fgcolor=color)
 
 		# Add the name face to the image at the preferred position
 		node.add_face(name_face, column=0, position="branch-top")
 		# If terminal node, draws its name
 
-		name_face = TextFace(node.cladeName)
+		name_face = TextFace(" " + node.cladeName + " - " + str(countLeaves(node)))
 		name_face.margin_top = -2
 		# Add the name face to the image at the preferred position
-		node.add_face(TextFace(" "), column=1, position="branch-right")
-		node.add_face(name_face, column=2, position="branch-right")
+		node.add_face(name_face, column=1, position="branch-right")
 
 	else:
 		# If internal node, draws label with smaller font size
 		if node.name == "":
 			name_face = TextFace(" ", fsize=10)
 		else:
-			name_face = AttrFace("name", fsize=10) # 
+			color = getSupportOverThresholdColor(node.name)
+			name_face = AttrFace("name", fsize=10, fgcolor=color)
 		# Add the name face to the image at the preferred position
 		node.add_face(name_face, column=0, position="branch-top")
 
@@ -344,7 +345,7 @@ def nameCladeRoots(tree, clades):
 					continue
 
 				if child.name != "":
-					cladeRoot.name = child.name + "*"
+					cladeRoot.name = child.name + "/*"
 					break
 
 ###############################################################################
