@@ -1,8 +1,9 @@
 #!/bin/python3
 
-from ete3 import Tree, NexmlTree, nexml, faces, AttrFace, TextFace, SeqMotifFace, TreeStyle, NodeStyle
+from ete3 import Tree, NexmlTree, nexml, faces, AttrFace, TextFace, SeqMotifFace, PieChartFace, TreeStyle, NodeStyle
 import csv
 from inspect import getmembers
+from Bio import AlignIO, Align
 
 import os # Strip extension from file
 import sys, getopt # Parse program arguments
@@ -14,6 +15,106 @@ nodeShapeSize = lineWidth - 1
 SHaLRTTreshold = 80
 aBayesTreshold = 0.95
 UFBootTreshold = 95
+
+hasSpecialAA = False
+
+# Global maps
+aminoAcidColorMap = {}
+
+###############################################################################
+def getColorsAndPercents(tree):
+
+	countMap = {}
+	numLeaves = 0
+	for leaf in tree.iter_leaves():
+		if hasattr(leaf, 'specialAA'):
+			if leaf.specialAA in countMap:
+				countMap[leaf.specialAA] += 1
+			else:
+				countMap[leaf.specialAA] = 1
+		else:
+			if "_" in countMap:
+				countMap["_"] += 1
+			else:
+				countMap["_"] = 1
+
+		numLeaves += 1
+
+	percents = []
+	colors   = []
+	for key, value in countMap.items():
+		percents.append((value / numLeaves) * 100)
+		if key in aminoAcidColorMap:
+			colors.append(aminoAcidColorMap[key])
+		else:
+			colors.append("Black")
+
+	return percents, colors
+
+###############################################################################
+def determineSpecialAminoAcidsAtPos(tree, masterAlignmentFileName, specialAAIndex, refSeqFile):
+	masterAlignment = AlignIO.read(masterAlignmentFileName, "phylip-relaxed")
+	specialAAinAlignmentIndex = getSpecialAAInAlignment(masterAlignment, specialAAIndex, refSeqFile)
+
+	if specialAAinAlignmentIndex < 0:
+		return
+
+	for record in masterAlignment:
+
+		specialAA = record[specialAAinAlignmentIndex]
+
+		nodes = tree.search_nodes(name=record.id)
+		if len(nodes) > 0:
+			nodes[0].specialAA = record[specialAAinAlignmentIndex].upper()
+
+###############################################################################
+def getSpecialAAInAlignment(masterAlignment, specialAAIndex, refSeqFile):
+	refSequence = AlignIO.read(refSeqFile, "fasta")
+
+	for record in masterAlignment:
+		if refSequence[0].id in record.id:
+
+			gapFreeRecord = record.seq.ungap()
+			aligner = Align.PairwiseAligner()
+			aligner.mode = 'global'
+			alignments = aligner.align(refSequence[0].seq, gapFreeRecord)
+
+			lastPos = 0
+			thisPos = 0
+			numGaps = 0
+			for pair in alignments[0].aligned[0]:
+				thisPos  = pair[0]
+				numGaps += thisPos - lastPos
+				lastPos  = pair[1]
+				if lastPos > specialAAIndex:
+					break
+
+			i = 0
+			aaIndex = numGaps + 1 # This is zero indexed but specialAAIndex is one indexed, so add one to account for that
+			while i < len(record):
+				if record[i] == "-":
+					i += 1
+					continue
+
+				if aaIndex == specialAAIndex:
+					return i
+
+				aaIndex += 1
+				i += 1
+
+	return -1
+
+###############################################################################
+def loadAminoAcidColors(colorMapFileName):
+	with open(colorMapFileName, newline='') as colorMapFile:
+		colorReader = csv.reader(colorMapFile, delimiter='\t')
+		for row in colorReader:
+			# Continue if the line is empty
+			if not row:
+				continue
+
+			aminoAcidColorMap[row[0]] = row[1]
+
 
 ###############################################################################
 def countLeaves(tree):
@@ -46,9 +147,22 @@ def getSupportOverThresholdColor(supports):
 ###############################################################################
 def fullTreeLayout(node):
 	if node.is_leaf():
+
+		if hasSpecialAA:
+			if hasattr(node, 'specialAA'):
+				aa_face = TextFace(node.specialAA)
+				aa_face.background.color = aminoAcidColorMap[node.specialAA]
+			else:
+				aa_face = TextFace(" ")
+				aa_face.background.color = "Black"
+
+			aa_face.margin_top = 2
+			aa_face.margin_bottom = 2
+			node.add_face(aa_face, column=0, position="aligned")
+
 		# If terminal node, draw its name
 		if node.name == "":
-			name_face = TextFace(" ", fsize=10)
+			name_face = TextFace(" ")
 		else:
 			name_face = AttrFace("name")
 
@@ -57,17 +171,16 @@ def fullTreeLayout(node):
 			name_face.margin_top = 2
 			name_face.margin_bottom = 2
 		# Add the name face to the image at the preferred position
-		faces.add_face_to_node(name_face, node, column=0, position="aligned")
+		node.add_face(name_face, column=1, position="aligned")
 
 		rect_face = TextFace("                                            ")
 		rect_face.background.color = node.img_style["fgcolor"]
 		rect_face.margin_top = 2
 		rect_face.margin_bottom = 2
-		faces.add_face_to_node(rect_face, node, column=1, position="aligned")
+		node.add_face(rect_face, column=2, position="aligned")
 		if node.cladeName != "":
-#			clade_face = TextFace(node.cladeName, fgcolor=node.img_style["fgcolor"], fsize=100)
 			clade_face = TextFace(node.cladeName, fsize=100)
-			node.add_face(clade_face, column=2, position="float-right")
+			node.add_face(clade_face, column=3, position="float-right")
 
 	else:
 		# If internal node, draws label with smaller font size
@@ -87,12 +200,22 @@ def collapsedTreeLayout(node):
 		if node.name == "":
 			name_face =  TextFace(" ")
 		else:
-			name_face = AttrFace("name")
+			name_face = AttrFace("name", text_prefix=" ", text_suffix=" ")
 
 		name_face.margin_top = -2
 		# Add the name face to the image at the preferred position
-		node.add_face(TextFace(" "), column=0, position="branch-right")
-		node.add_face(name_face, column=1, position="branch-right")
+		node.add_face(name_face, column=0, position="branch-right")
+
+		if hasSpecialAA:
+			if hasattr(node, 'specialAA'):
+				aa_face = TextFace(node.specialAA)
+				aa_face.background.color = aminoAcidColorMap[node.specialAA]
+			else:
+				aa_face = TextFace(" ")
+				aa_face.background.color = "Black"
+
+			node.add_face(aa_face, column=1, position="branch-right")
+
 		if not node.img_style["draw_descendants"]:
 			node.add_face(TextFace(" "), column=2, position="branch-right")
 			node.add_face(TextFace(node.cladeName), column=3, position="branch-right")
@@ -120,10 +243,15 @@ def collapsedTreeLayout(node):
 		node.add_face(name_face, column=0, position="branch-top")
 		# If terminal node, draws its name
 
-		name_face = TextFace(" " + node.cladeName + " - " + str(countLeaves(node)))
+		name_face = TextFace(" " + node.cladeName + " - " + str(countLeaves(node)) + " ")
 		name_face.margin_top = -2
 		# Add the name face to the image at the preferred position
 		node.add_face(name_face, column=1, position="branch-right")
+
+		if hasSpecialAA:
+			percents, colors = getColorsAndPercents(node)
+			pie_face = PieChartFace(percents, 30, 30, colors) # , line_color="black"
+			node.add_face(pie_face, column=2, position="branch-right")
 
 	else:
 		# If internal node, draws label with smaller font size
@@ -134,10 +262,6 @@ def collapsedTreeLayout(node):
 			name_face = AttrFace("name", fsize=10, fgcolor=color)
 		# Add the name face to the image at the preferred position
 		node.add_face(name_face, column=0, position="branch-top")
-
-###############################################################################
-def isCollapsedLeaf(node):
-	return node.cladeName != ""
 
 ###############################################################################
 def colorNodes(node, cladeColor, cladeBackgroundTextColor):
@@ -398,22 +522,29 @@ def getCollapsedTreeStyle():
 def usage(progName):
 	print(progName, "annotates a tree from a newick file with clades and draws a full")
 	print("version of the tree and a version with clades collapsed.\n")
-	print(' -h, --help                      Prints this help message.')
-	print(' -i, --infile    <infile>        The input file with the newick tree to visualize.')
-	print(' -t, --trees     <cladetreefile> The tree file with the subclade trees to visualize input trees with sub data set.')
-	print(' -c, --cladefile <cladefile>     The clade file, a tab separated list with a clade per line.')
-	print('                                 Each clade is defined by a leaf name, the clade name,')
-	print('                                 a foreground color, and a color for a background with black font on.')
+	print(' -h, --help                                Prints this help message.')
+	print(' -i, --infile              <infile>        The input file with the newick tree to visualize.')
+	print(' -t, --trees               <cladetreefile> The tree file with the subclade trees to visualize input trees with sub data set.')
+	print(' -c, --cladefile           <cladefile>     The clade file, a tab separated list with a clade per line.')
+	print('                                           Each clade is defined by a leaf name, the clade name,')
+	print('                                           a foreground color, and a color for a background with black font on.')
+	print(' -f, --refSeqFile          <cladetreefile> A reference sequence file in fasta format, for mapping a position, such as the')
+	print('                                           lysine at position 296 in cattle rhodopsin. This position is then displayed')
+	print('                                           on the trees.')
+	print(' -p, --specialAminoAcidPos <int>           The position of the amino acid of interest in the reference sequence.')
 	print('')
 
 ###############################################################################
 
 def parseArgs(progName, argv):
-	infile = ""
-	cladeFile = ""
-	cladeTreeFile = ""
+	infile              = ""
+	cladeFile           = ""
+	cladeTreeFile       = ""
+	refSeqFile          = ""
+	specialAminoAcidPos = -1
+
 	try:
-		opts, args = getopt.getopt(argv,"ht:i:c:",["help", "infile=", "cladefile=", "trees="])
+		opts, args = getopt.getopt(argv,"ht:i:c:f:p:",["help", "infile=", "cladefile=", "trees=", "refSeqFile=", "specialAminoAcidPos="])
 	except getopt.GetoptError as err:
 		print(err, "\n")
 		usage(progName)
@@ -428,24 +559,31 @@ def parseArgs(progName, argv):
 			cladeFile = arg
 		elif opt in ("-t", "--trees"):
 			cladeTreeFile = arg
+		elif opt in ("-f", "--refSeqFile"):
+			refSeqFile = arg
+		elif opt in ("-p", "--specialAminoAcidPos"):
+			specialAminoAcidPos = int(arg)
 
-	return infile, cladeFile, cladeTreeFile
+	return infile, cladeFile, cladeTreeFile, refSeqFile, specialAminoAcidPos
 
 ###############################################################################
 
 if __name__ == "__main__":
 	# Execute only if run as main script
 
-	inputTree, inputClades, cladeTreeFile = parseArgs(sys.argv[0], sys.argv[1:])
-
-#	extStripped            = os.path.splitext(inputTree)[0]
-	extStripped            = inputTree
-	cladeTrees             = extStripped + ".cladeTrees"
-	outFullTree            = extStripped + ".fullTree.pdf"
-	outFullTreeNeXML       = extStripped + ".fullTree.NeXML"
-	outCollapsedTree       = extStripped + ".collapsedTree.pdf"
+	inputTree, inputClades, cladeTreeFile, refSeqFile, specialAminoAcidPos = parseArgs(sys.argv[0], sys.argv[1:])
 
 	isFullTree = (cladeTreeFile == "")
+
+	if isFullTree:
+		alnFile = os.path.splitext(inputTree)[0]
+	else:
+		alnFile = os.path.splitext(os.path.splitext(cladeTreeFile)[0])[0]
+
+	cladeTrees             = inputTree + ".cladeTrees"
+	outFullTree            = inputTree + ".fullTree.pdf"
+	outFullTreeNeXML       = inputTree + ".fullTree.NeXML"
+	outCollapsedTree       = inputTree + ".collapsedTree.pdf"
 
 	formats = [3, 1]
 	for f in formats:
@@ -457,6 +595,13 @@ if __name__ == "__main__":
 
 	for node in tree.traverse():
 		node.name = node.name.replace('\'', '')
+
+	colorMapFileName = "AminoAcidColorMap.csv"
+	loadAminoAcidColors(colorMapFileName)
+
+	if refSeqFile != "" and specialAminoAcidPos >= 0:
+		determineSpecialAminoAcidsAtPos(tree, alnFile, specialAminoAcidPos, refSeqFile)
+		hasSpecialAA = True
 
 	clades = loadCladeInfo(tree, inputClades, cladeTreeFile)
 	initialReroot(tree, clades)
