@@ -16,10 +16,18 @@ SHaLRTTreshold = 80
 aBayesTreshold = 0.95
 UFBootTreshold = 95
 
-hasSpecialAA = False
-
 # Global maps
-aminoAcidColorMap = {}
+aminoAcidColorMap       = {}
+taxonColorMap            = {}
+genusInterestingTaxaMap = {}
+
+###############################################################################
+def hasSpecialAA():
+	return len(aminoAcidColorMap) > 0
+
+###############################################################################
+def hasTaxa():
+	return len(taxonColorMap) > 0
 
 ###############################################################################
 def getColorsAndPercents(tree):
@@ -52,7 +60,38 @@ def getColorsAndPercents(tree):
 	return percents, colors
 
 ###############################################################################
+def getTaxonColorsAndPercents(tree):
+
+	countMap = {}
+	numLeaves = 0
+	for leaf in tree.iter_leaves():
+		if hasattr(leaf, 'taxonOfInterest'):
+			if leaf.taxonOfInterest in countMap:
+				countMap[leaf.taxonOfInterest] += 1
+			else:
+				countMap[leaf.taxonOfInterest] = 1
+		else:
+			if "_" in countMap:
+				countMap["_"] += 1
+			else:
+				countMap["_"] = 1
+
+		numLeaves += 1
+
+	percents = []
+	colors   = []
+	for key, value in countMap.items():
+		percents.append((value / numLeaves) * 100)
+		if key in taxonColorMap:
+			colors.append(taxonColorMap[key])
+		else:
+			colors.append("Black")
+
+	return percents, colors
+
+###############################################################################
 def determineSpecialAminoAcidsAtPos(tree, masterAlignmentFileName, specialAAIndex, refSeqFile):
+
 	masterAlignment = AlignIO.read(masterAlignmentFileName, "phylip-relaxed")
 	specialAAinAlignmentIndex = getSpecialAAInAlignment(masterAlignment, specialAAIndex, refSeqFile)
 
@@ -105,16 +144,17 @@ def getSpecialAAInAlignment(masterAlignment, specialAAIndex, refSeqFile):
 	return -1
 
 ###############################################################################
-def loadAminoAcidColors(colorMapFileName):
-	with open(colorMapFileName, newline='') as colorMapFile:
+def loadColorMap(colorFile, colorMap):
+	with open(colorFile, newline='') as colorMapFile:
 		colorReader = csv.reader(colorMapFile, delimiter='\t')
 		for row in colorReader:
 			# Continue if the line is empty
 			if not row:
 				continue
+			if row[0][0] == '#':
+				continue
 
-			aminoAcidColorMap[row[0]] = row[1]
-
+			colorMap[row[0]] = row[1]
 
 ###############################################################################
 def countLeaves(tree):
@@ -148,7 +188,8 @@ def getSupportOverThresholdColor(supports):
 def fullTreeLayout(node):
 	if node.is_leaf():
 
-		if hasSpecialAA:
+		columnNum = 0
+		if hasSpecialAA():
 			if hasattr(node, 'specialAA'):
 				aa_face = TextFace(node.specialAA)
 				aa_face.background.color = aminoAcidColorMap[node.specialAA]
@@ -158,29 +199,46 @@ def fullTreeLayout(node):
 
 			aa_face.margin_top = 2
 			aa_face.margin_bottom = 2
-			node.add_face(aa_face, column=0, position="aligned")
+			node.add_face(aa_face, column=columnNum, position="aligned")
+			columnNum += 1
+
+		if hasTaxa():
+			if hasattr(node, 'taxonOfInterest'):
+				it_face = TextFace(" " + node.taxonOfInterest + " ")
+				it_face.fgcolor = taxonColorMap[node.taxonOfInterest]
+			else:
+				it_face = TextFace(" Unidentified ")
+				it_face.fgcolor = "Black"
+
+			it_face.margin_top = 2
+			it_face.margin_bottom = 2
+			node.add_face(it_face, column=columnNum, position="aligned")
+			columnNum += 1
 
 		# If terminal node, draw its name
 		if node.name == "":
 			name_face = TextFace(" ")
 		else:
-			name_face = AttrFace("name")
+			name_face = AttrFace("name", text_prefix=" ")
 
 		if hasattr(node.img_style, 'faces_bgcolor'):
 			name_face.background.color = node.img_style.faces_bgcolor
 			name_face.margin_top = 2
 			name_face.margin_bottom = 2
 		# Add the name face to the image at the preferred position
-		node.add_face(name_face, column=1, position="aligned")
+		node.add_face(name_face, column=columnNum, position="aligned")
+		columnNum += 1
 
 		rect_face = TextFace("                                            ")
 		rect_face.background.color = node.img_style["fgcolor"]
 		rect_face.margin_top = 2
 		rect_face.margin_bottom = 2
-		node.add_face(rect_face, column=2, position="aligned")
+		node.add_face(rect_face, column=columnNum, position="aligned")
+		columnNum += 1
 		if node.cladeName != "":
 			clade_face = TextFace(node.cladeName, fsize=100)
-			node.add_face(clade_face, column=3, position="float-right")
+			node.add_face(clade_face, column=columnNum, position="float-right")
+			columnNum += 1
 
 	else:
 		# If internal node, draws label with smaller font size
@@ -196,6 +254,8 @@ def fullTreeLayout(node):
 ###############################################################################
 def collapsedTreeLayout(node):
 	if node.is_leaf():
+		columnNum = 0
+
 		# If terminal node, draws it name
 		if node.name == "":
 			name_face =  TextFace(" ")
@@ -204,9 +264,10 @@ def collapsedTreeLayout(node):
 
 		name_face.margin_top = -2
 		# Add the name face to the image at the preferred position
-		node.add_face(name_face, column=0, position="branch-right")
+		node.add_face(name_face, column=columnNum, position="branch-right")
+		columnNum += 1
 
-		if hasSpecialAA:
+		if hasSpecialAA():
 			if hasattr(node, 'specialAA'):
 				aa_face = TextFace(node.specialAA)
 				aa_face.background.color = aminoAcidColorMap[node.specialAA]
@@ -214,14 +275,29 @@ def collapsedTreeLayout(node):
 				aa_face = TextFace(" ")
 				aa_face.background.color = "Black"
 
-			node.add_face(aa_face, column=1, position="branch-right")
+			node.add_face(aa_face, column=columnNum, position="branch-right")
+			columnNum += 1
+
+		if hasTaxa():
+			if hasattr(node, 'taxonOfInterest'):
+				it_face = TextFace(" " + node.taxonOfInterest)
+				it_face.fgcolor = taxonColorMap[node.taxonOfInterest]
+			else:
+				it_face = TextFace(" ")
+				it_face.fgcolor = "Black"
+
+			it_face.margin_top = 2
+			it_face.margin_bottom = 2
+			node.add_face(it_face, column=columnNum, position="branch-right")
+			columnNum += 1
 
 		if not node.img_style["draw_descendants"]:
-			node.add_face(TextFace(" "), column=2, position="branch-right")
-			node.add_face(TextFace(node.cladeName), column=3, position="branch-right")
+			node.add_face(TextFace(" " + node.cladeName), column=columnNum, position="branch-right")
+			columnNum += 1
 
 	elif not node.img_style["draw_descendants"]:
 		# Technically this is an internal node
+		columnNum = 0
 
 		simple_motifs = [
 			# seq.start, seq.end, shape, width, height, fgcolor, bgcolor
@@ -230,7 +306,8 @@ def collapsedTreeLayout(node):
 
 		seq_face = SeqMotifFace(motifs=simple_motifs)
 		seq_face.margin_left = -2
-		node.add_face(seq_face, column=0, position="branch-right")
+		node.add_face(seq_face, column=columnNum, position="branch-right")
+		columnNum += 1
 
 		# If internal node, draws label with smaller font size
 		if node.name == "":
@@ -240,18 +317,28 @@ def collapsedTreeLayout(node):
 			name_face = AttrFace("name", fsize=10, fgcolor=color)
 
 		# Add the name face to the image at the preferred position
-		node.add_face(name_face, column=0, position="branch-top")
-		# If terminal node, draws its name
+		node.add_face(name_face, column=0, position="branch-top") # Branch-top is 0
 
+		# If terminal node, draws its name
 		name_face = TextFace(" " + node.cladeName + " - " + str(countLeaves(node)) + " ")
 		name_face.margin_top = -2
 		# Add the name face to the image at the preferred position
-		node.add_face(name_face, column=1, position="branch-right")
+		node.add_face(name_face, column=columnNum, position="branch-right")
+		columnNum += 1
 
-		if hasSpecialAA:
+		if hasSpecialAA():
 			percents, colors = getColorsAndPercents(node)
-			pie_face = PieChartFace(percents, 30, 30, colors) # , line_color="black"
-			node.add_face(pie_face, column=2, position="branch-right")
+			pie_face = PieChartFace(percents, 30, 30, colors)
+			node.add_face(pie_face, column=columnNum, position="branch-right")
+			columnNum += 1
+
+		if hasTaxa():
+			node.add_face(TextFace(" ", fsize=10), column=columnNum, position="branch-right")
+			columnNum += 1
+			percents, colors = getTaxonColorsAndPercents(node)
+			pie_face = PieChartFace(percents, 30, 30, colors)
+			node.add_face(pie_face, column=columnNum, position="branch-right")
+			columnNum += 1
 
 	else:
 		# If internal node, draws label with smaller font size
@@ -542,9 +629,10 @@ def parseArgs(progName, argv):
 	cladeTreeFile       = ""
 	refSeqFile          = ""
 	specialAminoAcidPos = -1
+	iterestingTaxa      = ""
 
 	try:
-		opts, args = getopt.getopt(argv,"ht:i:c:f:p:",["help", "infile=", "cladefile=", "trees=", "refSeqFile=", "specialAminoAcidPos="])
+		opts, args = getopt.getopt(argv,"ht:i:c:f:p:z:",["help", "infile=", "cladefile=", "trees=", "refSeqFile=", "specialAminoAcidPos=", "iterestinTaxa"])
 	except getopt.GetoptError as err:
 		print(err, "\n")
 		usage(progName)
@@ -563,15 +651,53 @@ def parseArgs(progName, argv):
 			refSeqFile = arg
 		elif opt in ("-p", "--specialAminoAcidPos"):
 			specialAminoAcidPos = int(arg)
+		elif opt in ("-z", "--iterestinTaxa"):
+			iterestingTaxa = arg
 
-	return infile, cladeFile, cladeTreeFile, refSeqFile, specialAminoAcidPos
+	return infile, cladeFile, cladeTreeFile, refSeqFile, specialAminoAcidPos, iterestingTaxa
+
+###############################################################################
+def loadTaxa(iterestingTaxa):
+	if iterestingTaxa == "":
+		return
+
+	loadColorMap(iterestingTaxa, taxonColorMap)
+
+	genusDatabase = "SpeciesDatabase/GenusLinage.csv"
+	f = open(genusDatabase, 'rt')
+
+	while True:
+		line = f.readline()
+		if not line:
+			break
+
+		splitLine = line.split("\t")
+
+		for taxon in taxonColorMap:
+			checkString = " " + taxon + ";"
+			if checkString in splitLine[2]:
+				genusInterestingTaxaMap[splitLine[1].lower()] = taxon
+
+###############################################################################
+def addHigherTaxaOfInterest(tree):
+	if not hasTaxa():
+		return
+
+	for leaf in tree.iter_leaves():
+		nameSplit = leaf.name.lower().split("_")
+		for string in nameSplit:
+			if string in genusInterestingTaxaMap:
+				leaf.taxonOfInterest = genusInterestingTaxaMap[string]
+				# Break here, not only to reduce the run-time, but species names
+				# can also occur as genus names
+				break
 
 ###############################################################################
 
 if __name__ == "__main__":
 	# Execute only if run as main script
 
-	inputTree, inputClades, cladeTreeFile, refSeqFile, specialAminoAcidPos = parseArgs(sys.argv[0], sys.argv[1:])
+	inputTree, inputClades, cladeTreeFile, refSeqFile, specialAminoAcidPos, iterestingTaxa = parseArgs(sys.argv[0], sys.argv[1:])
 
 	isFullTree = (cladeTreeFile == "")
 
@@ -596,16 +722,17 @@ if __name__ == "__main__":
 	for node in tree.traverse():
 		node.name = node.name.replace('\'', '')
 
-	colorMapFileName = "AminoAcidColorMap.csv"
-	loadAminoAcidColors(colorMapFileName)
-
 	if refSeqFile != "" and specialAminoAcidPos >= 0:
+		colorMapFileName = "AminoAcidColorMap.csv"
+		loadColorMap(colorMapFileName, aminoAcidColorMap)
 		determineSpecialAminoAcidsAtPos(tree, alnFile, specialAminoAcidPos, refSeqFile)
-		hasSpecialAA = True
+
+	loadTaxa(iterestingTaxa)
 
 	clades = loadCladeInfo(tree, inputClades, cladeTreeFile)
 	initialReroot(tree, clades)
 	cladifyNodes(tree, clades)
+	addHigherTaxaOfInterest(tree)
 
 	# Root the tree at the outgroup
 	rerootToOutgroup(tree, clades)
