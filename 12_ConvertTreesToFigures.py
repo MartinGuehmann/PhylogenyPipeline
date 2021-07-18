@@ -459,12 +459,9 @@ def getLeaveOfClade(tree, clade, cladeTreeFile):
 
 ###############################################################################
 def initialReroot(tree, clades):
-	for clade in clades:
-		node = clade[-1] # Get the last element
-		cladeName = clade[1]
-		if cladeName == "Outgroup":
-			tree.set_outgroup(node)
-
+	clade = clades[-1] # Use the last clade for rooting
+	node  = clade [-1] # Get the last element
+	tree.set_outgroup(node)
 
 ###############################################################################
 def rerootToOutgroup(tree, clades):
@@ -704,12 +701,15 @@ if __name__ == "__main__":
 	if isFullTree:
 		alnFile = os.path.splitext(inputTree)[0]
 	else:
-		alnFile = os.path.splitext(os.path.splitext(cladeTreeFile)[0])[0]
+		alnFile = os.path.splitext(os.path.splitext(os.path.splitext(cladeTreeFile)[0])[0])[0]
 
-	cladeTrees             = inputTree + ".cladeTrees"
-	outFullTree            = inputTree + ".fullTree.pdf"
-	outFullTreeNeXML       = inputTree + ".fullTree.NeXML"
-	outCollapsedTree       = inputTree + ".collapsedTree.pdf"
+	cladeBase = os.path.basename(inputClades)
+	cladeBase = os.path.splitext(cladeBase)[0]
+
+	cladeTrees             = inputTree + "." + cladeBase + ".cladeTrees"
+	outCollapsedTree       = inputTree + "." + cladeBase + ".collapsedTree.pdf"
+	outFullTree            = inputTree + "." + cladeBase + ".fullTree.pdf"
+#	outFullTreeNeXML       = inputTree + "." + cladeBase + ".fullTree.NeXML"
 
 	formats = [3, 1]
 	for f in formats:

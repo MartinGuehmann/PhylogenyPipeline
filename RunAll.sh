@@ -39,11 +39,23 @@ do
             shift
             iteration="$1"
             ;;
+        --baseIteration)
+            ;&
+        -I)
+            shift
+            baseIteration="-I $1"
+            ;;
         --aligner)
             ;&
         -a)
             shift
             aligner="$1"
+            ;;
+        --masterAligner)
+            ;&
+        -A)
+            shift
+            masterAligner="-A $1"
             ;;
         --file)
             ;&
@@ -62,6 +74,12 @@ do
         -x)
             shift
             suffix="-x $1"
+            ;;
+        --masterSuffix)
+            ;&
+        -X)
+            shift
+            masterSuffix="-X $1"
             ;;
         --extension)
             ;&
@@ -276,7 +294,7 @@ case $step in
 	;;
 12)
 	echo "12. Visualise trees." >&2
-	$DIR/12_ConvertTreesToFigures.sh -g "$gene" -i "$iteration" -a "$aligner" $inputDir $suffix $extension $update $updateBig $ignoreIfMasterFileDoesNotExist
+	$DIR/12a_ConvertTreesToFiguresForAllClades.sh -g "$gene" -i "$iteration" -a "$aligner" $baseIteration $masterAligner $inputDir $suffix $masterSuffix $extension $update $updateBig $ignoreIfMasterFileDoesNotExist
 	echo "12. Trees visualized." >&2
 	;;
 13)

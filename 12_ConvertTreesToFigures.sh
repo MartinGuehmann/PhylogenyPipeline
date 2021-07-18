@@ -83,7 +83,7 @@ do
             ;&
         -A)
             shift
-            amasterAligner="$1"
+            masterAligner="$1"
             ;;
         --folder)
             ;&
@@ -92,6 +92,12 @@ do
             inputDir="$1"
             ;;
         --extension)
+            ;&
+        -c)
+            shift
+            cladeFile="$1"
+            ;;
+        --cladeFile)
             ;&
         -e)
             shift
@@ -107,7 +113,7 @@ do
             ;&
         -X)
             shift
-            masterSuffix="-x $1"
+            masterSuffix="-x $1" # Has to be small x
             ;;
         --update)
             ;&
@@ -130,7 +136,7 @@ do
         --*)
             ;&
         *)
-            echo "Bad option $1 is ignored" >&2
+            echo "Bad option $1 is ignored in $thisScript" >&2
             ;;
     esac
     shift
@@ -148,7 +154,7 @@ then
 	aligner=$("$DIR/GetDefaultAligner.sh")
 fi
 
-if [[ -z $amasterAligner ]]
+if [[ -z $masterAligner ]]
 then
 	masterAligner=$aligner
 fi
@@ -183,13 +189,18 @@ fi
 partSequences="SequencesOfInterestShuffled.part_"
 AlignmentParts="$AlignmentDir/$partSequences"
 
-cladeFile="$DIR/$gene/Clades.csv"
+if [[ -z $cladeFile ]]
+then
+	cladeFile="$DIR/$gene/Clades.csv"
+fi
+
+cladeBase=$(basename $cladeFile ".csv")
 
 inputTree="$firstAlignmentDir/SequencesOfInterest$masterAlignmentExtension.$extension"
 inputTreeBase=$(basename $inputTree ".$extension")
 inputTreeDir=$(dirname $inputTree)
 
-cladeTreeFile="$inputTreeDir/$inputTreeBase.$extension.cladeTrees"
+cladeTreeFile="$inputTreeDir/$inputTreeBase.$extension.$cladeBase.cladeTrees"
 
 # Check whether the master tree file already exists, if not fail
 # Fail gracefully if the according option is set, this might
@@ -204,11 +215,13 @@ then
 		echo "Check the parameters:" >&2
 		echo "--gene $gene" >&2
 		echo "--iteration $iteration" >&2
+		echo "--baseIteration $baseIteration" >&2
 		echo "--aliner $aligner" >&2
 		echo "--masterAliner $masterAligner" >&2
 		echo "--extension $extension" >&2
 		echo "--suffix $suffix" >&2
 		echo "--masterSuffix $masterSuffix" >&2
+		echo "--cladeFile $cladeFile" >&2
 		exit 1
 	else
 		echo "In ./$thisScript" >&2
@@ -256,7 +269,7 @@ fi
 inputTree="$AlignmentDir/SequencesOfInterest$alignmentExtension.$extension"
 inputTreeBase=$(basename $inputTree ".$extension")
 inputTreeDir=$(dirname $inputTree)
-outputFile="$inputTreeDir/$inputTreeBase.$extension.collapsedTree.pdf"
+outputFile="$inputTreeDir/$inputTreeBase.$extension.$cladeBase.collapsedTree.pdf"
 
 echo "Using $cladeTreeFile" >&2
 
@@ -277,11 +290,15 @@ do
 
 	inputTreeBase=$(basename $inputTree ".$extension")
 	inputTreeDir=$(dirname $inputTree)
-	outputFile="$inputTreeDir/$inputTreeBase.$extension.collapsedTree.pdf"
+	outputFile="$inputTreeDir/$inputTreeBase.$extension.$cladeBase.collapsedTree.pdf"
 
 	if [[ ! -f $outputFile || ! -z $update ]]
 	then
 		echo "Processing $inputTree" >&2
-		python3 "$DIR/12_ConvertTreesToFigures.py" -i $inputTree -c $cladeFile -t $cladeTreeFile $seqFile $aaPos $interestingTaxaArg
+		python3 "$DIR/12_ConvertTreesToFigures.py" -i $inputTree -c $cladeFile -t $cladeTreeFile $seqFile $aaPos $interestingTaxaArg &
 	fi
 done
+
+wait # Wait on all the instances of 12_ConvertTreesToFigures.py to finish
+
+#pdftoppm -png -r 600 /media/martin/Win10/Science/Phylogeny/PhylogenyPipeline/Opsins/Alignments/PASTA/RogueIter_14/SequencesOfInterest.alignment.PASTA.fasta.raxml.reduced.phy.treefile.fullTree.pdf > /media/martin/Win10/Science/Phylogeny/PhylogenyPipeline/Opsins/Alignments/PASTA/RogueIter_14/SequencesOfInterest.alignment.PASTA.fasta.raxml.reduced.phy.treefile.fullTree.png
