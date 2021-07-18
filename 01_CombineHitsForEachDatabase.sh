@@ -39,4 +39,4 @@ do
 	$DIR/01a_CombineHits.sh $gene $DB &
 done
 
-wait # Wait on all the instances of GetGenes.sh to finish
+wait # Wait on all the instances of 01a_CombineHits.sh to finish
