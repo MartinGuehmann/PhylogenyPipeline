@@ -237,7 +237,7 @@ interestingTaxaArg=""
 interestingTaxa="$DIR/$gene/InterestingTaxa.csv"
 if [[ -f "$interestingTaxa" ]]
 then
-	"$DIR/12a_InstallSpeciesDatabase.sh"
+	"$DIR/12b_InstallSpeciesDatabase.sh"
 	interestingTaxaArg="-z $interestingTaxa"
 fi
 
