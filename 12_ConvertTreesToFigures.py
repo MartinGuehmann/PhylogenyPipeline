@@ -18,8 +18,15 @@ UFBootTreshold = 95
 
 # Global maps
 aminoAcidColorMap       = {}
-taxonColorMap            = {}
+taxonColorMap           = {}
 genusInterestingTaxaMap = {}
+
+###############################################################################
+class ColorData:
+	def __init__(self, color, isRegular, rank):
+		self.color     = color
+		self.isRegular = isRegular
+		self.rank      = rank
 
 ###############################################################################
 def hasSpecialAA():
@@ -30,16 +37,17 @@ def hasTaxa():
 	return len(taxonColorMap) > 0
 
 ###############################################################################
-def getColorsAndPercents(tree):
+def countAttributes(tree, attribute):
 
 	countMap = {}
 	numLeaves = 0
 	for leaf in tree.iter_leaves():
-		if hasattr(leaf, 'specialAA'):
-			if leaf.specialAA in countMap:
-				countMap[leaf.specialAA] += 1
+		if hasattr(leaf, attribute):
+			key = getattr(leaf, attribute)
+			if key in countMap:
+				countMap[key] += 1
 			else:
-				countMap[leaf.specialAA] = 1
+				countMap[key] = 1
 		else:
 			if "_" in countMap:
 				countMap["_"] += 1
@@ -48,42 +56,19 @@ def getColorsAndPercents(tree):
 
 		numLeaves += 1
 
-	percents = []
-	colors   = []
-	for key, value in countMap.items():
-		percents.append((value / numLeaves) * 100)
-		if key in aminoAcidColorMap:
-			colors.append(aminoAcidColorMap[key])
-		else:
-			colors.append("Black")
-
-	return percents, colors
+	return countMap, numLeaves
 
 ###############################################################################
-def getTaxonColorsAndPercents(tree):
+def getColorsAndPercents(tree, colorMap, attribute):
 
-	countMap = {}
-	numLeaves = 0
-	for leaf in tree.iter_leaves():
-		if hasattr(leaf, 'taxonOfInterest'):
-			if leaf.taxonOfInterest in countMap:
-				countMap[leaf.taxonOfInterest] += 1
-			else:
-				countMap[leaf.taxonOfInterest] = 1
-		else:
-			if "_" in countMap:
-				countMap["_"] += 1
-			else:
-				countMap["_"] = 1
-
-		numLeaves += 1
+	countMap, numLeaves = countAttributes(tree, attribute)
 
 	percents = []
 	colors   = []
 	for key, value in countMap.items():
 		percents.append((value / numLeaves) * 100)
-		if key in taxonColorMap:
-			colors.append(taxonColorMap[key])
+		if key in colorMap:
+			colors.append(colorMap[key].color)
 		else:
 			colors.append("Black")
 
@@ -154,7 +139,21 @@ def loadColorMap(colorFile, colorMap):
 			if row[0][0] == '#':
 				continue
 
-			colorMap[row[0]] = row[1]
+			key = row[0]
+			color = row[1]
+			if len(row) > 2:
+				isRegular = row[2].lower() == "regular"
+			else:
+				isRegular = True
+
+			if len(row) > 3:
+				rank = int(row[3])
+			else:
+				rank = 0
+
+			colorMap[key] = ColorData(color, isRegular, rank)
+
+		colorMap["_"] = ColorData("Black", True, 0)
 
 ###############################################################################
 def countLeaves(tree):
@@ -192,7 +191,7 @@ def fullTreeLayout(node):
 		if hasSpecialAA():
 			if hasattr(node, 'specialAA'):
 				aa_face = TextFace(node.specialAA)
-				aa_face.background.color = aminoAcidColorMap[node.specialAA]
+				aa_face.background.color = aminoAcidColorMap[node.specialAA].color
 			else:
 				aa_face = TextFace(" ")
 				aa_face.background.color = "Black"
@@ -205,7 +204,7 @@ def fullTreeLayout(node):
 		if hasTaxa():
 			if hasattr(node, 'taxonOfInterest'):
 				it_face = TextFace(" " + node.taxonOfInterest + " ")
-				it_face.fgcolor = taxonColorMap[node.taxonOfInterest]
+				it_face.fgcolor = taxonColorMap[node.taxonOfInterest].color
 			else:
 				it_face = TextFace(" Unidentified ")
 				it_face.fgcolor = "Black"
@@ -270,7 +269,7 @@ def collapsedTreeLayout(node):
 		if hasSpecialAA():
 			if hasattr(node, 'specialAA'):
 				aa_face = TextFace(node.specialAA)
-				aa_face.background.color = aminoAcidColorMap[node.specialAA]
+				aa_face.background.color = aminoAcidColorMap[node.specialAA].color
 			else:
 				aa_face = TextFace(" ")
 				aa_face.background.color = "Black"
@@ -281,7 +280,7 @@ def collapsedTreeLayout(node):
 		if hasTaxa():
 			if hasattr(node, 'taxonOfInterest'):
 				it_face = TextFace(" " + node.taxonOfInterest)
-				it_face.fgcolor = taxonColorMap[node.taxonOfInterest]
+				it_face.fgcolor = taxonColorMap[node.taxonOfInterest].color
 			else:
 				it_face = TextFace(" ")
 				it_face.fgcolor = "Black"
@@ -327,7 +326,7 @@ def collapsedTreeLayout(node):
 		columnNum += 1
 
 		if hasSpecialAA():
-			percents, colors = getColorsAndPercents(node)
+			percents, colors = getColorsAndPercents(node, aminoAcidColorMap, 'specialAA')
 			pie_face = PieChartFace(percents, 30, 30, colors)
 			node.add_face(pie_face, column=columnNum, position="branch-right")
 			columnNum += 1
@@ -335,7 +334,7 @@ def collapsedTreeLayout(node):
 		if hasTaxa():
 			node.add_face(TextFace(" ", fsize=10), column=columnNum, position="branch-right")
 			columnNum += 1
-			percents, colors = getTaxonColorsAndPercents(node)
+			percents, colors = getColorsAndPercents(node, taxonColorMap, 'taxonOfInterest')
 			pie_face = PieChartFace(percents, 30, 30, colors)
 			node.add_face(pie_face, column=columnNum, position="branch-right")
 			columnNum += 1
@@ -590,7 +589,7 @@ def getFullTreeStyle():
 	return ts
 
 ###############################################################################
-def getCollapsedTreeStyle():
+def getCollapsedTreeStyle(tree):
 	ts = TreeStyle()
 	# Do not add leaf names automatically
 	ts.show_leaf_name = False
@@ -600,6 +599,34 @@ def getCollapsedTreeStyle():
 #	ts.scale =  120
 	# Use dotted guide lines between leaves and labels
 #	ts.draw_guiding_lines = True
+
+	ts.legend_position = 4
+
+	countMap, numLeaves = countAttributes(tree, 'taxonOfInterest')
+
+	for taxon in taxonColorMap:
+		data = taxonColorMap[taxon]
+		rank = data.rank * 2 * '.'
+
+		if data.isRegular:
+			if taxon in countMap:
+				taxonNum = str(countMap[taxon]) + ' '
+			else:
+				taxonNum = str(0) + ' '
+		else:
+			taxonNum = ' '
+
+		textFace = TextFace(rank + taxon)
+		textFace.fgcolor = data.color
+		ts.legend.add_face(textFace, column=0)
+
+		ts.legend.add_face(TextFace(' '), column=1)
+
+		textFace = TextFace(taxonNum)
+		textFace.fgcolor = data.color
+		textFace.hz_align = 2
+		ts.legend.add_face(textFace, column=2)
+
 	return ts
 
 ###############################################################################
@@ -671,9 +698,10 @@ def loadTaxa(iterestingTaxa):
 		splitLine = line.split("\t")
 
 		for taxon in taxonColorMap:
-			checkString = " " + taxon + ";"
-			if checkString in splitLine[2]:
-				genusInterestingTaxaMap[splitLine[1].lower()] = taxon
+			if taxonColorMap[taxon].isRegular:
+				checkString = " " + taxon + ";"
+				if checkString in splitLine[2]:
+					genusInterestingTaxaMap[splitLine[1].lower()] = taxon
 
 ###############################################################################
 def addHigherTaxaOfInterest(tree):
@@ -769,7 +797,7 @@ if __name__ == "__main__":
 	collapseTree(tree, clades)
 	
 
-	ts = getCollapsedTreeStyle()
+	ts = getCollapsedTreeStyle(tree)
 	tree.render(outCollapsedTree, dpi=600, w=400, units="mm", tree_style=ts)
 
 ###############################################################################
