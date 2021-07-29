@@ -16,6 +16,14 @@ SHaLRTTreshold = 80
 aBayesTreshold = 0.95
 UFBootTreshold = 95
 
+type_regular  = 0
+type_legend   = 1
+type_title    = 2
+type_total    = 3
+type_ingroup  = 4
+type_outgroup = 5
+type_unknown  = 6
+
 # Global maps
 aminoAcidColorMap       = {}
 taxonColorMap           = {}
@@ -23,9 +31,9 @@ genusInterestingTaxaMap = {}
 
 ###############################################################################
 class ColorData:
-	def __init__(self, color, isRegular, rank):
+	def __init__(self, color, entryType, rank):
 		self.color     = color
-		self.isRegular = isRegular
+		self.entryType = entryType
 		self.rank      = rank
 
 ###############################################################################
@@ -141,19 +149,31 @@ def loadColorMap(colorFile, colorMap):
 
 			key = row[0]
 			color = row[1]
+			entryType = type_regular
 			if len(row) > 2:
-				isRegular = row[2].lower() == "regular"
-			else:
-				isRegular = True
+				if row[2].lower() == "regular":
+					entryType = type_regular
+				if row[2].lower() == "legendonly":
+					entryType = type_legend
+				if row[2].lower() == "title":
+					entryType = type_title
+				if row[2].lower() == "total":
+					entryType = type_total
+				if row[2].lower() == "ingroup":
+					entryType = type_ingroup
+				if row[2].lower() == "outgroup":
+					entryType = type_outgroup
+				if row[2].lower() == "unknown":
+					entryType = type_unknown
 
 			if len(row) > 3:
 				rank = int(row[3])
 			else:
 				rank = 0
 
-			colorMap[key] = ColorData(color, isRegular, rank)
+			colorMap[key] = ColorData(color, entryType, rank)
 
-		colorMap["_"] = ColorData("Black", True, 0)
+		colorMap["_"] = ColorData("Black", type_regular, 0)
 
 ###############################################################################
 def countLeaves(tree):
@@ -305,6 +325,7 @@ def collapsedTreeLayout(node):
 
 		seq_face = SeqMotifFace(motifs=simple_motifs)
 		seq_face.margin_left = -2
+		seq_face.rotable = False
 		node.add_face(seq_face, column=columnNum, position="branch-right")
 		columnNum += 1
 
@@ -602,19 +623,62 @@ def getCollapsedTreeStyle(tree):
 
 	ts.legend_position = 4
 
-	countMap, numLeaves = countAttributes(tree, 'taxonOfInterest')
+	countMap , numLeaves  = countAttributes(tree,             'taxonOfInterest')
+	countMapR, numLeavesR = countAttributes(tree.children[0], 'taxonOfInterest')
+	countMapL, numLeavesL = countAttributes(tree.children[1], 'taxonOfInterest')
+
+	title    = ""
+	total    = ""
+	ingroup  = ""
+	outgroup = ""
+	unknown  = ""
+	for taxon in taxonColorMap:
+		data = taxonColorMap[taxon]
+		if data.entryType == type_title:
+			title    = taxon
+		if data.entryType == type_total:
+			total  = taxon
+		if data.entryType == type_ingroup:
+			ingroup  = taxon
+		if data.entryType == type_outgroup:
+			outgroup = taxon
+		if data.entryType == type_unknown:
+			unknown  = taxon
+
+	ts.legend.add_face(TextFace(title),    column=0)
+	ts.legend.add_face(TextFace(' '),      column=1)
+	ts.legend.add_face(TextFace(total),    column=2)
+	ts.legend.add_face(TextFace(' '),      column=3)
+	ts.legend.add_face(TextFace(ingroup),  column=4)
+	ts.legend.add_face(TextFace(' '),      column=5)
+	ts.legend.add_face(TextFace(outgroup), column=6)
+
+	ts.legend.add_face(TextFace(' '),      column=0)
+	ts.legend.add_face(TextFace(' '),      column=1)
+	ts.legend.add_face(TextFace(' '),      column=2)
+	ts.legend.add_face(TextFace(' '),      column=3)
+	ts.legend.add_face(TextFace(' '),      column=4)
+	ts.legend.add_face(TextFace(' '),      column=5)
+	ts.legend.add_face(TextFace(' '),      column=6)
 
 	for taxon in taxonColorMap:
 		data = taxonColorMap[taxon]
+		
+		if data.entryType != type_regular and data.entryType != type_legend:
+			continue
+
 		rank = data.rank * 2 * '.'
 
-		if data.isRegular:
+		if data.entryType == type_regular:
 			if taxon in countMap:
 				taxonNum = str(countMap[taxon]) + ' '
 			else:
 				taxonNum = str(0) + ' '
 		else:
 			taxonNum = ' '
+
+		if taxon == "_" and unknown != "":
+			taxon = unknown
 
 		textFace = TextFace(rank + taxon)
 		textFace.fgcolor = data.color
@@ -626,6 +690,36 @@ def getCollapsedTreeStyle(tree):
 		textFace.fgcolor = data.color
 		textFace.hz_align = 2
 		ts.legend.add_face(textFace, column=2)
+
+		ts.legend.add_face(TextFace(' '), column=3)
+
+		if data.entryType == type_regular:
+			if taxon in countMapR:
+				taxonNum = str(countMapR[taxon]) + ' '
+			else:
+				taxonNum = str(0) + ' '
+		else:
+			taxonNum = ' '
+
+		textFace = TextFace(taxonNum)
+		textFace.fgcolor = data.color
+		textFace.hz_align = 2
+		ts.legend.add_face(textFace, column=4)
+
+		ts.legend.add_face(TextFace(' '), column=5)
+
+		if data.entryType == type_regular:
+			if taxon in countMapL:
+				taxonNum = str(countMapL[taxon]) + ' '
+			else:
+				taxonNum = str(0) + ' '
+		else:
+			taxonNum = ' '
+
+		textFace = TextFace(taxonNum)
+		textFace.fgcolor = data.color
+		textFace.hz_align = 2
+		ts.legend.add_face(textFace, column=6)
 
 	return ts
 
@@ -698,7 +792,7 @@ def loadTaxa(iterestingTaxa):
 		splitLine = line.split("\t")
 
 		for taxon in taxonColorMap:
-			if taxonColorMap[taxon].isRegular:
+			if taxonColorMap[taxon].entryType == type_regular:
 				checkString = " " + taxon + ";"
 				if checkString in splitLine[2]:
 					genusInterestingTaxaMap[splitLine[1].lower()] = taxon
