@@ -678,9 +678,12 @@ def getCollapsedTreeStyle(tree):
 			taxonNum = ' '
 
 		if taxon == "_" and unknown != "":
-			taxon = unknown
+			showTaxon = unknown
+		else:
+			showTaxon = taxon
 
-		textFace = TextFace(rank + taxon)
+
+		textFace = TextFace(rank + showTaxon)
 		textFace.fgcolor = data.color
 		ts.legend.add_face(textFace, column=0)
 
