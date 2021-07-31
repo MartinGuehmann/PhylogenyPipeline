@@ -37,6 +37,15 @@ class ColorData:
 		self.rank      = rank
 
 ###############################################################################
+class Clade:
+	def __init__(self, typeSeqID, name, forgroundColor, backgroundColor, typeNode):
+		self.typeSeqID       = typeSeqID
+		self.name            = name
+		self.forgroundColor  = forgroundColor
+		self.backgroundColor = backgroundColor
+		self.typeNode        = typeNode
+
+###############################################################################
 def hasSpecialAA():
 	return len(aminoAcidColorMap) > 0
 
@@ -426,12 +435,12 @@ def loadCladeInfo(tree, fileName, cladeTreeFile):
 				continue
 
 			# Continue if the label is not among the nodes
-			leafNode = getLeaveOfClade(tree, row, cladeTreeFile)
+			leafNode = getLeaveOfClade(tree, row[0], row[1], cladeTreeFile)
 			if not leafNode:
 				continue
 
-			row.append(leafNode)  # This makes it the last element in row. It can be accessed by row[-1]
-			clades.append(row)
+			clade = Clade(row[0], row[1], row[2], row[3], leafNode)
+			clades.append(clade)
 	return clades
 
 ###############################################################################
@@ -439,26 +448,25 @@ def cladifyNodes(tree, clades):
 	initClades(tree)
 	for clade in clades:
 		# Browse the tree from the clade defining leaf to root
-		node = clade[-1]
+		node = clade.typeNode
 		while node:
 			node.clades += 1
 			node = node.up
 
 ###############################################################################
-def getLeaveOfClade(tree, clade, cladeTreeFile):
+def getLeaveOfClade(tree, cladeSeqId, cladeName, cladeTreeFile):
 	if cladeTreeFile == '':
-		node = tree.search_nodes(name=clade[0])
+		node = tree.search_nodes(name=cladeSeqId)
 		if len(node) > 0:
 			return node[0]
 		else:
 			return None
 	else:
-		node = tree.search_nodes(name=clade[0])
+		node = tree.search_nodes(name=cladeSeqId)
 		if len(node) > 0:
 			return node[0]
 
 		with open(cladeTreeFile, "r") as cladeTrees:
-			cladeName = clade[1]
 			for line in cladeTrees:
 				subtree = Tree(line, format=3)
 				if subtree.name == cladeName:
@@ -480,8 +488,7 @@ def getLeaveOfClade(tree, clade, cladeTreeFile):
 ###############################################################################
 def initialReroot(tree, clades):
 	clade = clades[-1] # Use the last clade for rooting
-	node  = clade [-1] # Get the last element
-	tree.set_outgroup(node)
+	tree.set_outgroup(clade.typeNode)
 
 ###############################################################################
 def rerootToOutgroup(tree, clades):
@@ -489,10 +496,9 @@ def rerootToOutgroup(tree, clades):
 	cladesNum = tree.clades - 1
 	for clade in clades:
 		# Browse the tree from the clade defining leaf to the root
-		node = clade[-1] # Get the last element
-		cladeName = clade[1]
+		node = clade.typeNode
 
-		if cladeName == "Outgroup":
+		if clade.name == "Outgroup":
 			continue
 
 		while node:
@@ -535,38 +541,31 @@ def colorAndNameClades(tree, clades):
 	colorNodes(tree, "Black", "White")
 	for clade in clades:
 		# Browse the tree from the clade defining leaf to the root
-		node = clade[-1] # Get the last element
-		cladeName = clade[1]
-		cladeColor = clade[2]
-		cladeBackgroundTextColor = clade[3]
 
-		cladeRoot = getCladeRootNode(node)
-		assignCladeNameToCenterLeaf(cladeRoot, cladeName)
-		colorNodes(cladeRoot, cladeColor, cladeBackgroundTextColor)
+		cladeRoot = getCladeRootNode(clade.typeNode)
+		assignCladeNameToCenterLeaf(cladeRoot, clade.name)
+		colorNodes(cladeRoot, clade.forgroundColor, clade.backgroundColor)
 
 ###############################################################################
 def saveCladesAsTrees(tree, clades, outputFile):
 	with open(outputFile, "w") as outFile:
 		for clade in clades:
 			# Browse the tree from the clade defining leaf to the root
-			node = tree.search_nodes(name=clade[0])[0]
-			cladeName = clade[1]
+			node = tree.search_nodes(name=clade.typeSeqID)[0]
 
 			cladeRoot = getCladeRootNode(node)
 			tmpName = cladeRoot.name
-			cladeRoot.name = cladeName
+			cladeRoot.name = clade.name
 			outFile.write(cladeRoot.write(format=3) + "\n")
-#			outFile.write("(" + cladeRoot.write()[:-1] + ")" + cladeName + ";\n")
+#			outFile.write("(" + cladeRoot.write()[:-1] + ")" + clade.name + ";\n")
 			cladeRoot.name = tmpName
 
 ###############################################################################
 def nameCladeRoots(tree, clades):
 	for clade in clades:
 		# Browse the tree from the clade defining leaf to the root
-		node = clade[-1] # Get the last element
-		cladeName = clade[1]
 
-		cladeRoot = getCladeRootNode(node)
+		cladeRoot = getCladeRootNode(clade.typeNode)
 		if cladeRoot.name == "":
 			for child in cladeRoot.children:
 				if child.is_leaf():
@@ -580,14 +579,10 @@ def nameCladeRoots(tree, clades):
 def collapseTree(tree, clades):
 	for clade in clades:
 		# Browse the tree from the clade defining leaf to the root
-		node = clade[-1] # Get the last element
-		cladeName = clade[1]
-		cladeColor = clade[2]
-		cladeBackgroundTextColor = clade[3]
 
-		cladeRoot = getCladeRootNode(node)
-		cladeRoot.cladeName = cladeName
-		colorCollapsedNode(cladeRoot, cladeColor, cladeBackgroundTextColor)
+		cladeRoot = getCladeRootNode(clade.typeNode)
+		cladeRoot.cladeName = clade.name
+		colorCollapsedNode(cladeRoot, clade.forgroundColor, clade.backgroundColor)
 
 		cladeRoot.img_style["draw_descendants"] = False
 
