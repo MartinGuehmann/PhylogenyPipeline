@@ -498,7 +498,7 @@ def rerootToOutgroup(tree, clades):
 		# Browse the tree from the clade defining leaf to the root
 		node = clade.typeNode
 
-		if clade.name == "Outgroup":
+		if clade.name == clades[-1].name:
 			continue
 
 		while node:
