@@ -895,38 +895,53 @@ if __name__ == "__main__":
 		except:
 			continue
 
+	print("Remove single quotation marks:", inputTree, file=sys.stderr)
 	for node in tree.traverse():
 		node.name = node.name.replace('\'', '')
 
 	if refSeqFile != "" and specialAminoAcidPos >= 0:
+		print("Load amino acid information:", inputTree, file=sys.stderr)
 		colorMapFileName = "AminoAcidColorMap.csv"
 		loadColorMap(colorMapFileName, aminoAcidColorMap)
+		print("Determine amino acid at", str(specialAminoAcidPos), "in", alnFile, file=sys.stderr)
 		determineSpecialAminoAcidsAtPos(tree, alnFile, specialAminoAcidPos, refSeqFile)
 
+	print("Load taxon information:", inputTree, file=sys.stderr)
 	loadTaxa(iterestingTaxa)
 
+	print("Load clade information:", inputTree, file=sys.stderr)
 	clades = loadCladeInfo(tree, inputClades, cladeTreeFile)
+	print("Initial reroot for tree:", inputTree, file=sys.stderr)
 	initialReroot(tree, clades)
+	print("Determine clades for tree:", inputTree, file=sys.stderr)
 	cladifyNodes(tree, clades)
+	print("Find higher taxa for sequences:", inputTree, file=sys.stderr)
 	addHigherTaxaOfInterest(tree)
 
 	# Root the tree at the outgroup
+	print("Final reroot", inputTree, file=sys.stderr)
 	rerootToOutgroup(tree, clades)
 
 	# Reinitialize the clades, since they were changed by rerooting
+	print("Determine clades for tree after reroot:", inputTree, file=sys.stderr)
 	cladifyNodes(tree, clades)
+	print("Get clade roots:", inputTree, file=sys.stderr)
 	nameCladeRoots(tree, clades)
 
+	print("Color the clades:", inputTree, file=sys.stderr)
 	colorAndNameClades(tree, clades)
 
 	if makeLogos:
+		print("Make sequence logos:", logoOutFile, file=sys.stderr)
 		makeSeqLogo(tree, clades, alnFile, specialAminoAcidPos, refSeqFile, logoOutFile)
 
 	if isFullTree:
+		print("Saves the clades:", cladeTrees, file=sys.stderr)
 		saveCladesAsTrees(tree, clades, cladeTrees)
 
 	# We must copy the tree here, since the render function adds faces we cannot remove
 	# and would still show up at the second rendering
+	print("Saves full tree:", outFullTree, file=sys.stderr)
 	fullTree = tree.copy()
 	ts = getFullTreeStyle()
 
@@ -945,8 +960,8 @@ if __name__ == "__main__":
 	#command = "sed -i -e \"s/b'//g\"  -e \"s/\\\"'/\\\"/g\" " + outFullTreeNeXML
 	#os.system(command)
 
+	print("Saves collapsed tree:", outCollapsedTree, file=sys.stderr)
 	collapseTree(tree, clades)
-	
 
 	ts = getCollapsedTreeStyle(tree)
 	tree.render(outCollapsedTree, dpi=600, w=400, units="mm", tree_style=ts)
