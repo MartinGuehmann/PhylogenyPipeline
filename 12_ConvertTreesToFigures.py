@@ -99,7 +99,20 @@ def getColorsAndPercents(tree, colorMap, attribute):
 	return percents, colors
 
 ###############################################################################
-def makeSeqLogo(clades, masterAlignmentFileName, specialAAIndex, refSeqFile, logoOutFile):
+def getSortedClades(tree, clades):
+	cladeMap = {}
+	for clade in clades:
+		cladeMap[clade.name] = clade
+
+	sortedClades = []
+	for leaf in tree.iter_leaves():
+		if leaf.cladeName != "":
+			sortedClades.append(cladeMap[leaf.cladeName])
+
+	return sortedClades
+
+###############################################################################
+def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFile, logoOutFile):
 
 	masterAlignment = AlignIO.read(masterAlignmentFileName, "phylip-relaxed")
 	specialAAinAlignmentIndex = getSpecialAAInAlignment(masterAlignment, specialAAIndex, refSeqFile)
@@ -131,8 +144,9 @@ def makeSeqLogo(clades, masterAlignmentFileName, specialAAIndex, refSeqFile, log
 	for record in masterAlignment:
 		sequenceMap[record.id] = record
 
+	sortedClades = getSortedClades(tree, clades)
 	i = 0
-	for clade in clades:
+	for clade in sortedClades:
 
 		sequences = []
 		for leaf in clade.rootNode.iter_leaves():
@@ -938,7 +952,7 @@ if __name__ == "__main__":
 
 	if makeLogos:
 		print("Make sequence logos:", logoOutFile, file=sys.stderr)
-		makeSeqLogo(clades, alnFile, specialAminoAcidPos, refSeqFile, logoOutFile)
+		makeSeqLogo(tree, clades, alnFile, specialAminoAcidPos, refSeqFile, logoOutFile)
 
 	if isFullTree:
 		print("Saves the clades:", cladeTrees, file=sys.stderr)
