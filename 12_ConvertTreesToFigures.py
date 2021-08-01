@@ -141,15 +141,19 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFil
 	if upperLimit >= masterAlignment.get_alignment_length():
 		upperLimit = masterAlignment.get_alignment_length() -1
 
-	collspan = upperLimit - lowerLimit
+	numLogoChars = upperLimit - lowerLimit
+
+	colSpans = [1, 5, 2, numLogoChars]
+	numCols = sum(colSpans)
 
 	numClades = len(clades)
-	numItems = 1
 
 	# Make figure
-	rowHeight = 0.8
-	colWidth  = 1.5 * collspan
-	logoFigure = plt.figure(figsize=[colWidth * numItems, rowHeight * numClades])
+#	rowHeight = 0.8
+#	colWidth  = 1.5
+	rowHeight = 0.3
+	colWidth  = 0.3
+	logoFigure = plt.figure(figsize=[colWidth * numCols, rowHeight * numClades])
 
 	sequenceMap = {}
 	for record in masterAlignment:
@@ -161,14 +165,62 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFil
 	for clade in sortedClades:
 
 		sequences = []
+		numSeqs = 0
 		for leaf in clade.rootNode.iter_leaves():
 			if leaf.name in sequenceMap:
 				record = sequenceMap[leaf.name]
 				sequences.append(str(record.seq[lowerLimit:upperLimit]))
+				numSeqs += 1
 
 		print("Make " + str(i+1) + ". of " + str(numClades) + " SeqLogos for the clade " + clade.name, file=sys.stderr)
-		ax = plt.subplot2grid((numClades, 1), (i, 0))#, collspan=collspan
-		ax.set_title(str(i+1) + " " + clade.name)
+
+		# Print the clade number onto the figure
+		itemNum = 0
+		colNum = sum(colSpans[:itemNum])
+		cladeInfo = f"{i+1:5}"
+
+		ax = plt.subplot2grid((numClades, numCols), (i, colNum), colspan=colSpans[itemNum])
+		ax.text(1.0, 0.5, cladeInfo, va="center_baseline", ha="right")
+		ax.tick_params(labelbottom=False, labelleft=False)
+		ax.set_frame_on(False)
+		ax.set_yticks([])
+		ax.set_xticks([])
+
+		# Print the clade name onto the figure
+		itemNum += 1
+		colNum = sum(colSpans[:itemNum])
+		cladeInfo = f"{clade.name}"
+
+		ax = plt.subplot2grid((numClades, numCols), (i, colNum), colspan=colSpans[itemNum])
+		ax.text(0.05, 0.5, cladeInfo, va="center_baseline", ha="left")
+		ax.tick_params(labelbottom=False, labelleft=False)
+		ax.set_frame_on(False)
+		ax.set_yticks([])
+		ax.set_xticks([])
+
+		# Print the number of sequences in the clade onto the figure
+		itemNum += 1
+		colNum = sum(colSpans[:itemNum])
+		cladeInfo = f"{numSeqs:8}"
+
+		ax = plt.subplot2grid((numClades, numCols), (i, colNum), colspan=colSpans[itemNum])
+		ax.text(1.0, 0.5, cladeInfo, va="center_baseline", ha="right")
+		ax.tick_params(labelbottom=False, labelleft=False)
+		ax.set_frame_on(False)
+		ax.set_yticks([])
+		ax.set_xticks([])
+
+		# Print the sequence logo onto the figure
+		itemNum += 1
+		colNum = sum(colSpans[:itemNum])
+		ax = plt.subplot2grid((numClades, numCols), (i, colNum), colspan=colSpans[itemNum])
+		ax.set_yticks([])
+		if clade != sortedClades[-1]:
+			ax.set_xticks([])
+
+#		cladeInfo = str(i+1) + " " + clade.name + " (" + str(numSeqs) + ")"
+#		ax.set_title(cladeInfo)
+
 		dataMatrix = logomaker.alignment_to_matrix(sequences)
 		seqLogo = logomaker.Logo(dataMatrix, ax=ax, color_scheme=colorScheme)
 		i += 1
@@ -967,12 +1019,12 @@ if __name__ == "__main__":
 		makeSeqLogo(tree, clades, alnFile, specialAminoAcidPos, refSeqFile, logoOutFile)
 
 	if isFullTree:
-		print("Saves the clades:", cladeTrees, file=sys.stderr)
+		print("Save the clades:", cladeTrees, file=sys.stderr)
 		saveCladesAsTrees(tree, clades, cladeTrees)
 
 	# We must copy the tree here, since the render function adds faces we cannot remove
 	# and would still show up at the second rendering
-	print("Saves full tree:", outFullTree, file=sys.stderr)
+	print("Save full tree:", outFullTree, file=sys.stderr)
 	fullTree = tree.copy()
 	ts = getFullTreeStyle()
 
@@ -991,7 +1043,7 @@ if __name__ == "__main__":
 	#command = "sed -i -e \"s/b'//g\"  -e \"s/\\\"'/\\\"/g\" " + outFullTreeNeXML
 	#os.system(command)
 
-	print("Saves collapsed tree:", outCollapsedTree, file=sys.stderr)
+	print("Save collapsed tree:", outCollapsedTree, file=sys.stderr)
 	collapseTree(tree, clades)
 
 	ts = getCollapsedTreeStyle(tree)
