@@ -155,13 +155,14 @@ def determineSpecialAminoAcidsAtPos(tree, masterAlignmentFileName, specialAAInde
 	if specialAAinAlignmentIndex < 0:
 		return
 
+	sequenceMap = {}
 	for record in masterAlignment:
+		sequenceMap[record.id] = record
 
-		specialAA = record[specialAAinAlignmentIndex]
-
-		nodes = tree.search_nodes(name=record.id)
-		if len(nodes) > 0:
-			nodes[0].specialAA = record[specialAAinAlignmentIndex].upper()
+	for leaf in tree.iter_leaves():
+		if leaf.name in sequenceMap:
+			record = sequenceMap[leaf.name]
+			leaf.specialAA = record[specialAAinAlignmentIndex].upper()
 
 ###############################################################################
 def getSpecialAAInAlignment(masterAlignment, specialAAIndex, refSeqFile):
