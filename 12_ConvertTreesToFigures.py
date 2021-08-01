@@ -50,6 +50,7 @@ class Clade:
 		self.forgroundColor  = forgroundColor
 		self.backgroundColor = backgroundColor
 		self.typeNode        = typeNode
+		self.rootNode        = None
 
 ###############################################################################
 def hasSpecialAA():
@@ -101,7 +102,6 @@ def getColorsAndPercents(tree, colorMap, attribute):
 def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFile, logoOutFile):
 # tree needed?
 
-	print("Make sequence logos", file=sys.stderr)
 	masterAlignment = AlignIO.read(masterAlignmentFileName, "phylip-relaxed")
 	specialAAinAlignmentIndex = getSpecialAAInAlignment(masterAlignment, specialAAIndex, refSeqFile)
 
@@ -131,9 +131,8 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFil
 	i = 0
 	for clade in clades:
 		sequences = []
-		cladeRoot = getCladeRootNode(clade.typeNode)
 		for record in masterAlignment:
-			nodes = cladeRoot.search_nodes(name=record.id)
+			nodes = clade.rootNode.search_nodes(name=record.id)
 			if len(nodes) > 0:
 				sequences.append(str(record.seq[lowerLimit:upperLimit]))
 
@@ -570,6 +569,7 @@ def rerootToOutgroup(tree, clades):
 
 ###############################################################################
 def getCladeRootNode(node):
+	# Browse the tree from the clade defining leaf to the root
 	while node:
 		if node.up and node.up.clades == 1:
 			node = node.up
@@ -596,51 +596,44 @@ def assignCladeNameToCenterLeaf(node, cladeName):
 def colorAndNameClades(tree, clades):
 	colorNodes(tree, "Black", "White")
 	for clade in clades:
-		# Browse the tree from the clade defining leaf to the root
 
-		cladeRoot = getCladeRootNode(clade.typeNode)
-		assignCladeNameToCenterLeaf(cladeRoot, clade.name)
-		colorNodes(cladeRoot, clade.forgroundColor, clade.backgroundColor)
+		assignCladeNameToCenterLeaf(clade.rootNode, clade.name)
+		colorNodes(clade.rootNode, clade.forgroundColor, clade.backgroundColor)
 
 ###############################################################################
 def saveCladesAsTrees(tree, clades, outputFile):
 	with open(outputFile, "w") as outFile:
 		for clade in clades:
-			# Browse the tree from the clade defining leaf to the root
 			node = tree.search_nodes(name=clade.typeSeqID)[0]
 
-			cladeRoot = getCladeRootNode(node)
-			tmpName = cladeRoot.name
-			cladeRoot.name = clade.name
-			outFile.write(cladeRoot.write(format=3) + "\n")
-#			outFile.write("(" + cladeRoot.write()[:-1] + ")" + clade.name + ";\n")
-			cladeRoot.name = tmpName
+			tmpName = clade.rootNode.name
+			clade.rootNode.name = clade.name
+			outFile.write(clade.rootNode.write(format=3) + "\n")
+#			outFile.write("(" + clade.rootNode.write()[:-1] + ")" + clade.name + ";\n")
+			clade.rootNode.name = tmpName
 
 ###############################################################################
 def nameCladeRoots(tree, clades):
 	for clade in clades:
-		# Browse the tree from the clade defining leaf to the root
 
-		cladeRoot = getCladeRootNode(clade.typeNode)
-		if cladeRoot.name == "":
-			for child in cladeRoot.children:
+		clade.rootNode = getCladeRootNode(clade.typeNode)
+		if clade.rootNode.name == "":
+			for child in clade.rootNode.children:
 				if child.is_leaf():
 					continue
 
 				if child.name != "":
-					cladeRoot.name = child.name + "/*"
+					clade.rootNode.name = child.name + "/*"
 					break
 
 ###############################################################################
 def collapseTree(tree, clades):
 	for clade in clades:
-		# Browse the tree from the clade defining leaf to the root
 
-		cladeRoot = getCladeRootNode(clade.typeNode)
-		cladeRoot.cladeName = clade.name
-		colorCollapsedNode(cladeRoot, clade.forgroundColor, clade.backgroundColor)
+		clade.rootNode.cladeName = clade.name
+		colorCollapsedNode(clade.rootNode, clade.forgroundColor, clade.backgroundColor)
 
-		cladeRoot.img_style["draw_descendants"] = False
+		clade.rootNode.img_style["draw_descendants"] = False
 
 ###############################################################################
 def getFullTreeStyle():
@@ -891,6 +884,8 @@ if __name__ == "__main__":
 	outFullTree            = inputTree + "." + cladeBase + ".fullTree.pdf"
 	logoOutFile            = inputTree + "." + cladeBase + ".logo.pdf"
 #	outFullTreeNeXML       = inputTree + "." + cladeBase + ".fullTree.NeXML"
+
+	print("Load tree:", inputTree, file=sys.stderr)
 
 	formats = [3, 1]
 	for f in formats:
