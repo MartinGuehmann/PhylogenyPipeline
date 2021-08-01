@@ -99,8 +99,7 @@ def getColorsAndPercents(tree, colorMap, attribute):
 	return percents, colors
 
 ###############################################################################
-def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFile, logoOutFile):
-# tree needed?
+def makeSeqLogo(clades, masterAlignmentFileName, specialAAIndex, refSeqFile, logoOutFile):
 
 	masterAlignment = AlignIO.read(masterAlignmentFileName, "phylip-relaxed")
 	specialAAinAlignmentIndex = getSpecialAAInAlignment(masterAlignment, specialAAIndex, refSeqFile)
@@ -128,12 +127,17 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFil
 	colWidth  = 1.5 * collspan
 	logoFigure = plt.figure(figsize=[colWidth * numItems, rowHeight * numClades])
 
+	sequenceMap = {}
+	for record in masterAlignment:
+		sequenceMap[record.id] = record
+
 	i = 0
 	for clade in clades:
+
 		sequences = []
-		for record in masterAlignment:
-			nodes = clade.rootNode.search_nodes(name=record.id)
-			if len(nodes) > 0:
+		for leaf in clade.rootNode.iter_leaves():
+			if leaf.name in sequenceMap:
+				record = sequenceMap[leaf.name]
 				sequences.append(str(record.seq[lowerLimit:upperLimit]))
 
 		print("Make " + str(i+1) + ". of " + str(numClades) + " SeqLogos for the clade " + clade.name, file=sys.stderr)
@@ -934,7 +938,7 @@ if __name__ == "__main__":
 
 	if makeLogos:
 		print("Make sequence logos:", logoOutFile, file=sys.stderr)
-		makeSeqLogo(tree, clades, alnFile, specialAminoAcidPos, refSeqFile, logoOutFile)
+		makeSeqLogo(clades, alnFile, specialAminoAcidPos, refSeqFile, logoOutFile)
 
 	if isFullTree:
 		print("Saves the clades:", cladeTrees, file=sys.stderr)
