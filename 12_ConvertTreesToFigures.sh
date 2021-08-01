@@ -262,7 +262,7 @@ if [[ ! -f $cladeTreeFile || ! -z $updateBig ]]
 then
 	echo "Processing $inputTree" >&2
 	echo "Creating $cladeTreeFile" >&2
-	python3 "$DIR/12_ConvertTreesToFigures.py" -i $inputTree -c $cladeFile $seqFile $aaPos $interestingTaxaArg
+	python3 "$DIR/12_ConvertTreesToFigures.py" -m -i $inputTree -c $cladeFile $seqFile $aaPos $interestingTaxaArg
 fi
 
 # Get the names of the input files, second for the nth iteration master tree

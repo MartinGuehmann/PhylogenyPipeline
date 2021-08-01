@@ -8,6 +8,12 @@ from Bio import AlignIO, Align
 import os # Strip extension from file
 import sys, getopt # Parse program arguments
 
+# Sequence logo
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import logomaker as logomaker
+
 lineWidth = 4
 margin = 4 / 2
 nodeShapeSize = lineWidth - 1
@@ -90,6 +96,56 @@ def getColorsAndPercents(tree, colorMap, attribute):
 			colors.append("Black")
 
 	return percents, colors
+
+###############################################################################
+def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFile, logoOutFile):
+# tree needed?
+
+	print("Make sequence logos", file=sys.stderr)
+	masterAlignment = AlignIO.read(masterAlignmentFileName, "phylip-relaxed")
+	specialAAinAlignmentIndex = getSpecialAAInAlignment(masterAlignment, specialAAIndex, refSeqFile)
+
+	if specialAAinAlignmentIndex < 0:
+		return
+
+	# ToDo load this externally
+	lowerLimit = specialAAinAlignmentIndex - 9
+	if lowerLimit < 0:
+		lowerLimit = 0
+
+	# ToDo load this externally
+	upperLimit = specialAAinAlignmentIndex + 29
+	if upperLimit >= masterAlignment.get_alignment_length():
+		upperLimit = masterAlignment.get_alignment_length() -1
+
+	collspan = upperLimit - lowerLimit
+
+	numClades = len(clades)
+	numItems = 1
+
+	# Make figure
+	rowHeight = 0.8
+	colWidth  = 1.5 * collspan
+	logoFigure = plt.figure(figsize=[colWidth * numItems, rowHeight * numClades])
+
+	i = 0
+	for clade in clades:
+		sequences = []
+		cladeRoot = getCladeRootNode(clade.typeNode)
+		for record in masterAlignment:
+			nodes = cladeRoot.search_nodes(name=record.id)
+			if len(nodes) > 0:
+				sequences.append(str(record.seq[lowerLimit:upperLimit]))
+
+		print("Make " + str(i+1) + ". of " + str(numClades) + " SeqLogos for the clade " + clade.name, file=sys.stderr)
+		ax = plt.subplot2grid((numClades, 1), (i, 0))#, collspan=collspan
+		ax.set_title(str(i+1) + " " + clade.name)
+		dataMatrix = logomaker.alignment_to_matrix(sequences)
+		seqLogo = logomaker.Logo(dataMatrix, ax=ax)
+		i += 1
+
+	logoFigure.savefig(logoOutFile, format='pdf')
+#	sys.exit(2)
 
 ###############################################################################
 def determineSpecialAminoAcidsAtPos(tree, masterAlignmentFileName, specialAAIndex, refSeqFile):
@@ -740,23 +796,27 @@ def usage(progName):
 ###############################################################################
 
 def parseArgs(progName, argv):
+	# ToDo turn these bunch of values into an opject
 	infile              = ""
 	cladeFile           = ""
 	cladeTreeFile       = ""
 	refSeqFile          = ""
 	specialAminoAcidPos = -1
 	iterestingTaxa      = ""
+	makeLogos           = False
 
 	try:
-		opts, args = getopt.getopt(argv,"ht:i:c:f:p:z:",["help", "infile=", "cladefile=", "trees=", "refSeqFile=", "specialAminoAcidPos=", "iterestinTaxa"])
+		opts, args = getopt.getopt(argv,"hmt:i:c:f:p:z:",["help", "makeLogos", "infile=", "cladefile=", "trees=", "refSeqFile=", "specialAminoAcidPos=", "iterestingTaxa"])
 	except getopt.GetoptError as err:
 		print(err, "\n")
 		usage(progName)
 		sys.exit(2)
 	for opt, arg in opts:
-		if opt == '-h':
+		if opt in ("-h", "--help"):
 			usage(progName)
 			sys.exit()
+		elif opt in ("-m", "--makeLogos"):
+			makeLogos = True
 		elif opt in ("-i", "--infile"):
 			infile = arg
 		elif opt in ("-c", "--cladefile"):
@@ -767,10 +827,10 @@ def parseArgs(progName, argv):
 			refSeqFile = arg
 		elif opt in ("-p", "--specialAminoAcidPos"):
 			specialAminoAcidPos = int(arg)
-		elif opt in ("-z", "--iterestinTaxa"):
+		elif opt in ("-z", "--iterestingTaxa"):
 			iterestingTaxa = arg
 
-	return infile, cladeFile, cladeTreeFile, refSeqFile, specialAminoAcidPos, iterestingTaxa
+	return infile, cladeFile, cladeTreeFile, refSeqFile, specialAminoAcidPos, iterestingTaxa, makeLogos
 
 ###############################################################################
 def loadTaxa(iterestingTaxa):
@@ -814,7 +874,7 @@ def addHigherTaxaOfInterest(tree):
 if __name__ == "__main__":
 	# Execute only if run as main script
 
-	inputTree, inputClades, cladeTreeFile, refSeqFile, specialAminoAcidPos, iterestingTaxa = parseArgs(sys.argv[0], sys.argv[1:])
+	inputTree, inputClades, cladeTreeFile, refSeqFile, specialAminoAcidPos, iterestingTaxa, makeLogos = parseArgs(sys.argv[0], sys.argv[1:])
 
 	isFullTree = (cladeTreeFile == "")
 
@@ -829,6 +889,7 @@ if __name__ == "__main__":
 	cladeTrees             = inputTree + "." + cladeBase + ".cladeTrees"
 	outCollapsedTree       = inputTree + "." + cladeBase + ".collapsedTree.pdf"
 	outFullTree            = inputTree + "." + cladeBase + ".fullTree.pdf"
+	logoOutFile            = inputTree + "." + cladeBase + ".logo.pdf"
 #	outFullTreeNeXML       = inputTree + "." + cladeBase + ".fullTree.NeXML"
 
 	formats = [3, 1]
@@ -862,6 +923,9 @@ if __name__ == "__main__":
 	nameCladeRoots(tree, clades)
 
 	colorAndNameClades(tree, clades)
+
+	if makeLogos:
+		makeSeqLogo(tree, clades, alnFile, specialAminoAcidPos, refSeqFile, logoOutFile)
 
 	if isFullTree:
 		saveCladesAsTrees(tree, clades, cladeTrees)
