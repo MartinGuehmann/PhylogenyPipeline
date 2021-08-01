@@ -12,6 +12,7 @@ import sys, getopt # Parse program arguments
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 import logomaker as logomaker
 
 lineWidth = 4
@@ -41,6 +42,8 @@ class ColorData:
 		self.color     = color
 		self.entryType = entryType
 		self.rank      = rank
+	def getRGBColor(self):
+		return mcolors.CSS4_COLORS[self.color.lower()]
 
 ###############################################################################
 class Clade:
@@ -112,6 +115,14 @@ def getSortedClades(tree, clades):
 	return sortedClades
 
 ###############################################################################
+def getAminoAcidColorScheme():
+	colorScheme = {}
+	for aa, color in aminoAcidColorMap.items():
+		colorScheme[aa] = color.getRGBColor()
+
+	return colorScheme
+
+###############################################################################
 def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFile, logoOutFile):
 
 	masterAlignment = AlignIO.read(masterAlignmentFileName, "phylip-relaxed")
@@ -144,6 +155,7 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFil
 	for record in masterAlignment:
 		sequenceMap[record.id] = record
 
+	colorScheme = getAminoAcidColorScheme()
 	sortedClades = getSortedClades(tree, clades)
 	i = 0
 	for clade in sortedClades:
@@ -158,7 +170,7 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFil
 		ax = plt.subplot2grid((numClades, 1), (i, 0))#, collspan=collspan
 		ax.set_title(str(i+1) + " " + clade.name)
 		dataMatrix = logomaker.alignment_to_matrix(sequences)
-		seqLogo = logomaker.Logo(dataMatrix, ax=ax)
+		seqLogo = logomaker.Logo(dataMatrix, ax=ax, color_scheme=colorScheme)
 		i += 1
 
 	logoFigure.savefig(logoOutFile, format='pdf')
