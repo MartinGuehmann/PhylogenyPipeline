@@ -125,19 +125,26 @@ def getAminoAcidColorScheme():
 ###############################################################################
 def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFile, logoOutFile):
 
+	spacing = 5
+	# ToDo load this externally
+	toLowerLimit = 9
+	toUpperLimit = 29
+	minPos = specialAAIndex - toLowerLimit
+	maxPos = specialAAIndex + toUpperLimit
+	anchor = spacing - (minPos % spacing)
+	seqRange = list(range(minPos + anchor, maxPos, spacing))
+
 	masterAlignment = AlignIO.read(masterAlignmentFileName, "phylip-relaxed")
 	specialAAinAlignmentIndex = getSpecialAAInAlignment(masterAlignment, specialAAIndex, refSeqFile)
 
 	if specialAAinAlignmentIndex < 0:
 		return
 
-	# ToDo load this externally
-	lowerLimit = specialAAinAlignmentIndex - 9
+	lowerLimit = specialAAinAlignmentIndex - toLowerLimit
 	if lowerLimit < 0:
 		lowerLimit = 0
 
-	# ToDo load this externally
-	upperLimit = specialAAinAlignmentIndex + 29
+	upperLimit = specialAAinAlignmentIndex + toUpperLimit
 	if upperLimit >= masterAlignment.get_alignment_length():
 		upperLimit = masterAlignment.get_alignment_length() -1
 
@@ -149,8 +156,6 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFil
 	numClades = len(clades)
 
 	# Make figure
-#	rowHeight = 0.8
-#	colWidth  = 1.5
 	rowHeight = 0.3
 	colWidth  = 0.3
 	logoFigure = plt.figure(figsize=[colWidth * numCols, rowHeight * numClades])
@@ -218,15 +223,16 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFil
 		if clade != sortedClades[-1]:
 			ax.set_xticks([])
 
-#		cladeInfo = str(i+1) + " " + clade.name + " (" + str(numSeqs) + ")"
-#		ax.set_title(cladeInfo)
-
 		dataMatrix = logomaker.alignment_to_matrix(sequences)
 		seqLogo = logomaker.Logo(dataMatrix, ax=ax, color_scheme=colorScheme)
+		if clade == sortedClades[-1]:
+			seqLogo.style_xticks(anchor=anchor, spacing=spacing)
+			print(seqRange)
+			ax.set_xticklabels('%d'%x for x in seqRange)
+
 		i += 1
 
 	logoFigure.savefig(logoOutFile, format='pdf')
-#	sys.exit(2)
 
 ###############################################################################
 def determineSpecialAminoAcidsAtPos(tree, masterAlignmentFileName, specialAAIndex, refSeqFile):
