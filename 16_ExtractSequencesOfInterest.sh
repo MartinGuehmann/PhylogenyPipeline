@@ -16,6 +16,15 @@
 #     The extension of the Newick tree files, for instance
 #     "tre", which is used by PASTA, alternatives
 #     are "contree" (default) and "treefile", which are used by IQ-Tree
+#  --extraSeqFile (-f)
+#     Extra sequence file for checking, that is included among the bait
+#     sequences for clade definition.
+#  --justCount (-j)
+#     Do not write the filtered sequences to file, useful for counting
+#     trees with sequences above a threshold, with testing with different
+#     extra sequences.
+#  --threshold (-t)
+#     Trees to count that have more sequences then this threshold
 #
 
 # Get the directory where this script is
@@ -62,6 +71,23 @@ do
             shift
             SequenceChunksForPruningDir="$1"
             ;;
+        --extraSeqFile)
+            ;&
+        -f)
+            shift
+            extraSeqFile="$1"
+            ;;
+        --justCount)
+            ;&
+        -j)
+            justCount="True"
+            ;;
+        --threshold)
+            ;&
+        -t)
+            shift
+            threshold="$1"
+            ;;
         -*)
             ;&
         --*)
@@ -106,6 +132,12 @@ seqsPerChunk="900"
 
 # Collect the sequence IDs of the bait sequences for subclade extraction
 declare -a seqFiles=( $BaitDir*.fasta )
+
+if [[ -f $extraSeqFile ]]
+then
+	seqFiles+=( $extraSeqFile )
+fi
+
 LeavesOfSubTreeToKeep=""
 for seqFile in ${seqFiles[@]}
 do
@@ -157,6 +189,8 @@ echo "SeqenceFile" "AccumulativeCount" "Count" >&2
 
 accCount=0
 
+aboveCount=0
+
 # Get all the sequence IDs of the genes of interest
 for TreeForPruning in "$TreesForPruningFromPASTADir/"*"$extension"
 do
@@ -188,7 +222,25 @@ do
 	accCount=$(wc -l "$treeLabels" | sed 's\ .*$\\g')
 	count=$((accCount - count))
 	echo $TreeForPruning $accCount $count  >&2
+
+	if [[ ! -z $threshold ]]
+	then
+		if ((threshold < count))
+		then
+			((aboveCount++))
+		fi
+	fi
 done
+
+if [[ ! -z $justCount ]]
+then
+	if [[ ! -z $threshold ]]
+	then
+		echo $aboveCount
+	fi
+
+	exit 0
+fi
 
 # Get the file of all the reduced set of non redundant sequences to extract the sequences of interest from
 sequences="$DIR/$gene/Sequences"
