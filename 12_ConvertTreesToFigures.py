@@ -15,6 +15,11 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import logomaker as logomaker
 
+# Debugging
+import logging
+# This also activates debugging in matplotlib
+#logging.basicConfig(level=logging.DEBUG)
+
 lineWidth = 4
 margin = 4 / 2
 nodeShapeSize = lineWidth - 1
@@ -227,12 +232,29 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFil
 		seqLogo = logomaker.Logo(dataMatrix, ax=ax, color_scheme=colorScheme)
 		if clade == sortedClades[-1]:
 			seqLogo.style_xticks(anchor=anchor, spacing=spacing)
-			print(seqRange)
 			ax.set_xticklabels('%d'%x for x in seqRange)
 
 		i += 1
 
 	logoFigure.savefig(logoOutFile, format='pdf')
+
+
+
+###############################################################################
+def sortMasterAlignment(tree, masterAlignmentFileName, sortedAlignmentFile):
+
+	masterAlignment = AlignIO.read(masterAlignmentFileName, "phylip-relaxed")
+
+	sequenceMap = {}
+	for record in masterAlignment:
+		sequenceMap[record.id] = record
+
+	with open(sortedAlignmentFile, "w") as outFile:
+		for leaf in tree.iter_leaves():
+			if leaf.name != "" and leaf.name in sequenceMap:
+				outFile.write(">" + leaf.name + "\n")
+				outFile.write(str(sequenceMap[leaf.name].seq) + "\n")
+
 
 ###############################################################################
 def determineSpecialAminoAcidsAtPos(tree, masterAlignmentFileName, specialAAIndex, refSeqFile):
@@ -972,6 +994,7 @@ if __name__ == "__main__":
 	outCollapsedTree       = inputTree + "." + cladeBase + ".collapsedTree.pdf"
 	outFullTree            = inputTree + "." + cladeBase + ".fullTree.pdf"
 	logoOutFile            = inputTree + "." + cladeBase + ".logo.pdf"
+	sortedAlignmentFile    = inputTree + "." + cladeBase + ".treeSorted.fasta"
 #	outFullTreeNeXML       = inputTree + "." + cladeBase + ".fullTree.NeXML"
 
 	print("Load tree:", inputTree, file=sys.stderr)
@@ -984,53 +1007,55 @@ if __name__ == "__main__":
 		except:
 			continue
 
-	print("Remove single quotation marks:", inputTree, file=sys.stderr)
+	logging.debug("Remove single quotation marks: " + inputTree)
 	for node in tree.traverse():
 		node.name = node.name.replace('\'', '')
 
 	if refSeqFile != "" and specialAminoAcidPos >= 0:
-		print("Load amino acid information:", inputTree, file=sys.stderr)
+		logging.debug("Load amino acid information: " + inputTree)
 		colorMapFileName = "AminoAcidColorMap.csv"
 		loadColorMap(colorMapFileName, aminoAcidColorMap)
-		print("Determine amino acid at", str(specialAminoAcidPos), "in", alnFile, file=sys.stderr)
+		logging.debug("Determine amino acid at " + str(specialAminoAcidPos) + " in " + alnFile)
 		determineSpecialAminoAcidsAtPos(tree, alnFile, specialAminoAcidPos, refSeqFile)
 
-	print("Load taxon information:", inputTree, file=sys.stderr)
+	logging.debug("Load taxon information: " + inputTree)
 	loadTaxa(iterestingTaxa)
 
-	print("Load clade information:", inputTree, file=sys.stderr)
+	logging.debug("Load clade information: " + inputTree)
 	clades = loadCladeInfo(tree, inputClades, cladeTreeFile)
-	print("Initial reroot for tree:", inputTree, file=sys.stderr)
+	logging.debug("Initial reroot for tree: " + inputTree)
 	initialReroot(tree, clades)
-	print("Determine clades for tree:", inputTree, file=sys.stderr)
+	logging.debug("Determine clades for tree: " + inputTree)
 	cladifyNodes(tree, clades)
-	print("Find higher taxa for sequences:", inputTree, file=sys.stderr)
+	logging.debug("Find higher taxa for sequences: " + inputTree)
 	addHigherTaxaOfInterest(tree)
 
 	# Root the tree at the outgroup
-	print("Final reroot", inputTree, file=sys.stderr)
+	logging.debug("Final reroot " + inputTree)
 	rerootToOutgroup(tree, clades)
 
 	# Reinitialize the clades, since they were changed by rerooting
-	print("Determine clades for tree after reroot:", inputTree, file=sys.stderr)
+	logging.debug("Determine clades for tree after reroot: " + inputTree)
 	cladifyNodes(tree, clades)
-	print("Get clade roots:", inputTree, file=sys.stderr)
+	logging.debug("Get clade roots: " + inputTree)
 	nameCladeRoots(tree, clades)
 
-	print("Color the clades:", inputTree, file=sys.stderr)
+	logging.debug("Color the clades: " + inputTree)
 	colorAndNameClades(tree, clades)
 
 	if makeLogos:
-		print("Make sequence logos:", logoOutFile, file=sys.stderr)
+		logging.debug("Make sequence logos: " + logoOutFile)
 		makeSeqLogo(tree, clades, alnFile, specialAminoAcidPos, refSeqFile, logoOutFile)
 
 	if isFullTree:
-		print("Save the clades:", cladeTrees, file=sys.stderr)
+		logging.debug("Sort master alignment: " + cladeTrees)
+		sortMasterAlignment(tree, alnFile, sortedAlignmentFile)
+		logging.debug("Save the clades:" + cladeTrees)
 		saveCladesAsTrees(tree, clades, cladeTrees)
 
 	# We must copy the tree here, since the render function adds faces we cannot remove
 	# and would still show up at the second rendering
-	print("Save full tree:", outFullTree, file=sys.stderr)
+	logging.debug("Save full tree: " + outFullTree)
 	fullTree = tree.copy()
 	ts = getFullTreeStyle()
 
@@ -1049,7 +1074,7 @@ if __name__ == "__main__":
 	#command = "sed -i -e \"s/b'//g\"  -e \"s/\\\"'/\\\"/g\" " + outFullTreeNeXML
 	#os.system(command)
 
-	print("Save collapsed tree:", outCollapsedTree, file=sys.stderr)
+	logging.debug("Save collapsed tree: " + outCollapsedTree)
 	collapseTree(tree, clades)
 
 	ts = getCollapsedTreeStyle(tree)
