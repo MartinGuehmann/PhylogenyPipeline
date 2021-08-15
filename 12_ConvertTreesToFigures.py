@@ -61,6 +61,35 @@ class Clade:
 		self.rootNode        = None
 
 ###############################################################################
+class ConfigData:
+	def __init__(self, configFileName):
+		with open(configFileName, newline='') as configFile:
+			configFileBase = os.path.dirname(configFileName)
+			configReader = csv.reader(configFile, delimiter='\t')
+			for row in configReader:
+				# Continue if the line is empty
+				if not row:
+					continue
+				if row[0][0] == '#':
+					continue
+
+				if len(row) > 1:
+					if row[0].lower() == "seqfile":
+						self.refSeqFile = os.path.join(configFileBase, row[1]) # This is still not windows compatible, because the path is given with the Linux file separator
+					elif row[0].lower() == "aapos":
+						self.specialAminoAcidPos = int(row[1])
+					elif row[0].lower() == "tolowerlimit":
+						self.toLowerLimit = int(row[1])
+					elif row[0].lower() == "toupperlimit":
+						self.toUpperLimit = int(row[1])
+					elif row[0].lower() == "interestingaapositions":
+						self.interestingAAPositions = []
+						i = 1
+						while i < len(row):
+							self.interestingAAPositions.append(int(row[i]))
+							i += 1
+
+###############################################################################
 def hasSpecialAA():
 	return len(aminoAcidColorMap) > 0
 
@@ -128,28 +157,26 @@ def getAminoAcidColorScheme():
 	return colorScheme
 
 ###############################################################################
-def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFile, logoOutFileBase):
+def makeSeqLogo(tree, clades, masterAlignmentFileName, refSeqConfigData, logoOutFileBase):
 
 	spacing = 5
-	# ToDo load this externally
-	toLowerLimit = 9
-	toUpperLimit = 29
-	minPos = specialAAIndex - toLowerLimit
-	maxPos = specialAAIndex + toUpperLimit
+	minPos = refSeqConfigData.specialAminoAcidPos - refSeqConfigData.toLowerLimit
+	maxPos = refSeqConfigData.specialAminoAcidPos + refSeqConfigData.toUpperLimit
 	anchor = spacing - (minPos % spacing)
 	seqRange = list(range(minPos + anchor, maxPos, spacing))
 
+	# ToDo: Move this to refSeqConfigData
 	masterAlignment = AlignIO.read(masterAlignmentFileName, "phylip-relaxed")
-	specialAAinAlignmentIndex = getSpecialAAInAlignment(masterAlignment, specialAAIndex, refSeqFile)
+	specialAAinAlignmentIndex = getSpecialAAInAlignment(masterAlignment, refSeqConfigData)
 
 	if specialAAinAlignmentIndex < 0:
 		return
 
-	lowerLimit = specialAAinAlignmentIndex - toLowerLimit
+	lowerLimit = specialAAinAlignmentIndex - refSeqConfigData.toLowerLimit
 	if lowerLimit < 0:
 		lowerLimit = 0
 
-	upperLimit = specialAAinAlignmentIndex + toUpperLimit
+	upperLimit = specialAAinAlignmentIndex + refSeqConfigData.toUpperLimit
 	if upperLimit >= masterAlignment.get_alignment_length():
 		upperLimit = masterAlignment.get_alignment_length() -1
 
@@ -245,7 +272,7 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFil
 
 	aaIndeces = [83, 110, 113, 134, 135, 136, 181, 185, 187, 296, 302, 303, 304, 305, 306, 313, 310, 311, 312]
 	aasInAlignment = []
-	numLogoChars = len(aaIndeces)
+	numLogoChars = len(refSeqConfigData.interestingAAPositions)
 
 	colSpans = [colSpan1, colSpan2, colSpan3, numLogoChars]
 	numCols = sum(colSpans)
@@ -255,10 +282,10 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFil
 	# Make figure
 	logoFigure = plt.figure(figsize=[colWidth * numCols, rowHeight * numClades])
 
-	for aai in aaIndeces:
+	for aai in refSeqConfigData.interestingAAPositions:
 		# ToDo: Move this function into getSpecialAAInAlignment
 		# It loads every time the refSeqFile, which is OK for a few
-		aaInAlignmentIndex = getSpecialAAInAlignment(masterAlignment, aai, refSeqFile)
+		aaInAlignmentIndex = getSpecialAAInAlignment3(masterAlignment, refSeqConfigData, aai)
 		aasInAlignment.append(aaInAlignmentIndex)
 
 	# ToDo: Copied code, merge common parts of the copy
@@ -349,10 +376,10 @@ def sortMasterAlignment(tree, masterAlignmentFileName, sortedAlignmentFile):
 
 
 ###############################################################################
-def determineSpecialAminoAcidsAtPos(tree, masterAlignmentFileName, specialAAIndex, refSeqFile):
+def determineSpecialAminoAcidsAtPos(tree, masterAlignmentFileName, refSeqConfigData):
 
 	masterAlignment = AlignIO.read(masterAlignmentFileName, "phylip-relaxed")
-	specialAAinAlignmentIndex = getSpecialAAInAlignment(masterAlignment, specialAAIndex, refSeqFile)
+	specialAAinAlignmentIndex = getSpecialAAInAlignment(masterAlignment, refSeqConfigData)
 
 	if specialAAinAlignmentIndex < 0:
 		return
@@ -367,8 +394,12 @@ def determineSpecialAminoAcidsAtPos(tree, masterAlignmentFileName, specialAAInde
 			leaf.specialAA = record[specialAAinAlignmentIndex].upper()
 
 ###############################################################################
-def getSpecialAAInAlignment(masterAlignment, specialAAIndex, refSeqFile):
-	refSequence = AlignIO.read(refSeqFile, "fasta")
+def getSpecialAAInAlignment(masterAlignment, refSeqConfigData):
+	return getSpecialAAInAlignment3(masterAlignment, refSeqConfigData, refSeqConfigData.specialAminoAcidPos)
+
+###############################################################################
+def getSpecialAAInAlignment3(masterAlignment, refSeqConfigData, specialAminoAcidPos):
+	refSequence = AlignIO.read(refSeqConfigData.refSeqFile, "fasta")
 
 	for record in masterAlignment:
 		if refSequence[0].id in record.id:
@@ -385,17 +416,17 @@ def getSpecialAAInAlignment(masterAlignment, specialAAIndex, refSeqFile):
 				thisPos  = pair[0]
 				numGaps += thisPos - lastPos
 				lastPos  = pair[1]
-				if lastPos > specialAAIndex:
+				if lastPos > specialAminoAcidPos:
 					break
 
 			i = 0
-			aaIndex = numGaps + 1 # This is zero indexed but specialAAIndex is one indexed, so add one to account for that
+			aaIndex = numGaps + 1 # This is zero indexed but specialAminoAcidPos is one indexed, so add one to account for that
 			while i < len(record):
 				if record[i] == "-":
 					i += 1
 					continue
 
-				if aaIndex == specialAAIndex:
+				if aaIndex == specialAminoAcidPos:
 					return i
 
 				aaIndex += 1
@@ -983,10 +1014,10 @@ def usage(progName):
 	print(' -c, --cladefile           <cladefile>     The clade file, a tab separated list with a clade per line.')
 	print('                                           Each clade is defined by a leaf name, the clade name,')
 	print('                                           a foreground color, and a color for a background with black font on.')
-	print(' -f, --refSeqFile          <cladetreefile> A reference sequence file in fasta format, for mapping a position, such as the')
+	print(' -f, --refSeqConfigFile    <configFile>    A config file with a reference sequence file path and positions of interesting')
+	print('                                           amino acid positions in the reference sequence file. Such as the')
 	print('                                           lysine at position 296 in cattle rhodopsin. This position is then displayed')
-	print('                                           on the trees.')
-	print(' -p, --specialAminoAcidPos <int>           The position of the amino acid of interest in the reference sequence.')
+	print('                                           on the trees and used for the sequence logo.')
 	print('')
 
 ###############################################################################
@@ -1000,9 +1031,10 @@ def parseArgs(progName, argv):
 	specialAminoAcidPos = -1
 	iterestingTaxa      = ""
 	makeLogos           = False
+	refSeqConfigData    = None
 
 	try:
-		opts, args = getopt.getopt(argv,"hmt:i:c:f:p:z:",["help", "makeLogos", "infile=", "cladefile=", "trees=", "refSeqFile=", "specialAminoAcidPos=", "iterestingTaxa"])
+		opts, args = getopt.getopt(argv,"hmt:i:c:f:z:",["help", "makeLogos", "infile=", "cladefile=", "trees=", "refSeqConfigFile=", "iterestingTaxa"])
 	except getopt.GetoptError as err:
 		print(err, "\n")
 		usage(progName)
@@ -1019,14 +1051,12 @@ def parseArgs(progName, argv):
 			cladeFile = arg
 		elif opt in ("-t", "--trees"):
 			cladeTreeFile = arg
-		elif opt in ("-f", "--refSeqFile"):
-			refSeqFile = arg
-		elif opt in ("-p", "--specialAminoAcidPos"):
-			specialAminoAcidPos = int(arg)
+		elif opt in ("-f", "--refSeqConfigFile"):
+			refSeqConfigData = ConfigData(arg)
 		elif opt in ("-z", "--iterestingTaxa"):
 			iterestingTaxa = arg
 
-	return infile, cladeFile, cladeTreeFile, refSeqFile, specialAminoAcidPos, iterestingTaxa, makeLogos
+	return infile, cladeFile, cladeTreeFile, refSeqConfigData, iterestingTaxa, makeLogos
 
 ###############################################################################
 def loadTaxa(iterestingTaxa):
@@ -1070,7 +1100,7 @@ def addHigherTaxaOfInterest(tree):
 if __name__ == "__main__":
 	# Execute only if run as main script
 
-	inputTree, inputClades, cladeTreeFile, refSeqFile, specialAminoAcidPos, iterestingTaxa, makeLogos = parseArgs(sys.argv[0], sys.argv[1:])
+	inputTree, inputClades, cladeTreeFile, refSeqConfigData, iterestingTaxa, makeLogos = parseArgs(sys.argv[0], sys.argv[1:])
 
 	isFullTree = (cladeTreeFile == "")
 
@@ -1103,12 +1133,12 @@ if __name__ == "__main__":
 	for node in tree.traverse():
 		node.name = node.name.replace('\'', '')
 
-	if refSeqFile != "" and specialAminoAcidPos >= 0:
+	if refSeqConfigData != None:
 		logging.debug("Load amino acid information: " + inputTree)
 		colorMapFileName = "AminoAcidColorMap.csv"
 		loadColorMap(colorMapFileName, aminoAcidColorMap)
-		logging.debug("Determine amino acid at " + str(specialAminoAcidPos) + " in " + alnFile)
-		determineSpecialAminoAcidsAtPos(tree, alnFile, specialAminoAcidPos, refSeqFile)
+		logging.debug("Determine amino acid at " + str(refSeqConfigData.specialAminoAcidPos) + " in " + alnFile)
+		determineSpecialAminoAcidsAtPos(tree, alnFile, refSeqConfigData)
 
 	logging.debug("Load taxon information: " + inputTree)
 	loadTaxa(iterestingTaxa)
@@ -1135,9 +1165,9 @@ if __name__ == "__main__":
 	logging.debug("Color the clades: " + inputTree)
 	colorAndNameClades(tree, clades)
 
-	if makeLogos:
+	if makeLogos and refSeqConfigData != None:
 		logging.debug("Make sequence logos: " + logoOutFileBase)
-		makeSeqLogo(tree, clades, alnFile, specialAminoAcidPos, refSeqFile, logoOutFileBase)
+		makeSeqLogo(tree, clades, alnFile, refSeqConfigData, logoOutFileBase)
 
 	if isFullTree:
 		logging.debug("Sort master alignment: " + cladeTrees)

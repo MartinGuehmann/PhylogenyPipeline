@@ -241,19 +241,7 @@ then
 	interestingTaxaArg="-z $interestingTaxa"
 fi
 
-aaPos=""
-seqFile=""
-# Load special amino acid position, and sequence file name
-# For instance
-# aaPos="296"
-# seqFile="MustKeepSequences/NP_001014890_Rhodopsin_Bos_Taurus.fasta"
-saaLoader="$DIR/$gene/SpecialAminoAcid.sh"
-if [[ -f $saaLoader ]]
-then
-	. $saaLoader
-	seqFile="-f $DIR/$gene/$seqFile"
-	aaPos="-p $aaPos"
-fi
+seqConfigFile="-f $DIR/$gene/SpecialAminoAcids.txt"
 
 echo "Using $cladeFile" >&2
 
@@ -262,7 +250,7 @@ if [[ ! -f $cladeTreeFile || ! -z $updateBig ]]
 then
 	echo "Processing $inputTree" >&2
 	echo "Creating $cladeTreeFile" >&2
-	python3 "$DIR/12_ConvertTreesToFigures.py" -m -i $inputTree -c $cladeFile $seqFile $aaPos $interestingTaxaArg
+	python3 "$DIR/12_ConvertTreesToFigures.py" -m -i $inputTree -c $cladeFile $seqConfigFile $interestingTaxaArg
 fi
 
 # Get the names of the input files, second for the nth iteration master tree
@@ -277,7 +265,7 @@ echo "Using $cladeTreeFile" >&2
 if [[ -f $inputTree && ! -f $outputFile || -f $inputTree && ! -z $update && $iteration != $baseIteration ]]
 then
 	echo "Processing $inputTree" >&2
-	python3 "$DIR/12_ConvertTreesToFigures.py" -i $inputTree -c $cladeFile -t $cladeTreeFile $seqFile $aaPos $interestingTaxaArg
+	python3 "$DIR/12_ConvertTreesToFigures.py" -i $inputTree -c $cladeFile -t $cladeTreeFile $seqConfigFile $interestingTaxaArg
 fi
 
 # Get the names of the input files, third for the nth iteration sub trees
@@ -295,7 +283,7 @@ do
 	if [[ ! -f $outputFile || ! -z $update ]]
 	then
 		echo "Processing $inputTree" >&2
-		python3 "$DIR/12_ConvertTreesToFigures.py" -i $inputTree -c $cladeFile -t $cladeTreeFile $seqFile $aaPos $interestingTaxaArg &
+		python3 "$DIR/12_ConvertTreesToFigures.py" -i $inputTree -c $cladeFile -t $cladeTreeFile $seqConfigFile $interestingTaxaArg &
 	fi
 done
 
