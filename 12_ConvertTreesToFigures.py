@@ -153,16 +153,20 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFil
 	if upperLimit >= masterAlignment.get_alignment_length():
 		upperLimit = masterAlignment.get_alignment_length() -1
 
+	rowHeight = 0.3
+	colWidth  = 0.3
+	colSpan1 = 1
+	colSpan2 = 5
+	colSpan3 = 2
+
 	numLogoChars = upperLimit - lowerLimit
 
-	colSpans = [1, 5, 2, numLogoChars]
+	colSpans = [colSpan1, colSpan2, colSpan3, numLogoChars]
 	numCols = sum(colSpans)
 
 	numClades = len(clades)
 
 	# Make figure
-	rowHeight = 0.3
-	colWidth  = 0.3
 	logoFigure = plt.figure(figsize=[colWidth * numCols, rowHeight * numClades])
 
 	sequenceMap = {}
@@ -238,7 +242,93 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFil
 
 	logoFigure.savefig(logoOutFile, format='pdf')
 
+	aaIndeces = [83, 110, 113, 134, 135, 136, 181, 185, 187, 296, 302, 303, 304, 305, 306, 313, 310, 311, 312]
+	aasInAlignment = []
+	numLogoChars = len(aaIndeces)
 
+	colSpans = [colSpan1, colSpan2, colSpan3, numLogoChars]
+	numCols = sum(colSpans)
+
+	numClades = len(clades)
+
+	# Make figure
+	logoFigure = plt.figure(figsize=[colWidth * numCols, rowHeight * numClades])
+
+	for aai in aaIndeces:
+		# ToDo: Move this function into getSpecialAAInAlignment
+		# It loads every time the refSeqFile, which is OK for a few
+		aaInAlignmentIndex = getSpecialAAInAlignment(masterAlignment, aai, refSeqFile)
+		aasInAlignment.append(aaInAlignmentIndex)
+
+	# ToDo: Copied code, merge common parts of the copy
+	i = 0
+	for clade in sortedClades:
+
+		sequences = []
+		numSeqs = 0
+		for leaf in clade.rootNode.iter_leaves():
+			if leaf.name in sequenceMap:
+				record = sequenceMap[leaf.name]
+				seq = ''.join([ record.seq[i] for i in aasInAlignment])
+				sequences.append(seq)
+				numSeqs += 1
+
+		print("Make " + str(i+1) + ". of " + str(numClades) + " ShortSeqLogos for the clade " + clade.name, file=sys.stderr)
+
+		# Print the clade number onto the figure
+		itemNum = 0
+		colNum = sum(colSpans[:itemNum])
+		cladeInfo = f"{i+1:5}"
+
+		ax = plt.subplot2grid((numClades, numCols), (i, colNum), colspan=colSpans[itemNum])
+		ax.text(1.0, 0.5, cladeInfo, va="center_baseline", ha="right")
+		ax.tick_params(labelbottom=False, labelleft=False)
+		ax.set_frame_on(False)
+		ax.set_yticks([])
+		ax.set_xticks([])
+
+		# Print the clade name onto the figure
+		itemNum += 1
+		colNum = sum(colSpans[:itemNum])
+		cladeInfo = f"{clade.name}"
+
+		ax = plt.subplot2grid((numClades, numCols), (i, colNum), colspan=colSpans[itemNum])
+		ax.text(0.05, 0.5, cladeInfo, va="center_baseline", ha="left")
+		ax.tick_params(labelbottom=False, labelleft=False)
+		ax.set_frame_on(False)
+		ax.set_yticks([])
+		ax.set_xticks([])
+
+		# Print the number of sequences in the clade onto the figure
+		itemNum += 1
+		colNum = sum(colSpans[:itemNum])
+		cladeInfo = f"{numSeqs:8}"
+
+		ax = plt.subplot2grid((numClades, numCols), (i, colNum), colspan=colSpans[itemNum])
+		ax.text(1.0, 0.5, cladeInfo, va="center_baseline", ha="right")
+		ax.tick_params(labelbottom=False, labelleft=False)
+		ax.set_frame_on(False)
+		ax.set_yticks([])
+		ax.set_xticks([])
+
+		# Print the sequence logo onto the figure
+		itemNum += 1
+		colNum = sum(colSpans[:itemNum])
+		ax = plt.subplot2grid((numClades, numCols), (i, colNum), colspan=colSpans[itemNum])
+		ax.set_yticks([])
+		if clade != sortedClades[-1]:
+			ax.set_xticks([])
+
+		dataMatrix = logomaker.alignment_to_matrix(sequences)
+		seqLogo = logomaker.Logo(dataMatrix, ax=ax, color_scheme=colorScheme)
+		if clade == sortedClades[-1]:
+			seqLogo.style_xticks(anchor=0, spacing=1, rotation=270)
+#			ax.set_xticklabels('%d'%x for x in seqRange)
+			ax.set_xticklabels(aaIndeces)
+
+		i += 1
+
+	logoFigure.savefig(logoOutFile + ".pdf", format='pdf')
 
 ###############################################################################
 def sortMasterAlignment(tree, masterAlignmentFileName, sortedAlignmentFile):
