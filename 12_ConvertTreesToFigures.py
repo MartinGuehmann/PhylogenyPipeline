@@ -128,7 +128,7 @@ def getAminoAcidColorScheme():
 	return colorScheme
 
 ###############################################################################
-def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFile, logoOutFile):
+def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFile, logoOutFileBase):
 
 	spacing = 5
 	# ToDo load this externally
@@ -240,7 +240,8 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFil
 
 		i += 1
 
-	logoFigure.savefig(logoOutFile, format='pdf')
+	logoFigure.savefig(logoOutFileBase + ".logo.pdf", format='pdf')
+	logoFigure.savefig(logoOutFileBase + ".logo.svg", format='svg')
 
 	aaIndeces = [83, 110, 113, 134, 135, 136, 181, 185, 187, 296, 302, 303, 304, 305, 306, 313, 310, 311, 312]
 	aasInAlignment = []
@@ -273,7 +274,7 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFil
 				sequences.append(seq)
 				numSeqs += 1
 
-		print("Make " + str(i+1) + ". of " + str(numClades) + " ShortSeqLogos for the clade " + clade.name, file=sys.stderr)
+		print("Make " + str(i+1) + ". of " + str(numClades) + " SingleSeqLogos for the clade " + clade.name, file=sys.stderr)
 
 		# Print the clade number onto the figure
 		itemNum = 0
@@ -328,7 +329,8 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, specialAAIndex, refSeqFil
 
 		i += 1
 
-	logoFigure.savefig(logoOutFile + ".pdf", format='pdf')
+	logoFigure.savefig(logoOutFileBase + ".logoSingle.pdf", format='pdf')
+	logoFigure.savefig(logoOutFileBase + ".logoSingle.svg", format='svg')
 
 ###############################################################################
 def sortMasterAlignment(tree, masterAlignmentFileName, sortedAlignmentFile):
@@ -1083,7 +1085,7 @@ if __name__ == "__main__":
 	cladeTrees             = inputTree + "." + cladeBase + ".cladeTrees"
 	outCollapsedTree       = inputTree + "." + cladeBase + ".collapsedTree.pdf"
 	outFullTree            = inputTree + "." + cladeBase + ".fullTree.pdf"
-	logoOutFile            = inputTree + "." + cladeBase + ".logo.pdf"
+	logoOutFileBase        = inputTree + "." + cladeBase
 	sortedAlignmentFile    = inputTree + "." + cladeBase + ".treeSorted.fasta"
 #	outFullTreeNeXML       = inputTree + "." + cladeBase + ".fullTree.NeXML"
 
@@ -1134,8 +1136,8 @@ if __name__ == "__main__":
 	colorAndNameClades(tree, clades)
 
 	if makeLogos:
-		logging.debug("Make sequence logos: " + logoOutFile)
-		makeSeqLogo(tree, clades, alnFile, specialAminoAcidPos, refSeqFile, logoOutFile)
+		logging.debug("Make sequence logos: " + logoOutFileBase)
+		makeSeqLogo(tree, clades, alnFile, specialAminoAcidPos, refSeqFile, logoOutFileBase)
 
 	if isFullTree:
 		logging.debug("Sort master alignment: " + cladeTrees)
