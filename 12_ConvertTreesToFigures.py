@@ -64,6 +64,13 @@ class Clade:
 class ConfigData:
 	def __init__(self, configFileName):
 		with open(configFileName, newline='') as configFile:
+			self.refSeqFile             = ""
+			self.specialAminoAcidPos    = -1
+			self.toLowerLimit           = -1
+			self.toUpperLimit           = -1
+			self.interestingAAPositions = []
+			self.alignmentData          = None
+
 			configFileBase = os.path.dirname(configFileName)
 			configReader = csv.reader(configFile, delimiter='\t')
 			for row in configReader:
@@ -83,11 +90,26 @@ class ConfigData:
 					elif row[0].lower() == "toupperlimit":
 						self.toUpperLimit = int(row[1])
 					elif row[0].lower() == "interestingaapositions":
-						self.interestingAAPositions = []
 						i = 1
 						while i < len(row):
 							self.interestingAAPositions.append(int(row[i]))
 							i += 1
+	def setAlignmentData(self, alignmentData):
+		self.alignmentData = alignmentData
+	def getAlignmentLength(self):
+		return self.alignmentData.masterAlignment.get_alignment_length()
+
+###############################################################################
+class AlignmentData:
+	def __init__(self, cladeTreeFile):
+		isFullTree = (cladeTreeFile == "")
+
+		if isFullTree:
+			alnFile = os.path.splitext(inputTree)[0]
+		else:
+			alnFile = os.path.splitext(os.path.splitext(os.path.splitext(cladeTreeFile)[0])[0])[0]
+
+		self.masterAlignment = AlignIO.read(alnFile, "phylip-relaxed")
 
 ###############################################################################
 def hasSpecialAA():
@@ -157,7 +179,7 @@ def getAminoAcidColorScheme():
 	return colorScheme
 
 ###############################################################################
-def makeSeqLogo(tree, clades, masterAlignmentFileName, refSeqConfigData, logoOutFileBase):
+def makeSeqLogo(tree, clades, refSeqConfigData, logoOutFileBase):
 
 	spacing = 5
 	minPos = refSeqConfigData.specialAminoAcidPos - refSeqConfigData.toLowerLimit
@@ -165,9 +187,7 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, refSeqConfigData, logoOut
 	anchor = spacing - (minPos % spacing)
 	seqRange = list(range(minPos + anchor, maxPos, spacing))
 
-	# ToDo: Move this to refSeqConfigData
-	masterAlignment = AlignIO.read(masterAlignmentFileName, "phylip-relaxed")
-	specialAAinAlignmentIndex = getSpecialAAInAlignment(masterAlignment, refSeqConfigData)
+	specialAAinAlignmentIndex = getSpecialAAInAlignment(refSeqConfigData)
 
 	if specialAAinAlignmentIndex < 0:
 		return
@@ -177,8 +197,8 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, refSeqConfigData, logoOut
 		lowerLimit = 0
 
 	upperLimit = specialAAinAlignmentIndex + refSeqConfigData.toUpperLimit
-	if upperLimit >= masterAlignment.get_alignment_length():
-		upperLimit = masterAlignment.get_alignment_length() -1
+	if upperLimit >= refSeqConfigData.getAlignmentLength():
+		upperLimit = refSeqConfigData.getAlignmentLength() -1
 
 	rowHeight = 0.3
 	colWidth  = 0.3
@@ -197,7 +217,7 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, refSeqConfigData, logoOut
 	logoFigure = plt.figure(figsize=[colWidth * numCols, rowHeight * numClades])
 
 	sequenceMap = {}
-	for record in masterAlignment:
+	for record in refSeqConfigData.alignmentData.masterAlignment:
 		sequenceMap[record.id] = record
 
 	colorScheme = getAminoAcidColorScheme()
@@ -270,7 +290,6 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, refSeqConfigData, logoOut
 	logoFigure.savefig(logoOutFileBase + ".logo.pdf", format='pdf')
 	logoFigure.savefig(logoOutFileBase + ".logo.svg", format='svg')
 
-	aaIndeces = [83, 110, 113, 134, 135, 136, 181, 185, 187, 296, 302, 303, 304, 305, 306, 313, 310, 311, 312]
 	aasInAlignment = []
 	numLogoChars = len(refSeqConfigData.interestingAAPositions)
 
@@ -285,7 +304,7 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, refSeqConfigData, logoOut
 	for aai in refSeqConfigData.interestingAAPositions:
 		# ToDo: Move this function into getSpecialAAInAlignment
 		# It loads every time the refSeqFile, which is OK for a few
-		aaInAlignmentIndex = getSpecialAAInAlignment3(masterAlignment, refSeqConfigData, aai)
+		aaInAlignmentIndex = getSpecialAAInAlignment3(refSeqConfigData, aai)
 		aasInAlignment.append(aaInAlignmentIndex)
 
 	# ToDo: Copied code, merge common parts of the copy
@@ -352,7 +371,7 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, refSeqConfigData, logoOut
 		if clade == sortedClades[-1]:
 			seqLogo.style_xticks(anchor=0, spacing=1, rotation=270)
 #			ax.set_xticklabels('%d'%x for x in seqRange)
-			ax.set_xticklabels(aaIndeces)
+			ax.set_xticklabels(refSeqConfigData.interestingAAPositions)
 
 		i += 1
 
@@ -360,12 +379,10 @@ def makeSeqLogo(tree, clades, masterAlignmentFileName, refSeqConfigData, logoOut
 	logoFigure.savefig(logoOutFileBase + ".logoSingle.svg", format='svg')
 
 ###############################################################################
-def sortMasterAlignment(tree, masterAlignmentFileName, sortedAlignmentFile):
-
-	masterAlignment = AlignIO.read(masterAlignmentFileName, "phylip-relaxed")
+def sortMasterAlignment(tree, alignmentData, sortedAlignmentFile):
 
 	sequenceMap = {}
-	for record in masterAlignment:
+	for record in alignmentData.masterAlignment:
 		sequenceMap[record.id] = record
 
 	with open(sortedAlignmentFile, "w") as outFile:
@@ -376,16 +393,15 @@ def sortMasterAlignment(tree, masterAlignmentFileName, sortedAlignmentFile):
 
 
 ###############################################################################
-def determineSpecialAminoAcidsAtPos(tree, masterAlignmentFileName, refSeqConfigData):
+def determineSpecialAminoAcidsAtPos(tree, refSeqConfigData):
 
-	masterAlignment = AlignIO.read(masterAlignmentFileName, "phylip-relaxed")
-	specialAAinAlignmentIndex = getSpecialAAInAlignment(masterAlignment, refSeqConfigData)
+	specialAAinAlignmentIndex = getSpecialAAInAlignment(refSeqConfigData)
 
 	if specialAAinAlignmentIndex < 0:
 		return
 
 	sequenceMap = {}
-	for record in masterAlignment:
+	for record in refSeqConfigData.alignmentData.masterAlignment:
 		sequenceMap[record.id] = record
 
 	for leaf in tree.iter_leaves():
@@ -394,14 +410,14 @@ def determineSpecialAminoAcidsAtPos(tree, masterAlignmentFileName, refSeqConfigD
 			leaf.specialAA = record[specialAAinAlignmentIndex].upper()
 
 ###############################################################################
-def getSpecialAAInAlignment(masterAlignment, refSeqConfigData):
-	return getSpecialAAInAlignment3(masterAlignment, refSeqConfigData, refSeqConfigData.specialAminoAcidPos)
+def getSpecialAAInAlignment(refSeqConfigData):
+	return getSpecialAAInAlignment3(refSeqConfigData, refSeqConfigData.specialAminoAcidPos)
 
 ###############################################################################
-def getSpecialAAInAlignment3(masterAlignment, refSeqConfigData, specialAminoAcidPos):
+def getSpecialAAInAlignment3(refSeqConfigData, specialAminoAcidPos):
 	refSequence = AlignIO.read(refSeqConfigData.refSeqFile, "fasta")
 
-	for record in masterAlignment:
+	for record in refSeqConfigData.alignmentData.masterAlignment:
 		if refSequence[0].id in record.id:
 
 			gapFreeRecord = record.seq.ungap()
@@ -1102,12 +1118,9 @@ if __name__ == "__main__":
 
 	inputTree, inputClades, cladeTreeFile, refSeqConfigData, iterestingTaxa, makeLogos = parseArgs(sys.argv[0], sys.argv[1:])
 
-	isFullTree = (cladeTreeFile == "")
-
-	if isFullTree:
-		alnFile = os.path.splitext(inputTree)[0]
-	else:
-		alnFile = os.path.splitext(os.path.splitext(os.path.splitext(cladeTreeFile)[0])[0])[0]
+	alignmentData = AlignmentData(cladeTreeFile)
+	if refSeqConfigData:
+		refSeqConfigData.setAlignmentData(alignmentData)
 
 	cladeBase = os.path.basename(inputClades)
 	cladeBase = os.path.splitext(cladeBase)[0]
@@ -1137,8 +1150,7 @@ if __name__ == "__main__":
 		logging.debug("Load amino acid information: " + inputTree)
 		colorMapFileName = "AminoAcidColorMap.csv"
 		loadColorMap(colorMapFileName, aminoAcidColorMap)
-		logging.debug("Determine amino acid at " + str(refSeqConfigData.specialAminoAcidPos) + " in " + alnFile)
-		determineSpecialAminoAcidsAtPos(tree, alnFile, refSeqConfigData)
+		determineSpecialAminoAcidsAtPos(tree, refSeqConfigData)
 
 	logging.debug("Load taxon information: " + inputTree)
 	loadTaxa(iterestingTaxa)
@@ -1167,11 +1179,12 @@ if __name__ == "__main__":
 
 	if makeLogos and refSeqConfigData != None:
 		logging.debug("Make sequence logos: " + logoOutFileBase)
-		makeSeqLogo(tree, clades, alnFile, refSeqConfigData, logoOutFileBase)
+		makeSeqLogo(tree, clades, refSeqConfigData, logoOutFileBase)
 
+	isFullTree = (cladeTreeFile == "")
 	if isFullTree:
 		logging.debug("Sort master alignment: " + cladeTrees)
-		sortMasterAlignment(tree, alnFile, sortedAlignmentFile)
+		sortMasterAlignment(tree, alignmentData, sortedAlignmentFile)
 		logging.debug("Save the clades:" + cladeTrees)
 		saveCladesAsTrees(tree, clades, cladeTrees)
 
