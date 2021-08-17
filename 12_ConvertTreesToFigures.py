@@ -64,12 +64,17 @@ class Clade:
 class ConfigData:
 	def __init__(self, configFileName):
 		with open(configFileName, newline='') as configFile:
-			self.refSeqFile             = ""
-			self.specialAminoAcidPos    = -1
-			self.toLowerLimit           = -1
-			self.toUpperLimit           = -1
-			self.interestingAAPositions = []
-			self.alignmentData          = None
+			self.refSeqFileName              = ""
+			self.refSequence                 = None
+			self.refAlignment                = None
+			self.refRecord                   = None
+			self.specialAminoAcidPos         = -1
+			self.specialAminoAcidPosInAln    = -1
+			self.toLowerLimit                = -1
+			self.toUpperLimit                = -1
+			self.interestingAAPositions      = []
+			self.interestingAAPositionsInAln = []
+			self.alignmentData               = None
 
 			configFileBase = os.path.dirname(configFileName)
 			configReader = csv.reader(configFile, delimiter='\t')
@@ -82,7 +87,7 @@ class ConfigData:
 
 				if len(row) > 1:
 					if row[0].lower() == "seqfile":
-						self.refSeqFile = os.path.join(configFileBase, row[1]) # This is still not windows compatible, because the path is given with the Linux file separator
+						self.refSeqFileName = os.path.join(configFileBase, row[1]) # This is still not windows compatible, because the path is given with the Linux file separator
 					elif row[0].lower() == "aapos":
 						self.specialAminoAcidPos = int(row[1])
 					elif row[0].lower() == "tolowerlimit":
@@ -94,8 +99,53 @@ class ConfigData:
 						while i < len(row):
 							self.interestingAAPositions.append(int(row[i]))
 							i += 1
+
 	def setAlignmentData(self, alignmentData):
 		self.alignmentData = alignmentData
+		self.refSequence = AlignIO.read(self.refSeqFileName, "fasta")
+
+		for record in self.alignmentData.masterAlignment:
+			if self.refSequence[0].id in record.id:
+
+				gapFreeRecord = record.seq.ungap()
+				aligner = Align.PairwiseAligner()
+				aligner.mode = 'global'
+				self.refAlignment = aligner.align(self.refSequence[0].seq, gapFreeRecord)
+				self.refRecord = record
+				break
+
+		self.specialAminoAcidPosInAln = self.getPosInRefAlignment(self.specialAminoAcidPos)
+
+		for pos in self.interestingAAPositions:
+			posInAln = self.getPosInRefAlignment(pos)
+			self.interestingAAPositionsInAln.append(posInAln)
+
+	def getPosInRefAlignment(self, pos):
+		lastPos = 0
+		thisPos = 0
+		numGaps = 0
+		for pair in self.refAlignment[0].aligned[0]:
+			thisPos  = pair[0]
+			numGaps += thisPos - lastPos
+			lastPos  = pair[1]
+			if lastPos > pos:
+				break
+
+		i = 0
+		aaIndex = numGaps + 1 # This is zero indexed but pos is one indexed, so add one to account for that
+		while i < len(self.refRecord):
+			if self.refRecord[i] == "-":
+				i += 1
+				continue
+
+			if aaIndex == pos:
+				return i
+
+			aaIndex += 1
+			i += 1
+
+		return -1
+
 	def getAlignmentLength(self):
 		return self.alignmentData.masterAlignment.get_alignment_length()
 
@@ -187,16 +237,14 @@ def makeSeqLogo(tree, clades, refSeqConfigData, logoOutFileBase):
 	anchor = spacing - (minPos % spacing)
 	seqRange = list(range(minPos + anchor, maxPos, spacing))
 
-	specialAAinAlignmentIndex = getSpecialAAInAlignment(refSeqConfigData)
-
-	if specialAAinAlignmentIndex < 0:
+	if refSeqConfigData.specialAminoAcidPosInAln < 0:
 		return
 
-	lowerLimit = specialAAinAlignmentIndex - refSeqConfigData.toLowerLimit
+	lowerLimit = refSeqConfigData.specialAminoAcidPosInAln - refSeqConfigData.toLowerLimit
 	if lowerLimit < 0:
 		lowerLimit = 0
 
-	upperLimit = specialAAinAlignmentIndex + refSeqConfigData.toUpperLimit
+	upperLimit = refSeqConfigData.specialAminoAcidPosInAln + refSeqConfigData.toUpperLimit
 	if upperLimit >= refSeqConfigData.getAlignmentLength():
 		upperLimit = refSeqConfigData.getAlignmentLength() -1
 
@@ -290,7 +338,6 @@ def makeSeqLogo(tree, clades, refSeqConfigData, logoOutFileBase):
 	logoFigure.savefig(logoOutFileBase + ".logo.pdf", format='pdf')
 	logoFigure.savefig(logoOutFileBase + ".logo.svg", format='svg')
 
-	aasInAlignment = []
 	numLogoChars = len(refSeqConfigData.interestingAAPositions)
 
 	colSpans = [colSpan1, colSpan2, colSpan3, numLogoChars]
@@ -301,12 +348,6 @@ def makeSeqLogo(tree, clades, refSeqConfigData, logoOutFileBase):
 	# Make figure
 	logoFigure = plt.figure(figsize=[colWidth * numCols, rowHeight * numClades])
 
-	for aai in refSeqConfigData.interestingAAPositions:
-		# ToDo: Move this function into getSpecialAAInAlignment
-		# It loads every time the refSeqFile, which is OK for a few
-		aaInAlignmentIndex = getSpecialAAInAlignment3(refSeqConfigData, aai)
-		aasInAlignment.append(aaInAlignmentIndex)
-
 	# ToDo: Copied code, merge common parts of the copy
 	i = 0
 	for clade in sortedClades:
@@ -316,7 +357,7 @@ def makeSeqLogo(tree, clades, refSeqConfigData, logoOutFileBase):
 		for leaf in clade.rootNode.iter_leaves():
 			if leaf.name in sequenceMap:
 				record = sequenceMap[leaf.name]
-				seq = ''.join([ record.seq[i] for i in aasInAlignment])
+				seq = ''.join([ record.seq[i] for i in refSeqConfigData.interestingAAPositionsInAln])
 				sequences.append(seq)
 				numSeqs += 1
 
@@ -395,9 +436,7 @@ def sortMasterAlignment(tree, alignmentData, sortedAlignmentFile):
 ###############################################################################
 def determineSpecialAminoAcidsAtPos(tree, refSeqConfigData):
 
-	specialAAinAlignmentIndex = getSpecialAAInAlignment(refSeqConfigData)
-
-	if specialAAinAlignmentIndex < 0:
+	if refSeqConfigData.specialAminoAcidPosInAln < 0:
 		return
 
 	sequenceMap = {}
@@ -407,48 +446,7 @@ def determineSpecialAminoAcidsAtPos(tree, refSeqConfigData):
 	for leaf in tree.iter_leaves():
 		if leaf.name in sequenceMap:
 			record = sequenceMap[leaf.name]
-			leaf.specialAA = record[specialAAinAlignmentIndex].upper()
-
-###############################################################################
-def getSpecialAAInAlignment(refSeqConfigData):
-	return getSpecialAAInAlignment3(refSeqConfigData, refSeqConfigData.specialAminoAcidPos)
-
-###############################################################################
-def getSpecialAAInAlignment3(refSeqConfigData, specialAminoAcidPos):
-	refSequence = AlignIO.read(refSeqConfigData.refSeqFile, "fasta")
-
-	for record in refSeqConfigData.alignmentData.masterAlignment:
-		if refSequence[0].id in record.id:
-
-			gapFreeRecord = record.seq.ungap()
-			aligner = Align.PairwiseAligner()
-			aligner.mode = 'global'
-			alignments = aligner.align(refSequence[0].seq, gapFreeRecord)
-
-			lastPos = 0
-			thisPos = 0
-			numGaps = 0
-			for pair in alignments[0].aligned[0]:
-				thisPos  = pair[0]
-				numGaps += thisPos - lastPos
-				lastPos  = pair[1]
-				if lastPos > specialAminoAcidPos:
-					break
-
-			i = 0
-			aaIndex = numGaps + 1 # This is zero indexed but specialAminoAcidPos is one indexed, so add one to account for that
-			while i < len(record):
-				if record[i] == "-":
-					i += 1
-					continue
-
-				if aaIndex == specialAminoAcidPos:
-					return i
-
-				aaIndex += 1
-				i += 1
-
-	return -1
+			leaf.specialAA = record[refSeqConfigData.specialAminoAcidPosInAln].upper()
 
 ###############################################################################
 def loadColorMap(colorFile, colorMap):
