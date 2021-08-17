@@ -17,6 +17,9 @@ mkdir -p "$DIR/$database"
 
 cd "$DIR/$database"
 
-wget "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/$database.fasta.gz"
-gunzip "$database.fasta.gz"
-makeblastdb -in "$database.fasta" -out "$database" -dbtype prot
+if [[ ! -f "$database.fasta" ]]
+then
+	wget "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/$database.fasta.gz"
+	gunzip "$database.fasta.gz"
+	makeblastdb -in "$database.fasta" -out "$database" -dbtype prot
+fi
