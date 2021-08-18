@@ -48,6 +48,12 @@ do
             shift
             numRoundsLeft="$1"
             ;;
+        --bigNumRoundsLeft)
+            ;&
+        -N)
+            shift
+            bigNumRoundsLeft="$1"
+            ;;
         --shuffleSeqs)
             ;&
         -l)
@@ -83,6 +89,7 @@ echo "bigTreeIteration: $bigTreeIteration" >&2
 echo "aligner:          $aligner"          >&2
 echo "continue:         $continue"         >&2
 echo "numRoundsLeft:    $numRoundsLeft"    >&2
+echo "bigNumRoundsLeft: $bigNumRoundsLeft" >&2
 echo "shuffleSeqs:      $shuffleSeqs"      >&2
 echo "extension:        $extension"        >&2
 echo "trimAl:           $trimAl"           >&2
@@ -109,7 +116,7 @@ echo $jobIDs
 
 if [ "$continue" == "--continue" ]
 then
-	qsub -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl" -W "depend=afterok$jobIDs" \
+	qsub -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl" -W "depend=afterok$jobIDs" \
 	    "$DIR/PBS-Pro-16-TreeBuildScheduler.sh"
 fi
 

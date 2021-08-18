@@ -56,6 +56,12 @@ do
             shift
             numRoundsLeft="$1"
             ;;
+        --bigNumRoundsLeft)
+            ;&
+        -N)
+            shift
+            bigNumRoundsLeft="$1"
+            ;;
         --allSeqs)
             ;&
         -q)
@@ -150,9 +156,14 @@ then
 		suffix="$suffix.BigTree$iteration"
 	fi
 
+	if [[ -z $bigNumRoundsLeft ]]
+	then
+		bigNumRoundsLeft = "0"
+	fi
+
 	oldAllSeqs=$allSeqs
 	allSeqs="--allSeqs"
-	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=0, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
 	    "$DIR/PBS-Pro-09-RogueOptAlign.sh"
 	allSeqs=$oldAllSeqs
 	suffix=$olfSuffix
@@ -195,4 +206,9 @@ then
 	bigTreeIteration = "-b $bigTreeIteration"
 fi
 
-"$DIR/PBS-Pro-09-RogueOptAlign.sh" -g "$gene" -i "$nextIteration" -a "$aligner" -n "$numRoundsLeft" $bigTreeIteration $shuffleSeqs $allSeqs $suffix $extension $trimAl
+if [[ ! -z $bigNumRoundsLeft ]]
+then
+	bigNumRoundsLeft = "-b $bigNumRoundsLeft"
+fi
+
+"$DIR/PBS-Pro-09-RogueOptAlign.sh" -g "$gene" -i "$nextIteration" -a "$aligner" -n "$numRoundsLeft" $bigTreeIteration $bigNumRoundsLeft $shuffleSeqs $allSeqs $suffix $extension $trimAl

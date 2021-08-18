@@ -49,6 +49,12 @@ do
             shift
             numRoundsLeft="$1"
             ;;
+        --bigNumRoundsLeft)
+            ;&
+        -N)
+            shift
+            bigNumRoundsLeft="$1"
+            ;;
         --allSeqs)
             ;&
         -q)
@@ -101,6 +107,7 @@ echo "iteration:        $iteration"        >&2
 echo "bigTreeIteration: $bigTreeIteration" >&2
 echo "aligner:          $aligner"          >&2
 echo "numRoundsLeft:    $numRoundsLeft"    >&2
+echo "bigNumRoundsLeft: $bigNumRoundsLeft" >&2
 echo "allSeqs:          $allSeqs"          >&2
 echo "shuffleSeqs:      $shuffleSeqs"      >&2
 echo "suffix:           $suffix"           >&2
@@ -138,7 +145,7 @@ holdJobs=$jobIDs
 jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "11" -i "$iteration" -a "$aligner" $allSeqs -d "$jobIDs" $shuffleSeqs $suffix $previousAligner)
 echo $jobIDs
 
-qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration, previousAligner=$previousAligner" -W "depend=afterok$holdJobs$jobIDs" \
+qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration, previousAligner=$previousAligner" -W "depend=afterok$holdJobs$jobIDs" \
     "$DIR/PBS-Pro-11-RemoveMoreRougues.sh"
 
 if [[ "$allSeqs" == "--allSeqs" && $numRoundsLeft == "0" ]]
@@ -156,7 +163,7 @@ fi
 if [[ "$allSeqs" == "--allSeqs" ]]
 then
 	# If we run against the wall, just restart the main task
-	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" -W "depend=afternotok$holdJobs" \
+	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" -W "depend=afternotok$holdJobs" \
 	    "$DIR/PBS-Pro-10-RogueOptTree.sh"
 fi
 

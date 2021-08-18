@@ -43,6 +43,12 @@ do
             shift
             numRoundsLeft="$1"
             ;;
+        --bigNumRoundsLeft)
+            ;&
+        -N)
+            shift
+            bigNumRoundsLeft="$1"
+            ;;
         --shuffleSeqs)
             ;&
         -l)
@@ -78,6 +84,7 @@ echo "gene:             $gene"             >&2
 echo "bigTreeIteration: $bigTreeIteration" >&2
 echo "aligner:          $aligner"          >&2
 echo "numRoundsLeft:    $numRoundsLeft"    >&2
+echo "bigNumRoundsLeft: $bigNumRoundsLeft" >&2
 echo "shuffleSeqs:      $shuffleSeqs"      >&2
 echo "extension:        $extension"        >&2
 echo "trimAl:           $trimAl"           >&2
@@ -101,6 +108,11 @@ fi
 if [ -z $numRoundsLeft ]
 then
 	numRoundsLeft="20"
+fi
+
+if [ -z $bigNumRoundsLeft ]
+then
+	bigNumRoundsLeft="10"
 fi
 
 if [ -z $aligner ]
@@ -133,6 +145,7 @@ do
 	fi
 done
 
+olfSuffix=$suffix
 suffix="-x BigTree0"
 # Make the big tree with the main aligner
 allSeqs="--allSeqs"
@@ -155,7 +168,7 @@ suffix=""
 previousAligner=""
 
 # Make 20 iterations with the main aligner, make a big tree after 10 iterations
-qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" \
+qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" \
     "$DIR/PBS-Pro-09-RogueOptAlign.sh"
 
 if [ -z "$trimAl" ]
@@ -169,7 +182,6 @@ else
 	trimAl=""
 fi
 
-numRoundsLeft="0"
 # Make an iteration for the main aligner, with switched pruning settings
 qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
     "$DIR/PBS-Pro-09-RogueOptAlign.sh"

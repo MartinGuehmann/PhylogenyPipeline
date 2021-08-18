@@ -49,6 +49,12 @@ do
             shift
             numRoundsLeft="$1"
             ;;
+        --bigNumRoundsLeft)
+            ;&
+        -N)
+            shift
+            bigNumRoundsLeft="$1"
+            ;;
         --allSeqs)
             ;&
         -q)
@@ -101,6 +107,7 @@ echo "iteration:        $iteration"        >&2
 echo "bigTreeIteration: $bigTreeIteration" >&2
 echo "aligner:          $aligner"          >&2
 echo "numRoundsLeft:    $numRoundsLeft"    >&2
+echo "bigNumRoundsLeft: $bigNumRoundsLeft" >&2
 echo "allSeqs:          $allSeqs"          >&2
 echo "shuffleSeqs:      $shuffleSeqs"      >&2
 echo "suffix:           $suffix"           >&2
@@ -137,7 +144,7 @@ jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "9" -i "$iteration" -a "
 echo $jobIDs
 
 # Schedule tree reconstruction, can only run when all alignments are ready
-qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" -W "depend=afterok$jobIDs" \
+qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" -W "depend=afterok$jobIDs" \
     "$DIR/PBS-Pro-10-RogueOptTree.sh"
 
 # Start held jobs
