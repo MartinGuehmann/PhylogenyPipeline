@@ -87,3 +87,5 @@ do
 	fi
 
 done
+
+echo "All sequences extracted from $databaseName" >&2

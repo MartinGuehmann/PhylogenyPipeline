@@ -18,8 +18,11 @@ then
 	exit 1
 fi
 
-TRMBL="$DIR/../ProteinDatabase/uniprot_trembl/uniprot_trembl"
-SPROT="$DIR/../ProteinDatabase/uniprot_sprot/uniprot_sprot"
+# Download and make the uniprot databases if they do not exist
+"$DIR/ProteinDatabase/get_uniprot_databases.sh"
+
+TRMBL="$DIR/ProteinDatabase/uniprot_trembl/uniprot_trembl"
+SPROT="$DIR/ProteinDatabase/uniprot_sprot/uniprot_sprot"
 
 declare -a DataBases=(
                       $TRMBL            # UniProt TRMBL saved locally

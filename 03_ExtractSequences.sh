@@ -18,9 +18,11 @@ then
 	exit 1
 fi
 
+# Download and make the uniprot databases if they do not exist
+"$DIR/ProteinDatabase/get_uniprot_databases.sh"
 
-TRMBL_DB="$DIR/../ProteinDatabase/uniprot_trembl/uniprot_trembl"
-SPROT_DB="$DIR/../ProteinDatabase/uniprot_sprot/uniprot_sprot"
+TRMBL_DB="$DIR/ProteinDatabase/uniprot_trembl/uniprot_trembl"
+SPROT_DB="$DIR/ProteinDatabase/uniprot_sprot/uniprot_sprot"
 
 TRMBL=$(basename $TRMBL_DB)
 SPROT=$(basename $SPROT_DB)
