@@ -199,10 +199,11 @@ AllSeqs="$AlignmentDir/SequencesOfInterest$AlignmentLastBit"
 jobIDs=""
 
 case $step in
-#0)
-#	# Depends on the server of NCBI, thus quite slow and thus a cluster is not useful
-#	jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/00_PBS-Pro-GetGenesFromAllDataBases.sh")
-#	;;
+0)
+	# Depends on the server of NCBI, thus quite slow and thus a cluster is not useful
+	# This is a bit supoptimal, but still works
+	jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/00_PBS-Pro-GetGenesFromAllDataBases.sh")
+	;;
 1)
 	jobIDs=:$(qsub $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/01_PBS-Pro-CombineHitsForEachDatabase.sh")
 	;;
