@@ -32,7 +32,7 @@ declare -a DataBases=(
                     # "landmark"        # Model Organisms, does not work
                       "swissprot"       # UniProtKB/Swiss-Prot, just the confirmed sequences, the version from uniprot is more up to date, but including those does not hurt
                     # "pataa"           # Patented protein sequences, mutated proteins from patients are not needed
-                    # "pdb"             # Protein Data Bank Proteins, chimeras for christalization just screw up things
+                    # "pdb"             # Protein Data Bank Proteins, chimeras for christalization just screws up things
                     # "env_nr"          # Metagenomic proteins, most come back empty for opsins, so it is not worth 
                       "tsa_nr"          # Transcriptome Shotgun Assembly proteins
                      )
