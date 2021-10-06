@@ -6,11 +6,9 @@
 #PBS -l select=1:ncpus=12:mem=16gb
 #PBS -l walltime=72:00:00
 
-# 30h, since we may have to download and build the uniprot databases 
-
 # Go to the first program line,
 # any PBS directive below that is ignored.
-# No modules to load
+module load apps/blast/2.11.0+
 
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
