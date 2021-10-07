@@ -23,3 +23,5 @@ then
 	gunzip "$database.fasta.gz"
 	makeblastdb -in "$database.fasta" -out "$database" -dbtype prot
 fi
+
+wait # Wait until all are done
