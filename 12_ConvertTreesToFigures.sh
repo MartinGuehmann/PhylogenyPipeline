@@ -264,7 +264,7 @@ then
 	echo "Creating $cladeTreeFile" >&2
 	python3 "$DIR/12_ConvertTreesToFigures.py" -m -i $inputTree -c $cladeFile $seqConfigFile $interestingTaxaArg
 
-# 	# Make a png version of the full tree
+	# Make a png version of the full tree
 	pdf2png "$inputTreeDir/$inputTreeBase.$extension.$cladeBase.fullTree"
 fi
 
