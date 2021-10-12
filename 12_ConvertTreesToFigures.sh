@@ -33,6 +33,18 @@
 #     this file may not exist yet
 #
 
+# Creates a png copy from a pdf file
+# First parameter is the file base name
+# of the file to be copied
+# The extensions are applied within the function
+function pdf2png ()
+{
+	local fileBase=$1
+	local inputFile="$1.pdf"
+	local outputFile="$1.png"
+	pdftoppm -png -r 600 $inputFile > $outputFile
+}
+
 # Get the directory where this script is
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
@@ -251,6 +263,9 @@ then
 	echo "Processing $inputTree" >&2
 	echo "Creating $cladeTreeFile" >&2
 	python3 "$DIR/12_ConvertTreesToFigures.py" -m -i $inputTree -c $cladeFile $seqConfigFile $interestingTaxaArg
+
+# 	# Make a png version of the full tree
+	pdf2png "$inputTreeDir/$inputTreeBase.$extension.$cladeBase.fullTree"
 fi
 
 # Get the names of the input files, second for the nth iteration master tree
@@ -266,6 +281,9 @@ if [[ -f $inputTree && ! -f $outputFile || -f $inputTree && ! -z $update && $ite
 then
 	echo "Processing $inputTree" >&2
 	python3 "$DIR/12_ConvertTreesToFigures.py" -i $inputTree -c $cladeFile -t $cladeTreeFile $seqConfigFile $interestingTaxaArg
+
+	# Make a png version of the full tree
+	pdf2png "$inputTreeDir/$inputTreeBase.$extension.$cladeBase.fullTree"
 fi
 
 # Get the names of the input files, third for the nth iteration sub trees
@@ -289,4 +307,3 @@ done
 
 wait # Wait on all the instances of 12_ConvertTreesToFigures.py to finish
 
-#pdftoppm -png -r 600 /media/martin/Win10/Science/Phylogeny/PhylogenyPipeline/Opsins/Alignments/PASTA/RogueIter_14/SequencesOfInterest.alignment.PASTA.fasta.raxml.reduced.phy.treefile.fullTree.pdf > /media/martin/Win10/Science/Phylogeny/PhylogenyPipeline/Opsins/Alignments/PASTA/RogueIter_14/SequencesOfInterest.alignment.PASTA.fasta.raxml.reduced.phy.treefile.fullTree.png
