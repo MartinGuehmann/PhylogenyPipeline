@@ -30,8 +30,10 @@ AllNCBI="All"
 
 hits="$DIR/$gene/Hits"
 sequences="$DIR/$gene/Sequences"
-sequenceFile="$sequences/Sequences.fasta"
-sequenceNCBIFile="$sequences/NCBISequences.fasta"
+sequenceFileBase="$sequences/Sequences"
+sequenceNCBIFileBase="$sequences/NCBISequences"
+sequenceFile="$sequenceFileBase.fasta"
+sequenceNCBIFile="$sequenceNCBIFileBase.fasta"
 
 tmpIDs="$sequences/IDs.txt"
 
@@ -39,10 +41,16 @@ numTreads=$(nproc)
 
 mkdir -p $sequences
 
+splitSeqNum=40000
+
 rm -f $tmpIDs
 rm -f $sequenceFile
 rm -f $sequenceNCBIFile
 
+rm -f $sequenceFileBase*".fasta"
+rm -f $sequenceNCBIFileBase*".fasta"
+
+# Extract the sequences from uniprot
 for DB_PATH in $SPROT_DB $TRMBL_DB
 do
 	DB=$(basename $DB_PATH)
@@ -54,6 +62,12 @@ do
 	rm -f $tmpIDs
 done
 
+# Split the sequence file into handy chuncks if we want to store it on github
+# The maximum file size is 100 MB, but we should stay below of that.
+seqkit split2 -j $numTreads -s $splitSeqNum -O $sequences $sequenceFile
+rm -f $sequenceFile
+
+# Extract the sequences from NCBI
 IDs=($(sed -E "s/^ *[0-9]* //g" "$hits/$AllNCBI/SortedHitsByName.csv" | cut -f 1 | sort -u))
 
 numIDs=${#IDs[@]}
@@ -67,3 +81,8 @@ do
 	efetch -db sequences -format fasta -id $part >> $sequenceNCBIFile
 	let i+=range
 done
+
+# Split the sequence file into handy chuncks if we want to store it on github
+# The maximum file size is 100 MB, but we should stay below of that.
+seqkit split2 -j $numTreads -s $splitSeqNum -O $sequences $sequenceNCBIFile
+rm -f $sequenceNCBIFile
