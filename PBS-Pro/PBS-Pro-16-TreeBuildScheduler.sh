@@ -145,13 +145,13 @@ do
 	fi
 done
 
-olfSuffix=$suffix
+oldSuffix=$suffix
 suffix="-x BigTree0"
 # Make the big tree with the main aligner
 allSeqs="--allSeqs"
 qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
     "$DIR/PBS-Pro-09-RogueOptAlign.sh"
-suffix=$olfSuffix
+suffix=$oldSuffix
 
 suffix="-x $gene.BigTree0"
 previousAligner="-p $gene"
