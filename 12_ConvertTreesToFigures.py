@@ -953,6 +953,10 @@ def getCollapsedTreeStyle(tree):
 	ts.legend.add_face(TextFace(' '),      column=5)
 	ts.legend.add_face(TextFace(' '),      column=6)
 
+	allNum = 0
+	inNum  = 0
+	outNum = 0
+
 	for taxon in taxonColorMap:
 		data = taxonColorMap[taxon]
 		
@@ -964,6 +968,7 @@ def getCollapsedTreeStyle(tree):
 		if data.entryType == type_regular:
 			if taxon in countMap:
 				taxonNum = str(countMap[taxon]) + ' '
+				allNum += countMap[taxon]
 			else:
 				taxonNum = str(0) + ' '
 		else:
@@ -991,6 +996,7 @@ def getCollapsedTreeStyle(tree):
 		if data.entryType == type_regular:
 			if taxon in countMapR:
 				taxonNum = str(countMapR[taxon]) + ' '
+				inNum += countMapR[taxon]
 			else:
 				taxonNum = str(0) + ' '
 		else:
@@ -1006,6 +1012,7 @@ def getCollapsedTreeStyle(tree):
 		if data.entryType == type_regular:
 			if taxon in countMapL:
 				taxonNum = str(countMapL[taxon]) + ' '
+				outNum += countMapL[taxon]
 			else:
 				taxonNum = str(0) + ' '
 		else:
@@ -1015,6 +1022,30 @@ def getCollapsedTreeStyle(tree):
 		textFace.fgcolor = data.color
 		textFace.hz_align = 2
 		ts.legend.add_face(textFace, column=6)
+
+	ts.legend.add_face(TextFace(' '),      column=0)
+	ts.legend.add_face(TextFace(' '),      column=1)
+	ts.legend.add_face(TextFace(' '),      column=2)
+	ts.legend.add_face(TextFace(' '),      column=3)
+	ts.legend.add_face(TextFace(' '),      column=4)
+	ts.legend.add_face(TextFace(' '),      column=5)
+	ts.legend.add_face(TextFace(' '),      column=6)
+
+	textAll      = TextFace(str(allNum)  + ' ')
+	textIngroup  = TextFace(str(inNum)   + ' ')
+	textOutgroup = TextFace(str(outNum)  + ' ')
+
+	textAll      .hz_align = 2
+	textIngroup  .hz_align = 2
+	textOutgroup .hz_align = 2
+
+	ts.legend.add_face(TextFace(total), column=0)
+	ts.legend.add_face(TextFace(' '),   column=1)
+	ts.legend.add_face(textAll,         column=2)
+	ts.legend.add_face(TextFace(' '),   column=3)
+	ts.legend.add_face(textIngroup,     column=4)
+	ts.legend.add_face(TextFace(' '),   column=5)
+	ts.legend.add_face(textOutgroup,    column=6)
 
 	return ts
 
