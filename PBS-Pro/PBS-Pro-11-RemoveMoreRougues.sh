@@ -163,6 +163,13 @@ then
 
 	oldAllSeqs=$allSeqs
 	allSeqs="--allSeqs"
+	if [ -z $suffix ]
+	then
+		previousAligner=$aligner
+	else
+		previousAligner=$aligner.$oldSuffix
+	fi
+
 	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
 	    "$DIR/PBS-Pro-09-RogueOptAlign.sh"
 	allSeqs=$oldAllSeqs
