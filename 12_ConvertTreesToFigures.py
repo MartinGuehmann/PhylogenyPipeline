@@ -1143,8 +1143,8 @@ if __name__ == "__main__":
 	cladeBase = os.path.splitext(cladeBase)[0]
 
 	cladeTrees             = inputTree + "." + cladeBase + ".cladeTrees"
-	outCollapsedTree       = inputTree + "." + cladeBase + ".collapsedTree.pdf"
-	outFullTree            = inputTree + "." + cladeBase + ".fullTree.pdf"
+	outCollapsedTree       = inputTree + "." + cladeBase + ".collapsedTree"
+	outFullTree            = inputTree + "." + cladeBase + ".fullTree"
 	logoOutFileBase        = inputTree + "." + cladeBase
 	sortedAlignmentFile    = inputTree + "." + cladeBase + ".treeSorted.fasta"
 #	outFullTreeNeXML       = inputTree + "." + cladeBase + ".fullTree.NeXML"
@@ -1211,7 +1211,8 @@ if __name__ == "__main__":
 	fullTree = tree.copy()
 	ts = getFullTreeStyle()
 
-	fullTree.render(outFullTree, dpi=600, w=183, units="mm", tree_style=ts)
+	fullTree.render(outFullTree + ".pdf", dpi=600, w=183, units="mm", tree_style=ts)
+	fullTree.render(outFullTree + ".svg", dpi=600, w=183, units="mm", tree_style=ts)
 
 	# Dendroscope cannot load this type of tree
 	#nexml_project = nexml.Nexml()
@@ -1230,6 +1231,7 @@ if __name__ == "__main__":
 	collapseTree(tree, clades)
 
 	ts = getCollapsedTreeStyle(tree)
-	tree.render(outCollapsedTree, dpi=600, w=400, units="mm", tree_style=ts)
+	tree.render(outCollapsedTree + ".pdf", dpi=600, w=400, units="mm", tree_style=ts)
+	tree.render(outCollapsedTree + ".svg", dpi=600, w=400, units="mm", tree_style=ts)
 
 ###############################################################################
