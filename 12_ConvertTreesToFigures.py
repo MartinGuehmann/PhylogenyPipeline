@@ -24,9 +24,13 @@ lineWidth = 4
 margin = 4 / 2
 nodeShapeSize = lineWidth - 1
 
-SHaLRTTreshold = 80
-aBayesTreshold = 0.95
-UFBootTreshold = 95
+# If you add more levels add to the last
+SHaLRTThresholds = [80.0, 75.0, 70.0]
+aBayesThresholds = [95.0, 90.0, 85.0]
+UFBootThresholds = [95,   90,   85  ]
+
+# If you add more levels add before "White"
+colorThresholds = ["Green", "Yellow", "Orange", "Red", "Black"]
 
 type_regular  = 0
 type_legend   = 1
@@ -500,20 +504,70 @@ def getSupportOverThresholdColor(supports):
 	supportValues = supports.split("/")
 	if len(supportValues) > 2:
 		try:
-			if(float(supportValues[0]) >= SHaLRTTreshold and
-			   float(supportValues[1]) >= aBayesTreshold and
-			     int(supportValues[2]) >= UFBootTreshold):
+			if(float(supportValues[0])         >= SHaLRTThresholds[0] and
+			   float(supportValues[1]) * 100.0 >= aBayesThresholds[0] and
+			     int(supportValues[2])         >= UFBootThresholds[0]):
 				return 'Black'
 		except ValueError:
 			pass
 	else:
 		try:
-			if(  int(supportValues[0]) > UFBootTreshold):
+			if(  int(supportValues[0]) > UFBootTfresholds[0]):
 				return 'Black'
 		except ValueError:
 			pass
 
 	return 'Gray'
+
+###############################################################################
+def addSupportPieCharts(node, columnNum):
+	supports = node.name
+	supportValues = supports.split("/")
+
+	if len(supportValues) > 2:
+		try:
+			SHaLRTValue = float(supportValues[0])
+			aBayesValue = float(supportValues[1]) * 100
+			UFBootValue =   int(supportValues[2])
+
+			columnNum = addOneSupportPieChart(node, columnNum, SHaLRTValue, SHaLRTThresholds)
+			columnNum = addOneSupportPieChart(node, columnNum, aBayesValue, aBayesThresholds)
+			columnNum = addOneSupportPieChart(node, columnNum, UFBootValue, UFBootThresholds)
+
+			return columnNum
+
+		except ValueError:
+			pass
+	else:
+		try:
+			if(  int(supportValues[0]) > UFBootTreshold):
+				return addOneSupportPieChart(node, columnNum, UFBootValue, UFBootTresholds)
+		except ValueError:
+			pass
+
+	return 0
+
+###############################################################################
+def addOneSupportPieChart(node, columnNum, value, thresholds):
+
+	if   value >= thresholds[0]:
+		color = colorThresholds[0]
+	elif value >= thresholds[1]:
+		color = colorThresholds[1]
+	elif value >= thresholds[2]:
+		color = colorThresholds[2]
+	else:
+		color = colorThresholds[3]
+
+	colorEmpty = colorThresholds[-1]
+
+	percents = [value, 100.0 - value]
+	colors   = [color, colorEmpty]
+
+	pie_face = PieChartFace(percents, 10, 10, colors)
+	node.add_face(pie_face, column=columnNum, position="branch-right")
+	columnNum += 1
+	return columnNum
 
 ###############################################################################
 def fullTreeLayout(node):
@@ -577,87 +631,106 @@ def fullTreeLayout(node):
 ###############################################################################
 def collapsedTreeLayout(node):
 	if node.is_leaf():
-		columnNum = 0
-
-		# If terminal node, draws it name
-		if node.name == "":
-			name_face =  TextFace(" ")
-		else:
-			name_face = AttrFace("name", text_prefix=" ", text_suffix=" ")
-
-		name_face.margin_top = -2
-		# Add the name face to the image at the preferred position
-		node.add_face(name_face, column=columnNum, position="branch-right")
-		columnNum += 1
-
-		if hasSpecialAA():
-			if hasattr(node, 'specialAA'):
-				aa_face = TextFace(node.specialAA)
-				aa_face.background.color = aminoAcidColorMap[node.specialAA].color
-			else:
-				aa_face = TextFace(" ")
-				aa_face.background.color = "Black"
-
-			node.add_face(aa_face, column=columnNum, position="branch-right")
-			columnNum += 1
-
-		if hasTaxa():
-			if hasattr(node, 'taxonOfInterest'):
-				it_face = TextFace(" " + node.taxonOfInterest)
-				it_face.fgcolor = taxonColorMap[node.taxonOfInterest].color
-			else:
-				it_face = TextFace(" ")
-				it_face.fgcolor = "Black"
-
-			it_face.margin_top = 2
-			it_face.margin_bottom = 2
-			node.add_face(it_face, column=columnNum, position="branch-right")
-			columnNum += 1
-
-		if not node.img_style["draw_descendants"]:
-			node.add_face(TextFace(" " + node.cladeName), column=columnNum, position="branch-right")
-			columnNum += 1
-
+		collapsedLeafLayout(node)
 	elif not node.img_style["draw_descendants"]:
 		# Technically this is an internal node
-		columnNum = 0
-
-		simple_motifs = [
-			# seq.start, seq.end, shape, width, height, fgcolor, bgcolor
-			[0, 5, "<", None, 30, node.img_style["fgcolor"], node.img_style["fgcolor"], ""],
-		]
-
-		seq_face = SeqMotifFace(motifs=simple_motifs)
-		seq_face.margin_left = -2
-		seq_face.rotable = False
-		node.add_face(seq_face, column=columnNum, position="branch-right")
-		columnNum += 1
-
 		addSupportValues(node)
-
-		# If terminal node, draws its name
-		name_face = TextFace(" " + node.cladeName + " - " + str(countLeaves(node)) + " ")
-		name_face.margin_top = -2
-		# Add the name face to the image at the preferred position
-		node.add_face(name_face, column=columnNum, position="branch-right")
-		columnNum += 1
-
-		if hasSpecialAA():
-			percents, colors = getColorsAndPercents(node, aminoAcidColorMap, 'specialAA')
-			pie_face = PieChartFace(percents, 30, 30, colors)
-			node.add_face(pie_face, column=columnNum, position="branch-right")
-			columnNum += 1
-
-		if hasTaxa():
-			node.add_face(TextFace(" ", fsize=10), column=columnNum, position="branch-right")
-			columnNum += 1
-			percents, colors = getColorsAndPercents(node, taxonColorMap, 'taxonOfInterest')
-			pie_face = PieChartFace(percents, 30, 30, colors)
-			node.add_face(pie_face, column=columnNum, position="branch-right")
-			columnNum += 1
-
+		collapsedNodeLayout(node, 0, -2)
 	else:
 		addSupportValues(node)
+
+###############################################################################
+def collapsedCompactTreeLayout(node):
+	if node.is_leaf():
+		collapsedLeafLayout(node)
+	elif not node.img_style["draw_descendants"]:
+		# Technically this is an internal node
+		columnNum = addSupportPieCharts(node, 0)
+		collapsedNodeLayout(node, columnNum, 0)
+	else:
+		columnNum = addSupportPieCharts(node, 0)
+
+###############################################################################
+def collapsedLeafLayout(node):
+	columnNum = 0
+
+	# If terminal node, draws it name
+	if node.name == "":
+		name_face =  TextFace(" ")
+	else:
+		name_face = AttrFace("name", text_prefix=" ", text_suffix=" ")
+
+	name_face.margin_top = -2
+	# Add the name face to the image at the preferred position
+	node.add_face(name_face, column=columnNum, position="branch-right")
+	columnNum += 1
+
+	if hasSpecialAA():
+		if hasattr(node, 'specialAA'):
+			aa_face = TextFace(node.specialAA)
+			aa_face.background.color = aminoAcidColorMap[node.specialAA].color
+		else:
+			aa_face = TextFace(" ")
+			aa_face.background.color = "Black"
+
+		node.add_face(aa_face, column=columnNum, position="branch-right")
+		columnNum += 1
+
+	if hasTaxa():
+		if hasattr(node, 'taxonOfInterest'):
+			it_face = TextFace(" " + node.taxonOfInterest)
+			it_face.fgcolor = taxonColorMap[node.taxonOfInterest].color
+		else:
+			it_face = TextFace(" ")
+			it_face.fgcolor = "Black"
+
+		it_face.margin_top = 4
+		it_face.margin_bottom = 4
+		node.add_face(it_face, column=columnNum, position="branch-right")
+		columnNum += 1
+
+	if not node.img_style["draw_descendants"]:
+		node.add_face(TextFace(" " + node.cladeName), column=columnNum, position="branch-right")
+		columnNum += 1
+
+###############################################################################
+def collapsedNodeLayout(node, columnNum, marginLeft):
+
+	simple_motifs = [
+		# seq.start, seq.end, shape, width, height, fgcolor, bgcolor
+		[0, 5, "<", None, 30, node.img_style["fgcolor"], node.img_style["fgcolor"], ""],
+	]
+
+	seq_face = SeqMotifFace(motifs=simple_motifs)
+	seq_face.margin_left = marginLeft
+	seq_face.rotable = False
+	node.add_face(seq_face, column=columnNum, position="branch-right")
+	columnNum += 1
+
+	# If terminal node, draws its name
+	name_face = TextFace(" " + node.cladeName + " - " + str(countLeaves(node)) + " ")
+#	name_face.margin_top = -2
+	# Add the name face to the image at the preferred position
+	node.add_face(name_face, column=columnNum, position="branch-right")
+	columnNum += 1
+
+	if hasSpecialAA():
+		percents, colors = getColorsAndPercents(node, aminoAcidColorMap, 'specialAA')
+		pie_face = PieChartFace(percents, 30, 30, colors)
+		pie_face.margin_top = 4
+		pie_face.margin_bottom = 4
+		node.add_face(pie_face, column=columnNum, position="branch-right")
+		columnNum += 1
+
+	if hasTaxa():
+		node.add_face(TextFace(" ", fsize=10), column=columnNum, position="branch-right")
+		columnNum += 1
+		percents, colors = getColorsAndPercents(node, taxonColorMap, 'taxonOfInterest')
+		pie_face = PieChartFace(percents, 30, 30, colors)
+		pie_face.margin_top = 4
+		pie_face.margin_bottom = 4
+		node.add_face(pie_face, column=columnNum, position="branch-right")
+		columnNum += 1
 
 ###############################################################################
 def addSupportValues(node):
@@ -1230,8 +1303,15 @@ if __name__ == "__main__":
 	logging.debug("Save collapsed tree: " + outCollapsedTree)
 	collapseTree(tree, clades)
 
+	comTree = tree.copy()
+
 	ts = getCollapsedTreeStyle(tree)
 	tree.render(outCollapsedTree + ".pdf", dpi=600, w=400, units="mm", tree_style=ts)
 	tree.render(outCollapsedTree + ".svg", dpi=600, w=400, units="mm", tree_style=ts)
+
+	ts.layout_fn = collapsedCompactTreeLayout
+
+	comTree.render(outCollapsedTree + "Com.pdf", dpi=600, w=400, units="mm", tree_style=ts)
+	comTree.render(outCollapsedTree + "Com.svg", dpi=600, w=400, units="mm", tree_style=ts)
 
 ###############################################################################

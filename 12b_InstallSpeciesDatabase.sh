@@ -34,7 +34,7 @@ fi
 if [[ ! -f "$genusLinages" ]]
 then
 	# That is a dirty workaround with the 10 underscores
-	# with ^ matching the bbeginning of the line directly
+	# with ^ matching the beginning of the line directly
 	# grep runs out of memory
 	grep -o -e "^[[:digit:]]\+	|	[[:alpha:]]\+	|		|		|	[[:alpha:]]\+	|" $genusLinagesRaw | \
 	grep -o -e "^[[:digit:]]\+" | \
