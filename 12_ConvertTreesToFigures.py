@@ -572,15 +572,7 @@ def fullTreeLayout(node):
 			columnNum += 1
 
 	else:
-		# If internal node, draws label with smaller font size
-		if node.name == "":
-			name_face = TextFace(" ", fsize=10)
-		else:
-			color = getSupportOverThresholdColor(node.name)
-			name_face = AttrFace("name", fsize=10, fgcolor=color)
-
-		# Add the name face to the image at the preferred position
-		faces.add_face_to_node(name_face, node, column=0, position="branch-top")
+		addSupportValues(node)
 
 ###############################################################################
 def collapsedTreeLayout(node):
@@ -641,15 +633,7 @@ def collapsedTreeLayout(node):
 		node.add_face(seq_face, column=columnNum, position="branch-right")
 		columnNum += 1
 
-		# If internal node, draws label with smaller font size
-		if node.name == "":
-			name_face = TextFace(" ", fsize=10)
-		else:
-			color = getSupportOverThresholdColor(node.name)
-			name_face = AttrFace("name", fsize=10, fgcolor=color)
-
-		# Add the name face to the image at the preferred position
-		node.add_face(name_face, column=0, position="branch-top") # Branch-top is 0
+		addSupportValues(node)
 
 		# If terminal node, draws its name
 		name_face = TextFace(" " + node.cladeName + " - " + str(countLeaves(node)) + " ")
@@ -673,6 +657,10 @@ def collapsedTreeLayout(node):
 			columnNum += 1
 
 	else:
+		addSupportValues(node)
+
+###############################################################################
+def addSupportValues(node):
 		# If internal node, draws label with smaller font size
 		if node.name == "":
 			name_face = TextFace(" ", fsize=10)
