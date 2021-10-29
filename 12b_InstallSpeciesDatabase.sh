@@ -33,16 +33,7 @@ fi
 # extract the genus entries from the full lineage species database
 if [[ ! -f "$genusLinages" ]]
 then
-	# That is a dirty workaround with the 10 underscores
-	# with ^ matching the beginning of the line directly
-	# grep runs out of memory
-	grep -o -e "^[[:digit:]]\+	|	[[:alpha:]]\+	|		|		|	[[:alpha:]]\+	|" $genusLinagesRaw | \
-	grep -o -e "^[[:digit:]]\+" | \
-	sed "s/^\(.*$\)/__________\1/g" > $taxonIDs
-
-	sed "s/^\(.*$\)/__________\1/g" $genusLinagesFull | \
-	grep -w -f $taxonIDs | \
-	sed "s/\t|\t/\t/g" | \
-	sed "s/ \t|//g" | \
-	sed "s/^__________//g" > "$genusLinages"
+	sed -E "/^[0-9]+	\|	[a-zA-Z]+ .*$/d" $genusLinagesFull | \
+	sed -E "s/	\|//g" | \
+	sed -E "s/ $//g" > "$genusLinages"
 fi
