@@ -1185,7 +1185,7 @@ def loadTaxa(iterestingTaxa):
 			if taxonColorMap[taxon].entryType == type_regular:
 				checkString = " " + taxon + ";"
 				if checkString in splitLine[2]:
-					genusInterestingTaxaMap[splitLine[1].lower()] = taxon
+					genusInterestingTaxaMap[splitLine[1]] = taxon
 
 ###############################################################################
 def addHigherTaxaOfInterest(tree):
@@ -1193,7 +1193,7 @@ def addHigherTaxaOfInterest(tree):
 		return
 
 	for leaf in tree.iter_leaves():
-		nameSplit = leaf.name.lower().split("_")
+		nameSplit = leaf.name.split("_")
 		for string in nameSplit:
 			if string in genusInterestingTaxaMap:
 				leaf.taxonOfInterest = genusInterestingTaxaMap[string]
