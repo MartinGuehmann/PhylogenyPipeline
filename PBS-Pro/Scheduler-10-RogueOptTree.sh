@@ -114,7 +114,7 @@ echo "suffix:           $suffix"           >&2
 echo "extension:        $extension"        >&2
 echo "previousAligner:  $previousAligner"  >&2
 echo "trimAl:           $trimAl"           >&2
-echo "Note PBS-Pro copies the script to"   >&2
+echo "Note the script is copied to"        >&2
 echo "another place with another name"     >&2
 
 if [ -z "$gene" ]
@@ -139,14 +139,34 @@ fi
 # so that the standard and error output files to the directory of this script
 cd $DIR
 
-# Align all the sequences
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "9" -i "$iteration" -a "$aligner" --hold $allSeqs $suffix $previousAligner $trimAl)
+jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "10" -i "$iteration" -a "$aligner" $allSeqs --hold $suffix $previousAligner)
+echo $jobIDs
+holdJobs=$jobIDs
+jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "11" -i "$iteration" -a "$aligner" $allSeqs -d "$jobIDs" $shuffleSeqs $suffix $previousAligner)
 echo $jobIDs
 
-# Schedule tree reconstruction, can only run when all alignments are ready
-"$DIR/Schel-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" -W "depend=afterok$jobIDs" \
-    "$DIR/PBS-Pro-10-RogueOptTree.sh"
+"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration, previousAligner=$previousAligner" -W "depend=afterok$holdJobs$jobIDs" \
+    "$DIR/Scheduler-11-RemoveMoreRougues.sh"
+
+if [[ "$allSeqs" == "--allSeqs" && $numRoundsLeft == "0" ]]
+then
+	jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "12" -i "$iteration" -a "$aligner" -d "$holdJobs" $suffix $extension -U)
+
+	# Update all pdf files
+	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, extension=$extension" -W "depend=afternotok$jobIds" "$DIR/Scheduler-12-RevisualizeAllTrees.sh"
+else
+	# Depends only on the jobs from step 10
+	jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "12" -i "$iteration" -a "$aligner" -d "$holdJobs" $suffix $extension -u -M)
+	echo $jobIDs
+fi
+
+if [[ "$allSeqs" == "--allSeqs" ]]
+then
+	# If we run against the wall, just restart the main task
+	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" -W "depend=afternotok$holdJobs" \
+	    "$DIR/Scheduler-10-RogueOptTree.sh"
+fi
 
 # Start held jobs
-jobIDs=$(echo $jobIDs | sed "s/:/ /g")
-"$DIR/Schel-RelHold.sh" $jobIDs
+holdJobs=$(echo $holdJobs | sed "s/:/ /g")
+"$DIR/Scheduler-RelHold.sh" $holdJobs

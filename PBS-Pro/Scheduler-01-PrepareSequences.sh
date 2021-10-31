@@ -93,28 +93,43 @@ echo "bigNumRoundsLeft: $bigNumRoundsLeft" >&2
 echo "shuffleSeqs:      $shuffleSeqs"      >&2
 echo "extension:        $extension"        >&2
 echo "trimAl:           $trimAl"           >&2
-echo "Note PBS-Pro copies the script to"   >&2
+echo "Note the script is copied to"        >&2
 echo "another place with another name"     >&2
 
 if [ -z "$gene" ]
 then
 	echo "GeneName missing" >&2
-	echo "You must give a GeneName, for instance:" >&2
-	echo "./$thisScript -g GeneName" >&2
+	echo "You must give a GeneName and a StepNumber, for instance:" >&2
+	echo "./$thisScript GeneName StepNumber" >&2
 	exit 1
+fi
+
+if [ -z "$aligner" ]
+then
+	aligner=$("$DIR/../GetDefaultAligner.sh")
 fi
 
 # Change the working directory to the directory of this script
 # so that the standard and error output files to the directory of this script
 cd $DIR
 
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "13" --hold)
+# Align all the sequences
+jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "1" --hold)
 echo $jobIDs
 holdJobs=$jobIDs
+jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "2" -d "$jobIDs")
+echo $jobIDs
+jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "3" -d "$jobIDs")
+echo $jobIDs
+jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "4" -d "$jobIDs")
+echo $jobIDs
 
-"$DIR/Schel-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl" -W "depend=afterok$jobIDs" \
-    "$DIR/PBS-Pro-14-ExtractSequencesOfInterestWithPASTA.sh"
+if [ "$continue" == "--continue" ]
+then
+	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl" -W "depend=afterok$jobIDs" \
+	    "$DIR/Scheduler-13-ExtractSequencePreparation.sh"
+fi
 
 # Start held jobs
 holdJobs=$(echo $holdJobs | sed "s/:/ /g")
-"$DIR/Schel-RelHold.sh" $holdJobs
+"$DIR/Scheduler-RelHold.sh" $holdJobs

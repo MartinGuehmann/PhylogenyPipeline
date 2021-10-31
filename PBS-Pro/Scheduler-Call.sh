@@ -11,7 +11,7 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 shopt -s extglob
 
-# These would need not defind guards if called via "$DIR/Schel-Sub.sh"
+# These would need not defind guards if called via "$DIR/Scheduler-Sub.sh"
 iteration="0"
 hold=""
 depend=""
@@ -159,7 +159,7 @@ then
 	aligner=$("$DIR/../GetDefaultAligner.sh")
 fi
 
-alignFileStart="$DIR/09_PBS-Pro-AlignWith"
+alignFileStart="$DIR/09_Scheduler-AlignWith"
 bashExtension="sh"
 alignerFile="$alignFileStart$aligner.$bashExtension"
 
@@ -201,40 +201,40 @@ case $step in
 0)
 	# Depends on the server of NCBI, thus quite slow and thus a cluster is not useful
 	# This is a bit supoptimal, but still works
-	jobIDs=:$("$DIR/Schel-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/00_PBS-Pro-GetGenesFromAllDataBases.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/00_Scheduler-GetGenesFromAllDataBases.sh")
 	;;
 1)
-	jobIDs=:$("$DIR/Schel-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/01_PBS-Pro-CombineHitsForEachDatabase.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/01_Scheduler-CombineHitsForEachDatabase.sh")
 	;;
 2)
-	jobIDs=:$("$DIR/Schel-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/02_PBS-Pro-CombineHitsFromAllNCBIDatabases.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/02_Scheduler-CombineHitsFromAllNCBIDatabases.sh")
 	;;
 3)
 	# Efetch is missing for that, anyway this can be done on a laptop
-	jobIDs=:$("$DIR/Schel-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/03_PBS-Pro-ExtractSequences.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/03_Scheduler-ExtractSequences.sh")
 	;;
 4)
-	jobIDs=:$("$DIR/Schel-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/04_PBS-Pro-MakeNonRedundant.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/04_Scheduler-MakeNonRedundant.sh")
 	;;
 5)
-	jobIDs=:$("$DIR/Schel-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/05_PBS-Pro-MakeClansFile.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/05_Scheduler-MakeClansFile.sh")
 	;;
 6)
-	jobIDs=:$("$DIR/Schel-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/06_PBS-Pro-ClusterWithClans.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/06_Scheduler-ClusterWithClans.sh")
 	;;
 7)
-	jobIDs=:$("$DIR/Schel-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/07_PBS-Pro-MakeTreeForPruning.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/07_Scheduler-MakeTreeForPruning.sh")
 	;;
 8)
-	jobIDs=:$("$DIR/Schel-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/08_PBS-Pro-ExtractSequencesOfInterest.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/08_Scheduler-ExtractSequencesOfInterest.sh")
 	;;
 9)
 	if [[ ! -z $inputFile ]]
 	then
-		jobIDs=:$("$DIR/Schel-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$inputFile, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" "$alignerFile")
+		jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$inputFile, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" "$alignerFile")
 	elif [[ $allSeqs == "allSeqs" ]]
 	then
-		jobIDs=:$("$DIR/Schel-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" "$alignerFile")
+		jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" "$alignerFile")
 	else
 		# Make alignment directory if it does not exist
 		mkdir -p $AlignmentDir
@@ -244,42 +244,42 @@ case $step in
 
 		echo "$SequencesOfInterestParts"+([0-9])".fasta" > $seqFiles
 		numFiles=$(wc -w $seqFiles | cut -d " " -f1)
-		jobIDs+=:$("$DIR/Schel-Sub.sh" $hold $depend -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, seqFiles=$seqFiles, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" "$alignerFile")
+		jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, seqFiles=$seqFiles, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" "$alignerFile")
 	fi
 	;;
 10)
 	if [[ $allSeqs == "allSeqs" ]]
 	then
-		jobIDs=:$("$DIR/Schel-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner, suffix=$suffix, previousAligner=$previousAligner" "$DIR/10_PBS-Pro-Long-MakeTreeWithIQ-Tree.sh")
+		jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner, suffix=$suffix, previousAligner=$previousAligner" "$DIR/10_Scheduler-Long-MakeTreeWithIQ-Tree.sh")
 	else
 		alignmentFiles="$AlignmentDir/$AlingmentFilesFile"
 
 		echo "$AlignmentParts"*"$AlignmentLastBit" > $alignmentFiles
 		numFiles=$(wc -w $alignmentFiles | cut -d " " -f1)
-		jobIDs+=:$("$DIR/Schel-Sub.sh" $hold $depend -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, alignmentFiles=$alignmentFiles, iteration=$iteration, aligner=$aligner, suffix=$suffix, previousAligner=$previousAligner" "$DIR/10_PBS-Pro-MakeTreeWithIQ-Tree.sh")
+		jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, alignmentFiles=$alignmentFiles, iteration=$iteration, aligner=$aligner, suffix=$suffix, previousAligner=$previousAligner" "$DIR/10_Scheduler-MakeTreeWithIQ-Tree.sh")
 	fi
 	;;
 11)
-	jobIDs+=:$("$DIR/Schel-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, shuffleSeqs=$shuffleSeqs, suffix=$suffix, previousAligner=$previousAligner, restore=$restore" "$DIR/11_PBS-Pro-RemoveRogues.sh")
+	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, shuffleSeqs=$shuffleSeqs, suffix=$suffix, previousAligner=$previousAligner, restore=$restore" "$DIR/11_Scheduler-RemoveRogues.sh")
 	;;
 12)
-	jobIDs+=:$("$DIR/Schel-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, suffix=$suffix, extension=$extension, update=$update, updateBig=$updateBig, inputDir=$inputDir, ignoreIfMasterFileDoesNotExist=$ignoreIfMasterFileDoesNotExist" "$DIR/12_PBS-ConvertTreesToFigures.sh")
+	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, suffix=$suffix, extension=$extension, update=$update, updateBig=$updateBig, inputDir=$inputDir, ignoreIfMasterFileDoesNotExist=$ignoreIfMasterFileDoesNotExist" "$DIR/12_Scheduler-ConvertTreesToFigures.sh")
 	;;
 13)
-	jobIDs+=:$("$DIR/Schel-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/13_PBS-Pro-SplitNonRedundantSequences.sh")
+	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/13_Scheduler-SplitNonRedundantSequences.sh")
 	;;
 14)
 	echo "$SequenceChunksForPruningDir/"*".part_"+([0-9])".fasta" > $seqFiles
 	numFiles=$(wc -w $seqFiles | cut -d " " -f1)
-	jobIDs+=:$("$DIR/Schel-Sub.sh" $hold $depend -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, seqFiles=$seqFiles, trimAl=$trimAl" "$DIR/14_PBS-Pro-AlignWithPASTAForPruning.sh")
+	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, seqFiles=$seqFiles, trimAl=$trimAl" "$DIR/14_Scheduler-AlignWithPASTAForPruning.sh")
 	;;
 15)
 	echo "$AllPruningSeqs"+([0-9])"$PruningLastBit" > $alignmentFiles
 	numFiles=$(wc -w $alignmentFiles | cut -d " " -f1)
-	jobIDs+=:$("$DIR/Schel-Sub.sh" $hold $depend -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, alignmentFiles=$alignmentFiles" "$DIR/15_PBS-Pro-MakeTreeWithIQ-TreeForPruning.sh")
+	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, alignmentFiles=$alignmentFiles" "$DIR/15_Scheduler-MakeTreeWithIQ-TreeForPruning.sh")
 	;;
 16)
-	jobIDs+=:$("$DIR/Schel-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene, extension=$extension" "$DIR/16_PBS-Pro-ExtractSequencesOfInterest.sh")
+	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene, extension=$extension" "$DIR/16_Scheduler-ExtractSequencesOfInterest.sh")
 	;;
 
 *)

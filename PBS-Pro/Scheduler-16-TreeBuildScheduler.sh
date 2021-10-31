@@ -88,7 +88,7 @@ echo "bigNumRoundsLeft: $bigNumRoundsLeft" >&2
 echo "shuffleSeqs:      $shuffleSeqs"      >&2
 echo "extension:        $extension"        >&2
 echo "trimAl:           $trimAl"           >&2
-echo "Note PBS-Pro copies the script to"   >&2
+echo "Note the script is copied to"        >&2
 echo "another place with another name"     >&2
 
 
@@ -132,15 +132,15 @@ extension="-e treefile"
 previousAligner=""
 
 # Make an iteration for all available aligners, except for the main aligner
-for alignerScript in "$DIR/09_PBS-Pro-AlignWith"*".sh"*
+for alignerScript in "$DIR/09_Scheduler-AlignWith"*".sh"*
 do
-	if [[ $alignerScript =~ 09_PBS-Pro-AlignWith(.*)\.sh ]]
+	if [[ $alignerScript =~ 09_Scheduler-AlignWith(.*)\.sh ]]
 	then
 		usedAligner=${BASH_REMATCH[1]}
 		if [[ $usedAligner != $aligner ]]
 		then
-			"$DIR/Schel-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$usedAligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
-			    "$DIR/PBS-Pro-09-RogueOptAlign.sh"
+			"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$usedAligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+			    "$DIR/Scheduler-09-RogueOptAlign.sh"
 		fi
 	fi
 done
@@ -149,27 +149,27 @@ oldSuffix=$suffix
 suffix="-x BigTree0"
 # Make the big tree with the main aligner
 allSeqs="--allSeqs"
-"$DIR/Schel-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
-    "$DIR/PBS-Pro-09-RogueOptAlign.sh"
+"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+    "$DIR/Scheduler-09-RogueOptAlign.sh"
 suffix=$oldSuffix
 
 suffix="-x $gene.BigTree0"
 previousAligner="-p $gene"
 # Make a big tree with the main aligner and without outgroup
-"$DIR/Schel-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
-    "$DIR/PBS-Pro-09-RogueOptAlign.sh"
+"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+    "$DIR/Scheduler-09-RogueOptAlign.sh"
 
 allSeqs=""
 suffix="-x $gene"
 # Make also small trees with the main aligner and without outgroup
-"$DIR/Schel-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
-    "$DIR/PBS-Pro-09-RogueOptAlign.sh"
+"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+    "$DIR/Scheduler-09-RogueOptAlign.sh"
 suffix=""
 previousAligner=""
 
 # Make 20 iterations with the main aligner, make a big tree after 10 iterations
-"$DIR/Schel-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" \
-    "$DIR/PBS-Pro-09-RogueOptAlign.sh"
+"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" \
+    "$DIR/Scheduler-09-RogueOptAlign.sh"
 
 if [ -z "$trimAl" ]
 then
@@ -183,5 +183,5 @@ else
 fi
 
 # Make an iteration for the main aligner, with switched pruning settings
-"$DIR/Schel-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
-    "$DIR/PBS-Pro-09-RogueOptAlign.sh"
+"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+    "$DIR/Scheduler-09-RogueOptAlign.sh"

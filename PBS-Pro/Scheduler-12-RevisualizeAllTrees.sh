@@ -57,7 +57,7 @@ echo "gene:             $gene"             >&2
 echo "iteration:        $iteration"        >&2
 echo "aligner:          $aligner"          >&2
 echo "extension:        $extension"        >&2
-echo "Note PBS-Pro copies the script to"   >&2
+echo "Note the script is copied to"        >&2
 echo "another place with another name"     >&2
 
 if [ -z "$gene" ]
@@ -84,7 +84,7 @@ do
 	then
 		for iterDir in "$alignerDir/"*
 		do
-			jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "12" -i "$iteration" -a "$aligner" -f "$iterDir" $extension -u)
+			jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "12" -i "$iteration" -a "$aligner" -f "$iterDir" $extension -u)
 		done
 	fi
 done

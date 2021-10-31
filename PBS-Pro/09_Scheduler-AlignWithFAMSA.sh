@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#PBS -l select=1:ncpus=4:mem=30gb
-#PBS -l walltime=24:00:00
+#PBS -l select=1:ncpus=8:mem=30gb
+#PBS -l walltime=4:00:00
 
 # Go to the first program line,
 # any PBS directive below that is ignored.
@@ -18,9 +18,9 @@ fi
 
 if [ ! -z $seqFiles ]
 then
-	seqsToAlign=$(cut -d " " -f $("$DIR/Schel-GetArrayIndex.sh") $seqFiles)
+	seqsToAlign=$(cut -d " " -f $("$DIR/Scheduler-GetArrayIndex.sh") $seqFiles)
 fi
 
 date
-time "$DIR/../RunAll.sh" -g "$gene" -s "9" -i "$iteration" -a "PASTA" -f "$seqsToAlign" $suffix $previousAligner $trimAl
+time "$DIR/../RunAll.sh" -g "$gene" -s "9" -i "$iteration" -a "FAMSA" -f "$seqsToAlign" $suffix $previousAligner $trimAl
 date

@@ -19,7 +19,7 @@ fi
 
 if [ ! -z $alignmentFiles ]
 then
-	alignmentToUse=$(cut -d " " -f $("$DIR/Schel-GetArrayIndex.sh") $alignmentFiles)
+	alignmentToUse=$(cut -d " " -f $("$DIR/Scheduler-GetArrayIndex.sh") $alignmentFiles)
 fi
 
 date

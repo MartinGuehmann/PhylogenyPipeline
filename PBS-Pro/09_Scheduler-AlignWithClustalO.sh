@@ -1,12 +1,12 @@
 #!/bin/bash
 
 #PBS -l select=1:ncpus=24:mem=100gb
-#PBS -l walltime=24:00:00
+#PBS -l walltime=8:00:00
 
 # Go to the first program line,
 # any PBS directive below that is ignored.
 # Load modules
-module load apps/tcoffee/13.45.0
+module load apps/clustal-omega/1.2.4-gcc
 
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
@@ -19,9 +19,9 @@ fi
 
 if [ ! -z $seqFiles ]
 then
-	seqsToAlign=$(cut -d " " -f $("$DIR/Schel-GetArrayIndex.sh") $seqFiles)
+	seqsToAlign=$(cut -d " " -f $("$DIR/Scheduler-GetArrayIndex.sh") $seqFiles)
 fi
 
 date
-time "$DIR/../RunAll.sh" -g "$gene" -s "9" -i "$iteration" -a "RegTCoffee" -f "$seqsToAlign" $suffix $previousAligner $trimAl
+time "$DIR/../RunAll.sh" -g "$gene" -s "9" -i "$iteration" -a "ClustalO" -f "$seqsToAlign" $suffix $previousAligner $trimAl
 date

@@ -17,7 +17,7 @@ then
 	exit 1
 fi
 
-alignmentToUse=$(cut -d " " -f $("$DIR/Schel-GetArrayIndex.sh") $alignmentFiles)
+alignmentToUse=$(cut -d " " -f $("$DIR/Scheduler-GetArrayIndex.sh") $alignmentFiles)
 
 date
 time "$DIR/../RunAll.sh" -g "$gene" -s "15" -f "$alignmentToUse"

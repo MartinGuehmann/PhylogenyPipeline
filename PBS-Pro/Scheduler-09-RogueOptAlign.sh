@@ -1,12 +1,5 @@
 #!/bin/bash
 
-#PBS -l select=1:ncpus=1:mem=1gb
-#PBS -l walltime=0:10:00
-
-# Go to the first program line,
-# any PBS directive below that is ignored.
-# No modules to load
-
 if [ -z $DIR ]
 then
 	# Get the directory where this script is
@@ -114,19 +107,21 @@ echo "iteration:        $iteration"        >&2
 echo "bigTreeIteration: $bigTreeIteration" >&2
 echo "aligner:          $aligner"          >&2
 echo "numRoundsLeft:    $numRoundsLeft"    >&2
+echo "bigNumRoundsLeft: $bigNumRoundsLeft" >&2
 echo "allSeqs:          $allSeqs"          >&2
 echo "shuffleSeqs:      $shuffleSeqs"      >&2
 echo "suffix:           $suffix"           >&2
 echo "extension:        $extension"        >&2
 echo "previousAligner:  $previousAligner"  >&2
 echo "trimAl:           $trimAl"           >&2
-echo "Note PBS-Pro copies the script to"   >&2
+echo "Note the script is copied to"        >&2
 echo "another place with another name"     >&2
 
 if [ -z "$gene" ]
 then
-	echo "You must give a GeneName, for instance:" >&2
-	echo "./$thisScript GeneName" >&2
+	echo "GeneName missing" >&2
+	echo "You must give a GeneName and a StepNumber, for instance:" >&2
+	echo "./$thisScript GeneName StepNumber" >&2
 	exit 1
 fi
 
@@ -140,82 +135,18 @@ then
 	aligner=$("$DIR/../GetDefaultAligner.sh")
 fi
 
-nextIteration="$((iteration + 1))"
-rogueFreeTreesDir=$("$DIR/../GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$nextIteration" -a "$aligner" $suffix)
-droppedFinal="$rogueFreeTreesDir/SequencesOfInterest.dropped.fasta"
+# Change the working directory to the directory of this script
+# so that the standard and error output files to the directory of this script
+cd $DIR
 
+# Align all the sequences
+jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "9" -i "$iteration" -a "$aligner" --hold $allSeqs $suffix $previousAligner $trimAl)
+echo $jobIDs
 
-if [[ ! -z "$bigTreeIteration" && $bigTreeIteration == $iteration ]]
-then
-	olfSuffix=$suffix
+# Schedule tree reconstruction, can only run when all alignments are ready
+"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" -W "depend=afterok$jobIDs" \
+    "$DIR/Scheduler-10-RogueOptTree.sh"
 
-	if [ -z $suffix ]
-	then
-		suffix="-x BigTree$iteration"
-	else
-		suffix="$suffix.BigTree$iteration"
-	fi
-
-	if [[ -z $bigNumRoundsLeft ]]
-	then
-		bigNumRoundsLeft = "0"
-	fi
-
-	oldAllSeqs=$allSeqs
-	allSeqs="--allSeqs"
-	if [ -z $suffix ]
-	then
-		previousAligner=$aligner
-	else
-		previousAligner=$aligner.$oldSuffix
-	fi
-
-	"$DIR/Schel-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
-	    "$DIR/PBS-Pro-09-RogueOptAlign.sh"
-	allSeqs=$oldAllSeqs
-	suffix=$olfSuffix
-fi
-
-if [ -z "$numRoundsLeft" ] # Should be an unset variable or an empty string
-then
-	numRoundsLeft=""
-elif [[ $numRoundsLeft =~ ^[+-]?[0-9]+$ ]]
-then
-	if (( numRoundsLeft <= 0 ))
-	then
-		echo "Num rounds left at $numRoundsLeft rounds left, in iteration $iteration" >&2
-		exit 0
-	else
-		echo "$numRoundsLeft more rounds to go, next iteration: $nextIteration" >&2
-		((numRoundsLeft--))
-	fi
-fi
-
-if [[ ! -f $droppedFinal ]]
-then
-	echo "$droppedFinal does not exist, exiting" >&2
-	# Break if this does not exist
-	exit 1
-fi
-
-numDropped=$(grep -c ">" $droppedFinal)
-
-if (( numDropped == 0 ))
-then
-	if [ -z "$numRoundsLeft" ]
-	then
-		numRoundsLeft=0
-	fi
-fi
-
-if [[ ! -z $bigTreeIteration ]]
-then
-	bigTreeIteration = "-b $bigTreeIteration"
-fi
-
-if [[ ! -z $bigNumRoundsLeft ]]
-then
-	bigNumRoundsLeft = "-b $bigNumRoundsLeft"
-fi
-
-"$DIR/PBS-Pro-09-RogueOptAlign.sh" -g "$gene" -i "$nextIteration" -a "$aligner" -n "$numRoundsLeft" $bigTreeIteration $bigNumRoundsLeft $shuffleSeqs $allSeqs $suffix $extension $trimAl
+# Start held jobs
+jobIDs=$(echo $jobIDs | sed "s/:/ /g")
+"$DIR/Scheduler-RelHold.sh" $jobIDs

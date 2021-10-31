@@ -1,12 +1,11 @@
 #!/bin/bash
 
-#PBS -l select=1:ncpus=24:mem=100gb
-#PBS -l walltime=4:00:00
+#PBS -l select=1:ncpus=4:mem=30gb
+#PBS -l walltime=24:00:00
 
 # Go to the first program line,
 # any PBS directive below that is ignored.
-# Load modules
-module load apps/mafft/7.429
+# No modules to be loaded
 
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
@@ -19,9 +18,9 @@ fi
 
 if [ ! -z $seqFiles ]
 then
-	seqsToAlign=$(cut -d " " -f $("$DIR/Schel-GetArrayIndex.sh") $seqFiles)
+	seqsToAlign=$(cut -d " " -f $("$DIR/Scheduler-GetArrayIndex.sh") $seqFiles)
 fi
 
 date
-time "$DIR/../RunAll.sh" -g "$gene" -s "9" -i "$iteration" -a "MAFFT" -f "$seqsToAlign" $suffix $previousAligner $trimAl
+time "$DIR/../RunAll.sh" -g "$gene" -s "9" -i "$iteration" -a "PASTA" -f "$seqsToAlign" $suffix $previousAligner $trimAl
 date

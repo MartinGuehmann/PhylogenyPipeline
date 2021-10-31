@@ -99,10 +99,10 @@ fi
 jobIDs=""
 for ((i=$iteration;i<=endIteration;i++))
 do
-	jobIDs+=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "11" -i "$i" -a "$aligner" $allSeqs -d "$jobIDs" $shuffleSeqs $suffix $previousAligner --restore)
+	jobIDs+=$($DIR/Scheduler-Call.sh             -g "$gene" -s "11" -i "$i" -a "$aligner" $allSeqs -d "$jobIDs" $shuffleSeqs $suffix $previousAligner --restore)
 done
 
 # Start held jobs
 jobIDs=$(echo $jobIDs | sed "s/:/ /g")
 echo $jobIDs
-"$DIR/Schel-RelHold.sh" $jobIDs
+"$DIR/Scheduler-RelHold.sh" $jobIDs

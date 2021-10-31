@@ -93,7 +93,7 @@ echo "bigNumRoundsLeft: $bigNumRoundsLeft" >&2
 echo "shuffleSeqs:      $shuffleSeqs"      >&2
 echo "extension:        $extension"        >&2
 echo "trimAl:           $trimAl"           >&2
-echo "Note PBS-Pro copies the script to"   >&2
+echo "Note the script is copied to"        >&2
 echo "another place with another name"     >&2
 
 if [ -z "$gene" ]
@@ -108,18 +108,26 @@ fi
 # so that the standard and error output files go to the directory of this script
 cd $DIR
 
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "15" --hold)
+jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "14" --hold $trimAl)
 holdJobs=$jobIDs
 echo $jobIDs
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "16" -d "$jobIDs" $extension)
-echo $jobIDs
 
-if [ "$continue" == "--continue" ]
+if [ "$extension" == "-e tre" ]
 then
-	"$DIR/Schel-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl" -W "depend=afterok$jobIDs" \
-	    "$DIR/PBS-Pro-16-TreeBuildScheduler.sh"
+	jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "16" -d "$jobIDs" $extension)
+	echo $jobIDs
+
+	if [ "$continue" == "--continue" ]
+	then
+		"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl" -W "depend=afterok$jobIDs" \
+		    "$DIR/Scheduler-16-TreeBuildScheduler.sh"
+	fi
+
+else
+	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl" -W "depend=afterok$jobIDs" \
+	    "$DIR/Scheduler-15-ExtractSequencesOfInterestWithIQ-Tree.sh"
 fi
 
 # Start held jobs
 holdJobs=$(echo $holdJobs | sed "s/:/ /g")
-"$DIR/Schel-RelHold.sh" $holdJobs
+"$DIR/Scheduler-RelHold.sh" $holdJobs

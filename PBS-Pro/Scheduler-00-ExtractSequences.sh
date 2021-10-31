@@ -93,7 +93,7 @@ echo "bigNumRoundsLeft: $bigNumRoundsLeft" >&2
 echo "shuffleSeqs:      $shuffleSeqs"      >&2
 echo "extension:        $extension"        >&2
 echo "trimAl:           $trimAl"           >&2
-echo "Note PBS-Pro copies the script to"   >&2
+echo "Note the script is copied to"        >&2
 echo "another place with another name"     >&2
 
 if [ -z "$gene" ]
@@ -114,22 +114,20 @@ fi
 cd $DIR
 
 # Align all the sequences
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "1" --hold)
+jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "0" --hold)
 echo $jobIDs
 holdJobs=$jobIDs
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "2" -d "$jobIDs")
-echo $jobIDs
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "3" -d "$jobIDs")
-echo $jobIDs
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "4" -d "$jobIDs")
-echo $jobIDs
+
+# If we run against the wall, just restart the main task
+"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl" -W "depend=afternotok$holdJobs" \
+    "$DIR/Scheduler-00-ExtractSequences.sh"
 
 if [ "$continue" == "--continue" ]
 then
-	"$DIR/Schel-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl" -W "depend=afterok$jobIDs" \
-	    "$DIR/PBS-Pro-13-ExtractSequencePreparation.sh"
+	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl" -W "depend=afterok$holdJobs" \
+	    "$DIR/Scheduler-01-PrepareSequences.sh"
 fi
 
 # Start held jobs
 holdJobs=$(echo $holdJobs | sed "s/:/ /g")
-"$DIR/Schel-RelHold.sh" $holdJobs
+"$DIR/Scheduler-RelHold.sh" $holdJobs

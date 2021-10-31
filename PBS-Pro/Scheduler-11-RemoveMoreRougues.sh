@@ -1,5 +1,12 @@
 #!/bin/bash
 
+#PBS -l select=1:ncpus=1:mem=1gb
+#PBS -l walltime=0:10:00
+
+# Go to the first program line,
+# any PBS directive below that is ignored.
+# No modules to load
+
 if [ -z $DIR ]
 then
 	# Get the directory where this script is
@@ -107,21 +114,19 @@ echo "iteration:        $iteration"        >&2
 echo "bigTreeIteration: $bigTreeIteration" >&2
 echo "aligner:          $aligner"          >&2
 echo "numRoundsLeft:    $numRoundsLeft"    >&2
-echo "bigNumRoundsLeft: $bigNumRoundsLeft" >&2
 echo "allSeqs:          $allSeqs"          >&2
 echo "shuffleSeqs:      $shuffleSeqs"      >&2
 echo "suffix:           $suffix"           >&2
 echo "extension:        $extension"        >&2
 echo "previousAligner:  $previousAligner"  >&2
 echo "trimAl:           $trimAl"           >&2
-echo "Note PBS-Pro copies the script to"   >&2
+echo "Note the script is copied to"        >&2
 echo "another place with another name"     >&2
 
 if [ -z "$gene" ]
 then
-	echo "GeneName missing" >&2
-	echo "You must give a GeneName and a StepNumber, for instance:" >&2
-	echo "./$thisScript GeneName StepNumber" >&2
+	echo "You must give a GeneName, for instance:" >&2
+	echo "./$thisScript GeneName" >&2
 	exit 1
 fi
 
@@ -135,38 +140,82 @@ then
 	aligner=$("$DIR/../GetDefaultAligner.sh")
 fi
 
-# Change the working directory to the directory of this script
-# so that the standard and error output files to the directory of this script
-cd $DIR
+nextIteration="$((iteration + 1))"
+rogueFreeTreesDir=$("$DIR/../GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$nextIteration" -a "$aligner" $suffix)
+droppedFinal="$rogueFreeTreesDir/SequencesOfInterest.dropped.fasta"
 
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "10" -i "$iteration" -a "$aligner" $allSeqs --hold $suffix $previousAligner)
-echo $jobIDs
-holdJobs=$jobIDs
-jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "11" -i "$iteration" -a "$aligner" $allSeqs -d "$jobIDs" $shuffleSeqs $suffix $previousAligner)
-echo $jobIDs
 
-"$DIR/Schel-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration, previousAligner=$previousAligner" -W "depend=afterok$holdJobs$jobIDs" \
-    "$DIR/PBS-Pro-11-RemoveMoreRougues.sh"
-
-if [[ "$allSeqs" == "--allSeqs" && $numRoundsLeft == "0" ]]
+if [[ ! -z "$bigTreeIteration" && $bigTreeIteration == $iteration ]]
 then
-	jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "12" -i "$iteration" -a "$aligner" -d "$holdJobs" $suffix $extension -U)
+	olfSuffix=$suffix
 
-	# Update all pdf files
-	"$DIR/Schel-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, extension=$extension" -W "depend=afternotok$jobIds" "$DIR/PBS-Pro-12-RevisualizeAllTrees.sh"
-else
-	# Depends only on the jobs from step 10
-	jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "12" -i "$iteration" -a "$aligner" -d "$holdJobs" $suffix $extension -u -M)
-	echo $jobIDs
+	if [ -z $suffix ]
+	then
+		suffix="-x BigTree$iteration"
+	else
+		suffix="$suffix.BigTree$iteration"
+	fi
+
+	if [[ -z $bigNumRoundsLeft ]]
+	then
+		bigNumRoundsLeft = "0"
+	fi
+
+	oldAllSeqs=$allSeqs
+	allSeqs="--allSeqs"
+	if [ -z $suffix ]
+	then
+		previousAligner=$aligner
+	else
+		previousAligner=$aligner.$oldSuffix
+	fi
+
+	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+	    "$DIR/Scheduler-09-RogueOptAlign.sh"
+	allSeqs=$oldAllSeqs
+	suffix=$olfSuffix
 fi
 
-if [[ "$allSeqs" == "--allSeqs" ]]
+if [ -z "$numRoundsLeft" ] # Should be an unset variable or an empty string
 then
-	# If we run against the wall, just restart the main task
-	"$DIR/Schel-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" -W "depend=afternotok$holdJobs" \
-	    "$DIR/PBS-Pro-10-RogueOptTree.sh"
+	numRoundsLeft=""
+elif [[ $numRoundsLeft =~ ^[+-]?[0-9]+$ ]]
+then
+	if (( numRoundsLeft <= 0 ))
+	then
+		echo "Num rounds left at $numRoundsLeft rounds left, in iteration $iteration" >&2
+		exit 0
+	else
+		echo "$numRoundsLeft more rounds to go, next iteration: $nextIteration" >&2
+		((numRoundsLeft--))
+	fi
 fi
 
-# Start held jobs
-holdJobs=$(echo $holdJobs | sed "s/:/ /g")
-"$DIR/Schel-RelHold.sh" $holdJobs
+if [[ ! -f $droppedFinal ]]
+then
+	echo "$droppedFinal does not exist, exiting" >&2
+	# Break if this does not exist
+	exit 1
+fi
+
+numDropped=$(grep -c ">" $droppedFinal)
+
+if (( numDropped == 0 ))
+then
+	if [ -z "$numRoundsLeft" ]
+	then
+		numRoundsLeft=0
+	fi
+fi
+
+if [[ ! -z $bigTreeIteration ]]
+then
+	bigTreeIteration = "-b $bigTreeIteration"
+fi
+
+if [[ ! -z $bigNumRoundsLeft ]]
+then
+	bigNumRoundsLeft = "-b $bigNumRoundsLeft"
+fi
+
+"$DIR/Scheduler-09-RogueOptAlign.sh" -g "$gene" -i "$nextIteration" -a "$aligner" -n "$numRoundsLeft" $bigTreeIteration $bigNumRoundsLeft $shuffleSeqs $allSeqs $suffix $extension $trimAl
