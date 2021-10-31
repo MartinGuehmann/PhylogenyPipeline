@@ -40,7 +40,8 @@ then
 			--export)
 				;&
 			-v)
-				export="-v $1"
+				shift
+				export='-v "$1"'
 				;;
 			-*)
 				;&
@@ -61,9 +62,9 @@ then
 		shift
 	done
 
-	jobIDs+=:$(qsub $hold $depend $range $export $scripts)
+	jobIDs+=:$(qsub $hold $depend $range $export $script)
 elif [ -x "$(command -v sbatch)" ]
-
+then
 	# Idiomatic parameter and option handling in sh
 	# Adapted from https://superuser.com/questions/186272/check-if-any-of-the-parameters-to-a-bash-script-match-a-string
 	# And advanced version is here https://stackoverflow.com/questions/7069682/how-to-get-arguments-with-flags-in-bash/7069755#7069755
@@ -90,6 +91,7 @@ elif [ -x "$(command -v sbatch)" ]
 			--export)
 				;&
 			-v)
+				shift
 				export="--export=$1"
 				;;
 			-*)
@@ -111,7 +113,7 @@ elif [ -x "$(command -v sbatch)" ]
 		shift
 	done
 
-	jobIDs+=:$(sbatch $hold $depend $range $export $scripts)
+	jobIDs+=:$(sbatch $hold $depend $range $export $script)
 else
 	echo "No known scheduler present!" >&2
 	exit 1

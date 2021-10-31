@@ -6,9 +6,11 @@
 
 if [ -x "$(command -v qrls)" ]
 then
-	grls "$@"
+	qrls "$@"
 elif [ -x "$(command -v scontrol)" ]
-else
+then
 	scontrol release "$@"
+else
+	echo "No known scheduler present!" >&2
 fi
 

@@ -9,9 +9,11 @@ then
 	echo ${PBS_ARRAY_INDEX}
 # Slurm
 elif [ ! -z ${SLURM_ARRAY_TASK_ID} ]
+then
 	echo ${SLURM_ARRAY_TASK_ID}
 # Torque/Moab
 elif [ ! -z ${PBS_ARRAYID} ]
+then
 	echo ${PBS_ARRAYID}
 else
 	echo "No known scheduler present!" >&2
