@@ -19,7 +19,7 @@ fi
 
 if [ ! -z $seqFiles ]
 then
-	seqsToAlign=$(cut -d " " -f ${PBS_ARRAY_INDEX} $seqFiles)
+	seqsToAlign=$(cut -d " " -f $("$DIR/Schel-GetArrayIndex.sh") $seqFiles)
 fi
 
 date

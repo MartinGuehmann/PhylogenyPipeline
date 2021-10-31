@@ -119,15 +119,15 @@ echo $jobIDs
 holdJobs=$jobIDs
 
 # If we run against the wall, just restart the main task
-qsub -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl" -W "depend=afternotok$holdJobs" \
+"$DIR/Schel-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl" -W "depend=afternotok$holdJobs" \
     "$DIR/PBS-Pro-00-ExtractSequences.sh"
 
 if [ "$continue" == "--continue" ]
 then
-	qsub -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl" -W "depend=afterok$holdJobs" \
+	"$DIR/Schel-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl" -W "depend=afterok$holdJobs" \
 	    "$DIR/PBS-Pro-01-PrepareSequences.sh"
 fi
 
 # Start held jobs
 holdJobs=$(echo $holdJobs | sed "s/:/ /g")
-qrls $holdJobs
+"$DIR/Schel-RelHold.sh" $holdJobs

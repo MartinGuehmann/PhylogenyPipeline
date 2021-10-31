@@ -145,7 +145,7 @@ holdJobs=$jobIDs
 jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "11" -i "$iteration" -a "$aligner" $allSeqs -d "$jobIDs" $shuffleSeqs $suffix $previousAligner)
 echo $jobIDs
 
-qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration, previousAligner=$previousAligner" -W "depend=afterok$holdJobs$jobIDs" \
+"$DIR/Schel-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration, previousAligner=$previousAligner" -W "depend=afterok$holdJobs$jobIDs" \
     "$DIR/PBS-Pro-11-RemoveMoreRougues.sh"
 
 if [[ "$allSeqs" == "--allSeqs" && $numRoundsLeft == "0" ]]
@@ -153,7 +153,7 @@ then
 	jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "12" -i "$iteration" -a "$aligner" -d "$holdJobs" $suffix $extension -U)
 
 	# Update all pdf files
-	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, extension=$extension" -W "depend=afternotok$jobIds" "$DIR/PBS-Pro-12-RevisualizeAllTrees.sh"
+	"$DIR/Schel-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, extension=$extension" -W "depend=afternotok$jobIds" "$DIR/PBS-Pro-12-RevisualizeAllTrees.sh"
 else
 	# Depends only on the jobs from step 10
 	jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "12" -i "$iteration" -a "$aligner" -d "$holdJobs" $suffix $extension -u -M)
@@ -163,10 +163,10 @@ fi
 if [[ "$allSeqs" == "--allSeqs" ]]
 then
 	# If we run against the wall, just restart the main task
-	qsub -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" -W "depend=afternotok$holdJobs" \
+	"$DIR/Schel-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" -W "depend=afternotok$holdJobs" \
 	    "$DIR/PBS-Pro-10-RogueOptTree.sh"
 fi
 
 # Start held jobs
 holdJobs=$(echo $holdJobs | sed "s/:/ /g")
-qrls $holdJobs
+"$DIR/Schel-RelHold.sh" $holdJobs

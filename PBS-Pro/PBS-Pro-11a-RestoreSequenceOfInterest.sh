@@ -105,4 +105,4 @@ done
 # Start held jobs
 jobIDs=$(echo $jobIDs | sed "s/:/ /g")
 echo $jobIDs
-qrls $jobIDs
+"$DIR/Schel-RelHold.sh" $jobIDs

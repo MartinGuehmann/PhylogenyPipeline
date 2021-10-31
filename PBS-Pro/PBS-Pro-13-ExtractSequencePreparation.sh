@@ -112,9 +112,9 @@ jobIDs=$($DIR/PBS-Pro-Call.sh             -g "$gene" -s "13" --hold)
 echo $jobIDs
 holdJobs=$jobIDs
 
-qsub -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl" -W "depend=afterok$jobIDs" \
+"$DIR/Schel-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl" -W "depend=afterok$jobIDs" \
     "$DIR/PBS-Pro-14-ExtractSequencesOfInterestWithPASTA.sh"
 
 # Start held jobs
 holdJobs=$(echo $holdJobs | sed "s/:/ /g")
-qrls $holdJobs
+"$DIR/Schel-RelHold.sh" $holdJobs
