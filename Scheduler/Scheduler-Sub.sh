@@ -10,6 +10,7 @@ hold=""
 depend=""
 range=""
 export=""
+exportFlag=""
 script=""
 
 if [ -x "$(command -v qsub)" ]
@@ -41,7 +42,8 @@ then
 				;&
 			-v)
 				shift
-				export='-v "$1"'
+				export="$1"
+				exportFlag="-v"
 				;;
 			-*)
 				;&
@@ -62,7 +64,7 @@ then
 		shift
 	done
 
-	jobIDs+=:$(qsub $hold $depend $range $export $script)
+	qsub $hold $depend $range $exportFlag "$export" $script
 elif [ -x "$(command -v sbatch)" ]
 then
 	# Idiomatic parameter and option handling in sh
@@ -113,7 +115,7 @@ then
 		shift
 	done
 
-	jobIDs+=:$(sbatch $hold $depend $range $export $script)
+	sbatch $hold $depend $range $export $script
 else
 	echo "No known scheduler present!" >&2
 	exit 1
