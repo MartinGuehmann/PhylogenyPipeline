@@ -331,11 +331,20 @@ def makeSeqLogo(tree, clades, refSeqConfigData, logoOutFileBase):
 		if clade != sortedClades[-1]:
 			ax.set_xticks([])
 
-		dataMatrix = logomaker.alignment_to_matrix(sequences)
-		seqLogo = logomaker.Logo(dataMatrix, ax=ax, color_scheme=colorScheme)
-		if clade == sortedClades[-1]:
-			seqLogo.style_xticks(anchor=anchor, spacing=spacing)
-			ax.set_xticklabels('%d'%x for x in seqRange)
+		try:
+			dataMatrix = logomaker.alignment_to_matrix(sequences)
+			seqLogo = logomaker.Logo(dataMatrix, ax=ax, color_scheme=colorScheme)
+
+			if clade == sortedClades[-1]:
+				seqLogo.style_xticks(anchor=anchor, spacing=spacing)
+				ax.set_xticklabels('%d'%x for x in seqRange)
+		# It should be something like this, but it is not imported with logomaker
+#		except logomaker.LogomakerError as err:
+		except Exception as err:
+			# We can simply continue here, only the sequence logo has missing entries
+			# The trees should not be affected
+			print(err)
+			pass
 
 		i += 1
 
@@ -411,12 +420,20 @@ def makeSeqLogo(tree, clades, refSeqConfigData, logoOutFileBase):
 		if clade != sortedClades[-1]:
 			ax.set_xticks([])
 
-		dataMatrix = logomaker.alignment_to_matrix(sequences)
-		seqLogo = logomaker.Logo(dataMatrix, ax=ax, color_scheme=colorScheme)
-		if clade == sortedClades[-1]:
-			seqLogo.style_xticks(anchor=0, spacing=1, rotation=270)
-#			ax.set_xticklabels('%d'%x for x in seqRange)
-			ax.set_xticklabels(refSeqConfigData.interestingAAPositions)
+		try:
+			dataMatrix = logomaker.alignment_to_matrix(sequences)
+			seqLogo = logomaker.Logo(dataMatrix, ax=ax, color_scheme=colorScheme)
+			if clade == sortedClades[-1]:
+				seqLogo.style_xticks(anchor=0, spacing=1, rotation=270)
+#				ax.set_xticklabels('%d'%x for x in seqRange)
+				ax.set_xticklabels(refSeqConfigData.interestingAAPositions)
+		# It should be something like this, but it is not imported with logomaker
+#		except logomaker.LogomakerError as err:
+		except Exception as err:
+			# We can simply continue here, only the sequence logo has missing entries
+			# The trees should not be affected
+			print(err)
+			pass
 
 		i += 1
 
