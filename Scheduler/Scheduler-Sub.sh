@@ -116,7 +116,8 @@ then
 		shift
 	done
 
-	sbatch $hold $depend $range $exportFlag "$export" $script
+	jobID=$(sbatch $hold $depend $range $exportFlag"$export" $script)
+	echo ${jobID##* }
 else
 	echo "No known scheduler present!" >&2
 	exit 1
