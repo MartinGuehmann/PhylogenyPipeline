@@ -75,7 +75,7 @@ then
 		case "$1" in
 			--depend)
 				;&
-			-d)
+			-W)
 				shift
 				depend="--$1"
 				;;
