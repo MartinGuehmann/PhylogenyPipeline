@@ -95,6 +95,7 @@ then
 			-v)
 				shift
 				export="$1"
+                                export="${export//, /,}"
 				exportFlag="--export="
 				;;
 			-*)
