@@ -94,7 +94,8 @@ then
 				;&
 			-v)
 				shift
-				export="--export=$1"
+				export="$1"
+				exportFlag="--export="
 				;;
 			-*)
 				;&
@@ -115,7 +116,7 @@ then
 		shift
 	done
 
-	sbatch $hold $depend $range $export $script
+	sbatch $hold $depend $range $exportFlag "$export" $script
 else
 	echo "No known scheduler present!" >&2
 	exit 1
