@@ -145,7 +145,5 @@ fi
 
 for cladeFile in "$DIR/$gene/"*"Clades.csv"
 do
-	$DIR/12_ConvertTreesToFigures.sh -g "$gene" -c "$cladeFile" $iteration $aligner $baseIteration $masterAligner $inputDir $suffix $masterSuffix $extension $update $updateBig $ignoreIfMasterFileDoesNotExist &
+	$DIR/12_ConvertTreesToFigures.sh -g "$gene" -c "$cladeFile" $iteration $aligner $baseIteration $masterAligner $inputDir $suffix $masterSuffix $extension $update $updateBig $ignoreIfMasterFileDoesNotExist
 done
-
-wait # Wait on all the instances of 12_ConvertTreesToFigures.sh to finish

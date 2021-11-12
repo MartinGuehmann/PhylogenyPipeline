@@ -647,28 +647,65 @@ def fullTreeLayout(node):
 
 ###############################################################################
 def collapsedTreeLayout(node):
+	# alinged makes some trouble with single branches
+	pos = "branch-right"
 	if node.is_leaf():
-		collapsedLeafLayout(node)
+		collapsedLeafLayout(node, pos)
 	elif not node.img_style["draw_descendants"]:
 		# Technically this is an internal node
 		addSupportValues(node)
-		collapsedNodeLayout(node, 0, -2)
+		collapsedNodeLayout(node, 0, -2, pos)
 	else:
 		addSupportValues(node)
 
 ###############################################################################
 def collapsedCompactTreeLayout(node):
+	pos = "branch-right"
 	if node.is_leaf():
-		collapsedLeafLayout(node)
+		collapsedLeafLayout(node, pos)
 	elif not node.img_style["draw_descendants"]:
 		# Technically this is an internal node
 		columnNum = addSupportPieCharts(node, 0)
-		collapsedNodeLayout(node, columnNum, 0)
+		collapsedNodeLayout(node, columnNum, 0, pos)
 	else:
 		columnNum = addSupportPieCharts(node, 0)
 
 ###############################################################################
-def collapsedLeafLayout(node):
+def collapsedSimpleTreeLayout(node):
+	pos = "branch-right"
+
+	if node.is_leaf():
+		columnNum = 0
+
+		name_face =  TextFace(" ")
+		name_face.margin_top = -2
+		# Add the name face to the image at the preferred position
+		node.add_face(name_face, column=columnNum, position=pos)
+	elif not node.img_style["draw_descendants"]:
+		# Technically this is an internal node
+		columnNum = addSupportPieCharts(node, 0)
+		collapsedSimpleNodeLayout(node, columnNum, 0, False, pos)
+	else:
+		columnNum = addSupportPieCharts(node, 0)
+
+###############################################################################
+def collapsedSimpleNoSupportTreeLayout(node):
+	pos = "branch-right"
+
+	if node.is_leaf():
+		columnNum = 0
+
+		name_face =  TextFace(" ")
+		name_face.margin_top = -2
+		# Add the name face to the image at the preferred position
+		node.add_face(name_face, column=columnNum, position=pos)
+	elif not node.img_style["draw_descendants"]:
+		# Technically this is an internal node
+		columnNum = 0
+		collapsedSimpleNodeLayout(node, columnNum, 0, False, pos)
+
+###############################################################################
+def collapsedLeafLayout(node, pos):
 	columnNum = 0
 
 	# If terminal node, draws it name
@@ -679,7 +716,7 @@ def collapsedLeafLayout(node):
 
 	name_face.margin_top = -2
 	# Add the name face to the image at the preferred position
-	node.add_face(name_face, column=columnNum, position="branch-right")
+	node.add_face(name_face, column=columnNum, position=pos)
 	columnNum += 1
 
 	if hasSpecialAA():
@@ -690,7 +727,7 @@ def collapsedLeafLayout(node):
 			aa_face = TextFace(" ")
 			aa_face.background.color = "Black"
 
-		node.add_face(aa_face, column=columnNum, position="branch-right")
+		node.add_face(aa_face, column=columnNum, position=pos)
 		columnNum += 1
 
 	if hasTaxa():
@@ -703,15 +740,15 @@ def collapsedLeafLayout(node):
 
 		it_face.margin_top = 4
 		it_face.margin_bottom = 4
-		node.add_face(it_face, column=columnNum, position="branch-right")
+		node.add_face(it_face, column=columnNum, position=pos)
 		columnNum += 1
 
 	if not node.img_style["draw_descendants"]:
-		node.add_face(TextFace(" " + node.cladeName), column=columnNum, position="branch-right")
+		node.add_face(TextFace(" " + node.cladeName), column=columnNum, position=pos)
 		columnNum += 1
 
 ###############################################################################
-def collapsedNodeLayout(node, columnNum, marginLeft):
+def collapsedSimpleNodeLayout(node, columnNum, marginLeft, doCountLeaves, pos):
 
 	simple_motifs = [
 		# seq.start, seq.end, shape, width, height, fgcolor, bgcolor
@@ -724,29 +761,34 @@ def collapsedNodeLayout(node, columnNum, marginLeft):
 	node.add_face(seq_face, column=columnNum, position="branch-right")
 	columnNum += 1
 
-	# If terminal node, draws its name
-	name_face = TextFace(" " + node.cladeName + " - " + str(countLeaves(node)) + " ")
-#	name_face.margin_top = -2
+	numLeavesStr = (" - " + str(countLeaves(node)) + " ") if doCountLeaves else ""
+	name_face = TextFace(" " + node.cladeName + numLeavesStr)
 	# Add the name face to the image at the preferred position
-	node.add_face(name_face, column=columnNum, position="branch-right")
+	node.add_face(name_face, column=columnNum, position=pos)
 	columnNum += 1
+
+	return columnNum
+
+###############################################################################
+def collapsedNodeLayout(node, columnNum, marginLeft, pos):
+	columnNum = collapsedSimpleNodeLayout(node, columnNum, marginLeft, True, pos)
 
 	if hasSpecialAA():
 		percents, colors = getColorsAndPercents(node, aminoAcidColorMap, 'specialAA')
 		pie_face = PieChartFace(percents, 30, 30, colors)
 		pie_face.margin_top = 4
 		pie_face.margin_bottom = 4
-		node.add_face(pie_face, column=columnNum, position="branch-right")
+		node.add_face(pie_face, column=columnNum, position=pos)
 		columnNum += 1
 
 	if hasTaxa():
-		node.add_face(TextFace(" ", fsize=10), column=columnNum, position="branch-right")
+		node.add_face(TextFace(" ", fsize=10), column=columnNum, position=pos)
 		columnNum += 1
 		percents, colors = getColorsAndPercents(node, taxonColorMap, 'taxonOfInterest')
 		pie_face = PieChartFace(percents, 30, 30, colors)
 		pie_face.margin_top = 4
 		pie_face.margin_bottom = 4
-		node.add_face(pie_face, column=columnNum, position="branch-right")
+		node.add_face(pie_face, column=columnNum, position=pos)
 		columnNum += 1
 
 ###############################################################################
@@ -971,12 +1013,23 @@ def getFullTreeStyle():
 	ts.show_leaf_name = False
 	# Use my custom layout
 	ts.layout_fn = fullTreeLayout
-	# 120 pixels per branch length unit
-	#ts.scale =  120
+	# Do not show the scale bar
+	ts.show_scale = False
 	# Use dotted guide lines between leaves and labels
 	ts.draw_guiding_lines = True
-	#ts.draw_aligned_faces_as_table = False
-	#ts.allow_face_overlap = True
+
+	return ts
+
+###############################################################################
+def getCollapsedSimpleTreeStyle():
+	ts = TreeStyle()
+	# Do not add leaf names automatically
+	ts.show_leaf_name = False
+	# Use my custom layout
+	ts.layout_fn = collapsedSimpleTreeLayout
+	# Do not show the scale bar
+	ts.show_scale = False
+
 	return ts
 
 ###############################################################################
@@ -986,10 +1039,8 @@ def getCollapsedTreeStyle(tree):
 	ts.show_leaf_name = False
 	# Use my custom layout
 	ts.layout_fn = collapsedTreeLayout
-	# 120 pixels per branch length unit
-#	ts.scale =  120
-	# Use dotted guide lines between leaves and labels
-#	ts.draw_guiding_lines = True
+	# Do not show the scale bar
+	ts.show_scale = False
 
 	ts.legend_position = 4
 
@@ -1302,7 +1353,8 @@ if __name__ == "__main__":
 	ts = getFullTreeStyle()
 
 	fullTree.render(outFullTree + ".pdf", dpi=600, w=183, units="mm", tree_style=ts)
-	fullTree.render(outFullTree + ".svg", dpi=600, w=183, units="mm", tree_style=ts)
+	# svg files are not printed corrected, they have duplicated text
+#	fullTree.render(outFullTree + ".svg", dpi=600, w=183, units="mm", tree_style=ts)
 
 	# Dendroscope cannot load this type of tree
 	#nexml_project = nexml.Nexml()
@@ -1320,15 +1372,24 @@ if __name__ == "__main__":
 	logging.debug("Save collapsed tree: " + outCollapsedTree)
 	collapseTree(tree, clades)
 
-	comTree = tree.copy()
+	collTree = tree.copy()
 
-	ts = getCollapsedTreeStyle(tree)
-	tree.render(outCollapsedTree + ".pdf", dpi=600, w=400, units="mm", tree_style=ts)
-	tree.render(outCollapsedTree + ".svg", dpi=600, w=400, units="mm", tree_style=ts)
+	ts = getCollapsedTreeStyle(collTree)
+	collTree.render(outCollapsedTree + ".pdf", dpi=600, w=400, units="mm", tree_style=ts)
+
+	comTree = tree.copy()
 
 	ts.layout_fn = collapsedCompactTreeLayout
 
 	comTree.render(outCollapsedTree + "Com.pdf", dpi=600, w=400, units="mm", tree_style=ts)
-	comTree.render(outCollapsedTree + "Com.svg", dpi=600, w=400, units="mm", tree_style=ts)
+#	comTree.render(outCollapsedTree + "Com.svg", dpi=600, w=400, units="mm", tree_style=ts)
+
+	simpleTree = tree.copy()
+
+	ts = getCollapsedSimpleTreeStyle()
+	simpleTree.render(outCollapsedTree + "Simple.pdf", dpi=600, w=400, units="mm", tree_style=ts)
+
+	ts.layout_fn = collapsedSimpleNoSupportTreeLayout
+	tree.render(outCollapsedTree + "SimpleNoSupp.pdf", dpi=600, w=400, units="mm", tree_style=ts)
 
 ###############################################################################
