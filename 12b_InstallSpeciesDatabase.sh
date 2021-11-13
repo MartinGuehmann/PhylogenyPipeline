@@ -25,6 +25,13 @@ mkdir -p "$speciesDatabase"
 if [[ ! -f "$genusLinagesRaw" ]]
 then
 	cd "$speciesDatabase"
+
+	# Remove these files if they already exist
+	# Something at downloading might have went wrong
+	# Redownloads are appended with a suffix
+	rm -f "taxdump_readme.txt"
+	rm -f "new_taxdump.tar.gz"
+
 	wget "ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/new_taxdump/taxdump_readme.txt"
 	wget "ftp://ftp.ncbi.nlm.nih.gov/pub/taxonomy/new_taxdump/new_taxdump.tar.gz"
 	tar xvzf "new_taxdump.tar.gz"
