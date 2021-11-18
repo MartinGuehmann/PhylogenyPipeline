@@ -218,4 +218,7 @@ then
 	bigNumRoundsLeft = "-b $bigNumRoundsLeft"
 fi
 
+# This seems to be in the environment with Slurm
+# So set it to the empty string, since it should not be passed on
+previousAligner=""
 "$DIR/Scheduler-09-RogueOptAlign.sh" -g "$gene" -i "$nextIteration" -a "$aligner" -n "$numRoundsLeft" $bigTreeIteration $bigNumRoundsLeft $shuffleSeqs $allSeqs $suffix $extension $trimAl
