@@ -529,7 +529,7 @@ def getSupportOverThresholdColor(supports):
 			pass
 	else:
 		try:
-			if(  int(supportValues[0]) > UFBootTfresholds[0]):
+			if(  int(supportValues[0]) > UFBootThresholds[0]):
 				return 'Black'
 		except ValueError:
 			pass
@@ -555,10 +555,10 @@ def addSupportPieCharts(node, columnNum):
 
 		except ValueError:
 			pass
-	else:
+	elif len(supportValues) > 0:
 		try:
-			if(  int(supportValues[0]) > UFBootTreshold):
-				return addOneSupportPieChart(node, columnNum, UFBootValue, UFBootTresholds)
+			UFBootValue = int(supportValues[0])
+			return addOneSupportPieChart(node, columnNum, UFBootValue, UFBootThresholds)
 		except ValueError:
 			pass
 
