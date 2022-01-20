@@ -78,6 +78,9 @@ class ConfigData:
 			self.toUpperLimit                = -1
 			self.interestingAAPositions      = []
 			self.interestingAAPositionsInAln = []
+			self.aaToHighlight               = []
+			self.aaToHighlightInAln          = []
+			self.highlightColors             = []
 			self.alignmentData               = None
 
 			configFileBase = os.path.dirname(configFileName)
@@ -104,6 +107,18 @@ class ConfigData:
 							self.interestingAAPositions.append(int(row[i]))
 							i += 1
 
+					elif row[0].lower() == "aatohighlight":
+						i = 1
+						while i < len(row):
+							self.aaToHighlight.append(int(row[i]))
+							i += 1
+
+					elif row[0].lower() == "highlightcolors":
+						i = 1
+						while i < len(row):
+							self.highlightColors.append(row[i])
+							i += 1
+
 	def setAlignmentData(self, alignmentData):
 		self.alignmentData = alignmentData
 		self.refSequence = AlignIO.read(self.refSeqFileName, "fasta")
@@ -123,6 +138,10 @@ class ConfigData:
 		for pos in self.interestingAAPositions:
 			posInAln = self.getPosInRefAlignment(pos)
 			self.interestingAAPositionsInAln.append(posInAln)
+
+		for pos in self.aaToHighlight:
+			posInAln = self.getPosInRefAlignment(pos)
+			self.aaToHighlightInAln.append(posInAln)
 
 	def getPosInRefAlignment(self, pos):
 		lastPos = 0
@@ -334,6 +353,14 @@ def makeSeqLogo(tree, clades, refSeqConfigData, logoOutFileBase):
 		try:
 			dataMatrix = logomaker.alignment_to_matrix(sequences)
 			seqLogo = logomaker.Logo(dataMatrix, ax=ax, color_scheme=colorScheme)
+
+			j = 0
+			for pos in refSeqConfigData.aaToHighlight:
+				pos -= minPos
+				seqLogo.highlight_position(p=pos, color=refSeqConfigData.highlightColors[j], alpha=.5)
+				if j < len(refSeqConfigData.highlightColors) - 1:
+					j += 1
+
 
 			if clade == sortedClades[-1]:
 				seqLogo.style_xticks(anchor=anchor, spacing=spacing)
