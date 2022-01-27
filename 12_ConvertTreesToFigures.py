@@ -29,8 +29,11 @@ SHaLRTThresholds = [80.0, 75.0, 70.0]
 aBayesThresholds = [95.0, 90.0, 85.0]
 UFBootThresholds = [95,   90,   85  ]
 
-# If you add more levels add before "White"
-colorThresholds = ["Green", "Yellow", "Orange", "Red", "Black"]
+# If you add more levels add before the last entry
+# Collorful pallete for support values
+#colorThresholds = ["Green", "Yellow", "Orange", "Red", "Black"]
+# Simplified black and grey pallete for support values
+colorThresholds = ["Black", "DarkGrey", "DarkGrey", "DarkGrey", "LightGrey"]
 
 type_regular  = 0
 type_legend   = 1
