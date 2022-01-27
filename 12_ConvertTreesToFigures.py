@@ -698,6 +698,10 @@ def collapsedCompactTreeLayout(node):
 		columnNum = addSupportPieCharts(node, 0)
 
 ###############################################################################
+def noTreeLayout(node):
+	pass
+
+###############################################################################
 def collapsedSimpleTreeLayout(node):
 	pos = "branch-right"
 
@@ -1060,12 +1064,24 @@ def getCollapsedSimpleTreeStyle():
 	return ts
 
 ###############################################################################
-def getCollapsedTreeStyle(tree):
+def getCollapsedTreeStyle():
 	ts = TreeStyle()
 	# Do not add leaf names automatically
 	ts.show_leaf_name = False
 	# Use my custom layout
 	ts.layout_fn = collapsedTreeLayout
+	# Do not show the scale bar
+	ts.show_scale = False
+
+	return ts
+
+###############################################################################
+def getLegendOnlyStyle(tree):
+	ts = TreeStyle()
+	# Do not add leaf names automatically
+	ts.show_leaf_name = False
+	# Use my custom layout
+	ts.layout_fn = noTreeLayout
 	# Do not show the scale bar
 	ts.show_scale = False
 
@@ -1401,7 +1417,7 @@ if __name__ == "__main__":
 
 	collTree = tree.copy()
 
-	ts = getCollapsedTreeStyle(collTree)
+	ts = getCollapsedTreeStyle()
 	collTree.render(outCollapsedTree + ".pdf", dpi=600, w=400, units="mm", tree_style=ts)
 
 	comTree = tree.copy()
@@ -1412,11 +1428,23 @@ if __name__ == "__main__":
 #	comTree.render(outCollapsedTree + "Com.svg", dpi=600, w=400, units="mm", tree_style=ts)
 
 	simpleTree = tree.copy()
-
 	ts = getCollapsedSimpleTreeStyle()
 	simpleTree.render(outCollapsedTree + "Simple.pdf", dpi=600, w=400, units="mm", tree_style=ts)
 
+	noSupportTree = tree.copy()
 	ts.layout_fn = collapsedSimpleNoSupportTreeLayout
-	tree.render(outCollapsedTree + "SimpleNoSupp.pdf", dpi=600, w=400, units="mm", tree_style=ts)
+	noSupportTree.render(outCollapsedTree + "SimpleNoSupp.pdf", dpi=600, w=400, units="mm", tree_style=ts)
+
+	# Draw only the legend
+	ts = getLegendOnlyStyle(tree)
+	tree.img_style["vt_line_color"] = "White"
+	tree.img_style["hz_line_color"] = "White"
+	tree.img_style["vt_line_width"] = 0
+	tree.img_style["hz_line_width"] = 0
+	tree.img_style["fgcolor"] = "White"
+	tree.img_style["size"] =  0
+	tree.faces_bgcolor = "White"
+	tree.img_style["draw_descendants"] = False
+	tree.render(outCollapsedTree + "Legend.pdf", dpi=600, w=400, units="mm", tree_style=ts)
 
 ###############################################################################
