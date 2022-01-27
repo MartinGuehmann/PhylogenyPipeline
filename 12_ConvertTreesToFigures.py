@@ -1,6 +1,6 @@
 #!/bin/python3
 
-from ete3 import Tree, NexmlTree, nexml, faces, AttrFace, TextFace, SeqMotifFace, PieChartFace, TreeStyle, NodeStyle
+from ete3 import Tree, NexmlTree, nexml, faces, AttrFace, TextFace, RectFace, SeqMotifFace, PieChartFace, TreeStyle, NodeStyle
 import csv
 from inspect import getmembers
 from Bio import AlignIO, Align
@@ -692,7 +692,12 @@ def collapsedTreeLayout(node):
 def collapsedCompactTreeLayout(node):
 	pos = "branch-right"
 	if node.is_leaf():
-		collapsedLeafLayout(node, pos)
+		columnNum = 0
+
+		rectFace = RectFace(lineWidth, lineWidth, "White", "White")
+		rectFace.margin_top    = margin
+		rectFace.margin_bottom = margin
+		node.add_face(rectFace, column=columnNum, position=pos)
 	elif not node.img_style["draw_descendants"]:
 		# Technically this is an internal node
 		columnNum = addSupportPieCharts(node, 0)
