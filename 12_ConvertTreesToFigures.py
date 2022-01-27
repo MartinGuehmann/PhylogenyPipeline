@@ -45,6 +45,7 @@ type_unknown  = 6
 
 # Global maps
 aminoAcidColorMap       = {}
+aminoAcidTreeColorMap   = {}
 taxonColorMap           = {}
 genusInterestingTaxaMap = {}
 
@@ -189,7 +190,7 @@ class AlignmentData:
 
 ###############################################################################
 def hasSpecialAA():
-	return len(aminoAcidColorMap) > 0
+	return len(aminoAcidTreeColorMap) > 0
 
 ###############################################################################
 def hasTaxa():
@@ -624,7 +625,7 @@ def fullTreeLayout(node):
 		if hasSpecialAA():
 			if hasattr(node, 'specialAA'):
 				aa_face = TextFace(node.specialAA)
-				aa_face.background.color = aminoAcidColorMap[node.specialAA].color
+				aa_face.background.color = aminoAcidTreeColorMap[node.specialAA].color
 			else:
 				aa_face = TextFace(" ")
 				aa_face.background.color = "Black"
@@ -761,7 +762,7 @@ def collapsedLeafLayout(node, pos):
 	if hasSpecialAA():
 		if hasattr(node, 'specialAA'):
 			aa_face = TextFace(node.specialAA)
-			aa_face.background.color = aminoAcidColorMap[node.specialAA].color
+			aa_face.background.color = aminoAcidTreeColorMap[node.specialAA].color
 		else:
 			aa_face = TextFace(" ")
 			aa_face.background.color = "Black"
@@ -813,7 +814,7 @@ def collapsedNodeLayout(node, columnNum, marginLeft, pos):
 	columnNum = collapsedSimpleNodeLayout(node, columnNum, marginLeft, True, pos)
 
 	if hasSpecialAA():
-		percents, colors = getColorsAndPercents(node, aminoAcidColorMap, 'specialAA')
+		percents, colors = getColorsAndPercents(node, aminoAcidTreeColorMap, 'specialAA')
 		pie_face = PieChartFace(percents, 30, 30, colors)
 		pie_face.margin_top = 4
 		pie_face.margin_bottom = 4
@@ -1255,11 +1256,12 @@ def parseArgs(progName, argv):
 	refSeqFile          = ""
 	specialAminoAcidPos = -1
 	iterestingTaxa      = ""
+	customAA            = ""
 	makeLogos           = False
 	refSeqConfigData    = None
 
 	try:
-		opts, args = getopt.getopt(argv,"hmt:i:c:f:z:",["help", "makeLogos", "infile=", "cladefile=", "trees=", "refSeqConfigFile=", "iterestingTaxa"])
+		opts, args = getopt.getopt(argv,"hmt:i:c:f:z:a:",["help", "makeLogos", "infile=", "cladefile=", "trees=", "refSeqConfigFile=", "iterestingTaxa", "customAA"])
 	except getopt.GetoptError as err:
 		print(err, "\n")
 		usage(progName)
@@ -1280,8 +1282,10 @@ def parseArgs(progName, argv):
 			refSeqConfigData = ConfigData(arg)
 		elif opt in ("-z", "--iterestingTaxa"):
 			iterestingTaxa = arg
+		elif opt in ("-a", "--customAA"):
+			customAA = arg
 
-	return infile, cladeFile, cladeTreeFile, refSeqConfigData, iterestingTaxa, makeLogos
+	return infile, cladeFile, cladeTreeFile, refSeqConfigData, iterestingTaxa, customAA, makeLogos
 
 ###############################################################################
 def loadTaxa(iterestingTaxa):
@@ -1325,7 +1329,7 @@ def addHigherTaxaOfInterest(tree):
 if __name__ == "__main__":
 	# Execute only if run as main script
 
-	inputTree, inputClades, cladeTreeFile, refSeqConfigData, iterestingTaxa, makeLogos = parseArgs(sys.argv[0], sys.argv[1:])
+	inputTree, inputClades, cladeTreeFile, refSeqConfigData, iterestingTaxa, customAA, makeLogos = parseArgs(sys.argv[0], sys.argv[1:])
 
 	alignmentData = AlignmentData(cladeTreeFile)
 	if refSeqConfigData:
@@ -1360,6 +1364,11 @@ if __name__ == "__main__":
 		colorMapFileName = "AminoAcidColorMap.csv"
 		loadColorMap(colorMapFileName, aminoAcidColorMap)
 		determineSpecialAminoAcidsAtPos(tree, refSeqConfigData)
+		if customAA != "":
+			print(customAA)
+			loadColorMap(customAA, aminoAcidTreeColorMap)
+		else:
+			aminoAcidTreeColorMap = aminoAcidColorMap
 
 	logging.debug("Load taxon information: " + inputTree)
 	loadTaxa(iterestingTaxa)

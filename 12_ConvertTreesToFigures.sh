@@ -255,6 +255,13 @@ fi
 
 seqConfigFile="-f $DIR/$gene/SpecialAminoAcids.txt"
 
+aaFileArg=""
+aaFile="$DIR/$gene/AminoAcidColorMap.csv"
+if [[ -f "$aaFile" ]]
+then
+	aaFileArg="-a $aaFile"
+fi
+
 echo "Using $cladeFile" >&2
 
 # Process the master tree file if it does not exist or should be updated.
@@ -262,7 +269,7 @@ if [[ ! -f $cladeTreeFile || ! -z $updateBig ]]
 then
 	echo "Processing $inputTree" >&2
 	echo "Creating $cladeTreeFile" >&2
-	python3 "$DIR/12_ConvertTreesToFigures.py" -m -i $inputTree -c $cladeFile $seqConfigFile $interestingTaxaArg
+	python3 "$DIR/12_ConvertTreesToFigures.py" -m -i $inputTree -c $cladeFile $seqConfigFile $interestingTaxaArg $aaFileArg
 
 	# Make a png version of the full tree
 	pdf2png "$inputTreeDir/$inputTreeBase.$extension.$cladeBase.fullTree"
@@ -280,7 +287,7 @@ echo "Using $cladeTreeFile" >&2
 if [[ -f $inputTree && ! -f $outputFile || -f $inputTree && ! -z $update && $iteration != $baseIteration ]]
 then
 	echo "Processing $inputTree" >&2
-	python3 "$DIR/12_ConvertTreesToFigures.py" -i $inputTree -c $cladeFile -t $cladeTreeFile $seqConfigFile $interestingTaxaArg
+	python3 "$DIR/12_ConvertTreesToFigures.py" -i $inputTree -c $cladeFile -t $cladeTreeFile $seqConfigFile $interestingTaxaArg $aaFileArg
 
 	# Make a png version of the full tree
 	pdf2png "$inputTreeDir/$inputTreeBase.$extension.$cladeBase.fullTree"
@@ -301,7 +308,7 @@ do
 	if [[ ! -f $outputFile || ! -z $update ]]
 	then
 		echo "Processing $inputTree" >&2
-		python3 "$DIR/12_ConvertTreesToFigures.py" -i $inputTree -c $cladeFile -t $cladeTreeFile $seqConfigFile $interestingTaxaArg &
+		python3 "$DIR/12_ConvertTreesToFigures.py" -i $inputTree -c $cladeFile -t $cladeTreeFile $seqConfigFile $interestingTaxaArg $aaFileArg &
 	fi
 done
 
