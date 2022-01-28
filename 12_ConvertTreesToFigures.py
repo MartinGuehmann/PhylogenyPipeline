@@ -1257,11 +1257,12 @@ def parseArgs(progName, argv):
 	specialAminoAcidPos = -1
 	iterestingTaxa      = ""
 	customAA            = ""
+	additionalTaxa      = ""
 	makeLogos           = False
 	refSeqConfigData    = None
 
 	try:
-		opts, args = getopt.getopt(argv,"hmt:i:c:f:z:a:",["help", "makeLogos", "infile=", "cladefile=", "trees=", "refSeqConfigFile=", "iterestingTaxa", "customAA"])
+		opts, args = getopt.getopt(argv,"hmt:i:c:f:z:a:x:",["help", "makeLogos", "infile=", "cladefile=", "trees=", "refSeqConfigFile=", "iterestingTaxa", "customAA", "additionalTaxa"])
 	except getopt.GetoptError as err:
 		print(err, "\n")
 		usage(progName)
@@ -1284,11 +1285,13 @@ def parseArgs(progName, argv):
 			iterestingTaxa = arg
 		elif opt in ("-a", "--customAA"):
 			customAA = arg
+		elif opt in ("-x", "--additionalTaxa"):
+			additionalTaxa = arg
 
-	return infile, cladeFile, cladeTreeFile, refSeqConfigData, iterestingTaxa, customAA, makeLogos
+	return infile, cladeFile, cladeTreeFile, refSeqConfigData, iterestingTaxa, customAA, additionalTaxa, makeLogos
 
 ###############################################################################
-def loadTaxa(iterestingTaxa):
+def loadTaxa(iterestingTaxa, additionalTaxa):
 	if iterestingTaxa == "":
 		return
 
@@ -1310,6 +1313,25 @@ def loadTaxa(iterestingTaxa):
 				if checkString in splitLine[2]:
 					genusInterestingTaxaMap[splitLine[1]] = taxon
 
+	if additionalTaxa == "":
+		return
+
+	f = open(additionalTaxa, 'rt')
+
+	while True:
+		line = f.readline()
+		if not line:
+			break
+		if line[0] == '#':
+			continue
+
+		splitLine = line.split("\t")
+
+		for taxon in taxonColorMap:
+			if taxonColorMap[taxon].entryType == type_regular:
+				if taxon in splitLine[1]:
+					genusInterestingTaxaMap[splitLine[0]] = taxon
+
 ###############################################################################
 def addHigherTaxaOfInterest(tree):
 	if not hasTaxa():
@@ -1329,7 +1351,7 @@ def addHigherTaxaOfInterest(tree):
 if __name__ == "__main__":
 	# Execute only if run as main script
 
-	inputTree, inputClades, cladeTreeFile, refSeqConfigData, iterestingTaxa, customAA, makeLogos = parseArgs(sys.argv[0], sys.argv[1:])
+	inputTree, inputClades, cladeTreeFile, refSeqConfigData, iterestingTaxa, customAA, additionalTaxa, makeLogos = parseArgs(sys.argv[0], sys.argv[1:])
 
 	alignmentData = AlignmentData(cladeTreeFile)
 	if refSeqConfigData:
@@ -1371,7 +1393,7 @@ if __name__ == "__main__":
 			aminoAcidTreeColorMap = aminoAcidColorMap
 
 	logging.debug("Load taxon information: " + inputTree)
-	loadTaxa(iterestingTaxa)
+	loadTaxa(iterestingTaxa, additionalTaxa)
 
 	logging.debug("Load clade information: " + inputTree)
 	clades = loadCladeInfo(tree, inputClades, cladeTreeFile)
