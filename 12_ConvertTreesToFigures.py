@@ -1,6 +1,6 @@
 #!/bin/python3
 
-from ete3 import Tree, NexmlTree, nexml, faces, AttrFace, TextFace, SeqMotifFace, PieChartFace, TreeStyle, NodeStyle
+from ete3 import Tree, NexmlTree, nexml, faces, AttrFace, TextFace, RectFace, SeqMotifFace, PieChartFace, TreeStyle, NodeStyle
 import csv
 from inspect import getmembers
 from Bio import AlignIO, Align
@@ -29,8 +29,11 @@ SHaLRTThresholds = [80.0, 75.0, 70.0]
 aBayesThresholds = [95.0, 90.0, 85.0]
 UFBootThresholds = [95,   90,   85  ]
 
-# If you add more levels add before "White"
-colorThresholds = ["Green", "Yellow", "Orange", "Red", "Black"]
+# If you add more levels add before the last entry
+# Collorful pallete for support values
+#colorThresholds = ["Green", "Yellow", "Orange", "Red", "Black"]
+# Simplified black and grey pallete for support values
+colorThresholds = ["Black", "DarkGrey", "DarkGrey", "DarkGrey", "LightGrey"]
 
 type_regular  = 0
 type_legend   = 1
@@ -42,6 +45,7 @@ type_unknown  = 6
 
 # Global maps
 aminoAcidColorMap       = {}
+aminoAcidTreeColorMap   = {}
 taxonColorMap           = {}
 genusInterestingTaxaMap = {}
 
@@ -78,6 +82,9 @@ class ConfigData:
 			self.toUpperLimit                = -1
 			self.interestingAAPositions      = []
 			self.interestingAAPositionsInAln = []
+			self.aaToHighlight               = []
+			self.aaToHighlightInAln          = []
+			self.highlightColors             = []
 			self.alignmentData               = None
 
 			configFileBase = os.path.dirname(configFileName)
@@ -104,6 +111,18 @@ class ConfigData:
 							self.interestingAAPositions.append(int(row[i]))
 							i += 1
 
+					elif row[0].lower() == "aatohighlight":
+						i = 1
+						while i < len(row):
+							self.aaToHighlight.append(int(row[i]))
+							i += 1
+
+					elif row[0].lower() == "highlightcolors":
+						i = 1
+						while i < len(row):
+							self.highlightColors.append(row[i])
+							i += 1
+
 	def setAlignmentData(self, alignmentData):
 		self.alignmentData = alignmentData
 		self.refSequence = AlignIO.read(self.refSeqFileName, "fasta")
@@ -123,6 +142,10 @@ class ConfigData:
 		for pos in self.interestingAAPositions:
 			posInAln = self.getPosInRefAlignment(pos)
 			self.interestingAAPositionsInAln.append(posInAln)
+
+		for pos in self.aaToHighlight:
+			posInAln = self.getPosInRefAlignment(pos)
+			self.aaToHighlightInAln.append(posInAln)
 
 	def getPosInRefAlignment(self, pos):
 		lastPos = 0
@@ -167,7 +190,7 @@ class AlignmentData:
 
 ###############################################################################
 def hasSpecialAA():
-	return len(aminoAcidColorMap) > 0
+	return len(aminoAcidTreeColorMap) > 0
 
 ###############################################################################
 def hasTaxa():
@@ -334,6 +357,14 @@ def makeSeqLogo(tree, clades, refSeqConfigData, logoOutFileBase):
 		try:
 			dataMatrix = logomaker.alignment_to_matrix(sequences)
 			seqLogo = logomaker.Logo(dataMatrix, ax=ax, color_scheme=colorScheme)
+
+			j = 0
+			for pos in refSeqConfigData.aaToHighlight:
+				pos -= minPos
+				seqLogo.highlight_position(p=pos, color=refSeqConfigData.highlightColors[j], alpha=.5)
+				if j < len(refSeqConfigData.highlightColors) - 1:
+					j += 1
+
 
 			if clade == sortedClades[-1]:
 				seqLogo.style_xticks(anchor=anchor, spacing=spacing)
@@ -594,7 +625,7 @@ def fullTreeLayout(node):
 		if hasSpecialAA():
 			if hasattr(node, 'specialAA'):
 				aa_face = TextFace(node.specialAA)
-				aa_face.background.color = aminoAcidColorMap[node.specialAA].color
+				aa_face.background.color = aminoAcidTreeColorMap[node.specialAA].color
 			else:
 				aa_face = TextFace(" ")
 				aa_face.background.color = "Black"
@@ -662,13 +693,22 @@ def collapsedTreeLayout(node):
 def collapsedCompactTreeLayout(node):
 	pos = "branch-right"
 	if node.is_leaf():
-		collapsedLeafLayout(node, pos)
+		columnNum = 0
+
+		rectFace = RectFace(lineWidth, lineWidth, "White", "White")
+		rectFace.margin_top    = margin
+		rectFace.margin_bottom = margin
+		node.add_face(rectFace, column=columnNum, position=pos)
 	elif not node.img_style["draw_descendants"]:
 		# Technically this is an internal node
 		columnNum = addSupportPieCharts(node, 0)
 		collapsedNodeLayout(node, columnNum, 0, pos)
 	else:
 		columnNum = addSupportPieCharts(node, 0)
+
+###############################################################################
+def noTreeLayout(node):
+	pass
 
 ###############################################################################
 def collapsedSimpleTreeLayout(node):
@@ -722,7 +762,7 @@ def collapsedLeafLayout(node, pos):
 	if hasSpecialAA():
 		if hasattr(node, 'specialAA'):
 			aa_face = TextFace(node.specialAA)
-			aa_face.background.color = aminoAcidColorMap[node.specialAA].color
+			aa_face.background.color = aminoAcidTreeColorMap[node.specialAA].color
 		else:
 			aa_face = TextFace(" ")
 			aa_face.background.color = "Black"
@@ -774,7 +814,7 @@ def collapsedNodeLayout(node, columnNum, marginLeft, pos):
 	columnNum = collapsedSimpleNodeLayout(node, columnNum, marginLeft, True, pos)
 
 	if hasSpecialAA():
-		percents, colors = getColorsAndPercents(node, aminoAcidColorMap, 'specialAA')
+		percents, colors = getColorsAndPercents(node, aminoAcidTreeColorMap, 'specialAA')
 		pie_face = PieChartFace(percents, 30, 30, colors)
 		pie_face.margin_top = 4
 		pie_face.margin_bottom = 4
@@ -1033,12 +1073,24 @@ def getCollapsedSimpleTreeStyle():
 	return ts
 
 ###############################################################################
-def getCollapsedTreeStyle(tree):
+def getCollapsedTreeStyle():
 	ts = TreeStyle()
 	# Do not add leaf names automatically
 	ts.show_leaf_name = False
 	# Use my custom layout
 	ts.layout_fn = collapsedTreeLayout
+	# Do not show the scale bar
+	ts.show_scale = False
+
+	return ts
+
+###############################################################################
+def getLegendOnlyStyle(tree):
+	ts = TreeStyle()
+	# Do not add leaf names automatically
+	ts.show_leaf_name = False
+	# Use my custom layout
+	ts.layout_fn = noTreeLayout
 	# Do not show the scale bar
 	ts.show_scale = False
 
@@ -1204,11 +1256,13 @@ def parseArgs(progName, argv):
 	refSeqFile          = ""
 	specialAminoAcidPos = -1
 	iterestingTaxa      = ""
+	customAA            = ""
+	additionalTaxa      = ""
 	makeLogos           = False
 	refSeqConfigData    = None
 
 	try:
-		opts, args = getopt.getopt(argv,"hmt:i:c:f:z:",["help", "makeLogos", "infile=", "cladefile=", "trees=", "refSeqConfigFile=", "iterestingTaxa"])
+		opts, args = getopt.getopt(argv,"hmt:i:c:f:z:a:x:",["help", "makeLogos", "infile=", "cladefile=", "trees=", "refSeqConfigFile=", "iterestingTaxa", "customAA", "additionalTaxa"])
 	except getopt.GetoptError as err:
 		print(err, "\n")
 		usage(progName)
@@ -1229,11 +1283,15 @@ def parseArgs(progName, argv):
 			refSeqConfigData = ConfigData(arg)
 		elif opt in ("-z", "--iterestingTaxa"):
 			iterestingTaxa = arg
+		elif opt in ("-a", "--customAA"):
+			customAA = arg
+		elif opt in ("-x", "--additionalTaxa"):
+			additionalTaxa = arg
 
-	return infile, cladeFile, cladeTreeFile, refSeqConfigData, iterestingTaxa, makeLogos
+	return infile, cladeFile, cladeTreeFile, refSeqConfigData, iterestingTaxa, customAA, additionalTaxa, makeLogos
 
 ###############################################################################
-def loadTaxa(iterestingTaxa):
+def loadTaxa(iterestingTaxa, additionalTaxa):
 	if iterestingTaxa == "":
 		return
 
@@ -1255,6 +1313,25 @@ def loadTaxa(iterestingTaxa):
 				if checkString in splitLine[2]:
 					genusInterestingTaxaMap[splitLine[1]] = taxon
 
+	if additionalTaxa == "":
+		return
+
+	f = open(additionalTaxa, 'rt')
+
+	while True:
+		line = f.readline()
+		if not line:
+			break
+		if line[0] == '#':
+			continue
+
+		splitLine = line.split("\t")
+
+		for taxon in taxonColorMap:
+			if taxonColorMap[taxon].entryType == type_regular:
+				if taxon in splitLine[1]:
+					genusInterestingTaxaMap[splitLine[0]] = taxon
+
 ###############################################################################
 def addHigherTaxaOfInterest(tree):
 	if not hasTaxa():
@@ -1274,7 +1351,7 @@ def addHigherTaxaOfInterest(tree):
 if __name__ == "__main__":
 	# Execute only if run as main script
 
-	inputTree, inputClades, cladeTreeFile, refSeqConfigData, iterestingTaxa, makeLogos = parseArgs(sys.argv[0], sys.argv[1:])
+	inputTree, inputClades, cladeTreeFile, refSeqConfigData, iterestingTaxa, customAA, additionalTaxa, makeLogos = parseArgs(sys.argv[0], sys.argv[1:])
 
 	alignmentData = AlignmentData(cladeTreeFile)
 	if refSeqConfigData:
@@ -1309,9 +1386,14 @@ if __name__ == "__main__":
 		colorMapFileName = "AminoAcidColorMap.csv"
 		loadColorMap(colorMapFileName, aminoAcidColorMap)
 		determineSpecialAminoAcidsAtPos(tree, refSeqConfigData)
+		if customAA != "":
+			print(customAA)
+			loadColorMap(customAA, aminoAcidTreeColorMap)
+		else:
+			aminoAcidTreeColorMap = aminoAcidColorMap
 
 	logging.debug("Load taxon information: " + inputTree)
-	loadTaxa(iterestingTaxa)
+	loadTaxa(iterestingTaxa, additionalTaxa)
 
 	logging.debug("Load clade information: " + inputTree)
 	clades = loadCladeInfo(tree, inputClades, cladeTreeFile)
@@ -1374,7 +1456,7 @@ if __name__ == "__main__":
 
 	collTree = tree.copy()
 
-	ts = getCollapsedTreeStyle(collTree)
+	ts = getCollapsedTreeStyle()
 	collTree.render(outCollapsedTree + ".pdf", dpi=600, w=400, units="mm", tree_style=ts)
 
 	comTree = tree.copy()
@@ -1385,11 +1467,23 @@ if __name__ == "__main__":
 #	comTree.render(outCollapsedTree + "Com.svg", dpi=600, w=400, units="mm", tree_style=ts)
 
 	simpleTree = tree.copy()
-
 	ts = getCollapsedSimpleTreeStyle()
 	simpleTree.render(outCollapsedTree + "Simple.pdf", dpi=600, w=400, units="mm", tree_style=ts)
 
+	noSupportTree = tree.copy()
 	ts.layout_fn = collapsedSimpleNoSupportTreeLayout
-	tree.render(outCollapsedTree + "SimpleNoSupp.pdf", dpi=600, w=400, units="mm", tree_style=ts)
+	noSupportTree.render(outCollapsedTree + "SimpleNoSupp.pdf", dpi=600, w=400, units="mm", tree_style=ts)
+
+	# Draw only the legend
+	ts = getLegendOnlyStyle(tree)
+	tree.img_style["vt_line_color"] = "White"
+	tree.img_style["hz_line_color"] = "White"
+	tree.img_style["vt_line_width"] = 0
+	tree.img_style["hz_line_width"] = 0
+	tree.img_style["fgcolor"] = "White"
+	tree.img_style["size"] =  0
+	tree.faces_bgcolor = "White"
+	tree.img_style["draw_descendants"] = False
+	tree.render(outCollapsedTree + "Legend.pdf", dpi=600, w=400, units="mm", tree_style=ts)
 
 ###############################################################################
