@@ -288,6 +288,9 @@ case $step in
 16)
 	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene, extension=$extension" "$DIR/16_Scheduler-ExtractSequencesOfInterest.sh")
 	;;
+17)
+	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/17_Scheduler-SkipSequenceExtraction.sh")
+	;;
 
 *)
 	echo "Step $step is not a valid step." >&2

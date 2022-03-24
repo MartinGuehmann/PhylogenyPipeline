@@ -341,6 +341,11 @@ case $step in
 	$DIR/16_ExtractSequencesOfInterest.sh -g "$gene" -d "$TreesForPruningFromPASTADir" -c $SequenceChunksForPruningDir $extension
 	echo "16. Sequences of interest extracted." >&2
 	;;
+17)
+	echo "17. Skip extract sequences of interest and just copy sequences." >&2
+	$DIR/17_SkipExtraction.sh -g "$gene" -d "$TreesForPruningFromPASTADir" -c $SequenceChunksForPruningDir $extension
+	echo "17. Sequence copied directly." >&2
+	;;
 *)
 	echo "Step $i is not a valid step." >&2
 esac

@@ -78,6 +78,12 @@ do
             shift
             trimAl="-t $1"
             ;;
+        --useFullDataset)
+            ;&
+        -q)
+            shift
+            useFullDataset="--useFullDataset"
+            ;;
         -*)
             ;&
         --*)
@@ -100,6 +106,7 @@ echo "bigNumRoundsLeft: $bigNumRoundsLeft" >&2
 echo "shuffleSeqs:      $shuffleSeqs"      >&2
 echo "extension:        $extension"        >&2
 echo "trimAl:           $trimAl"           >&2
+echo "useFullDataset:   $useFullDataset"   >&2
 echo "Note the script is copied to"        >&2
 echo "another place with another name"     >&2
 
@@ -131,7 +138,7 @@ holdJobs=$jobIDs
 
 if [ "$continue" == "--continue" ]
 then
-	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl" -W "depend=afterok$holdJobs" \
+	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl, useFullDataset=$useFullDataset" -W "depend=afterok$holdJobs" \
 	    "$DIR/Scheduler-01-PrepareSequences.sh"
 fi
 
