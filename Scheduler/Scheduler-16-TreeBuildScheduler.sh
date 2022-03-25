@@ -160,17 +160,27 @@ allSeqs="--allSeqs"
     "$DIR/Scheduler-09-RogueOptAlign.sh"
 suffix=$oldSuffix
 
-suffix="-x $gene.BigTree0"
-previousAligner="-p $gene"
-# Make a big tree with the main aligner and without outgroup
-"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
-    "$DIR/Scheduler-09-RogueOptAlign.sh"
+### Add check whether Opsins/SequencesOfInterest/Opsins/RogueIter_0
+geneOnlyDataSet=$("$DIR/../GetSequencesOfInterestDirectory.sh" -g "$gene" -p "$(basename $gene)")
 
-allSeqs=""
-suffix="-x $gene"
-# Make also small trees with the main aligner and without outgroup
-"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
-    "$DIR/Scheduler-09-RogueOptAlign.sh"
+if [ -d $geneOnlyDataSet ]
+then
+	suffix="-x $(basename $gene).BigTree0"
+	previousAligner="-p $gene"
+	# Make a big tree with the main aligner and without outgroup
+	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+	    "$DIR/Scheduler-09-RogueOptAlign.sh"
+
+	allSeqs=""
+	suffix="-x $(basename $gene)"
+	# Make also small trees with the main aligner and without outgroup
+	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+	    "$DIR/Scheduler-09-RogueOptAlign.sh"
+else
+	echo "No reduced dataset in $geneOnlyDataSet" >&2
+	echo "Skipping" >&2
+fi
+
 suffix=""
 previousAligner=""
 

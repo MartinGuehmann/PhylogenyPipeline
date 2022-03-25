@@ -122,7 +122,7 @@ rm -f $treeLabels
 
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
 
-SequencesOfGeneDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -p "$gene")
+SequencesOfGeneDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -p "$(basename $gene)")
 mkdir -p $SequencesOfGeneDir
 SequencesOfGene="$SequencesOfGeneDir/SequencesOfInterest.fasta"
 
