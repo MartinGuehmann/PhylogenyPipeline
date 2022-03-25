@@ -181,6 +181,7 @@ else
 	echo "Skipping" >&2
 fi
 
+allSeqs=""
 suffix=""
 previousAligner=""
 
