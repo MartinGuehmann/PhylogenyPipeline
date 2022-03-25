@@ -127,7 +127,7 @@ fi
 # so that the standard and error output files to the directory of this script
 cd $DIR
 
-jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "4" -d "$jobIDs")
+jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "4" --hold)
 holdJobs=$jobIDs
 echo $jobIDs
 
