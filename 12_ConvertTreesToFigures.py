@@ -71,57 +71,63 @@ class Clade:
 ###############################################################################
 class ConfigData:
 	def __init__(self, configFileName):
-		with open(configFileName, newline='') as configFile:
-			self.refSeqFileName              = ""
-			self.refSequence                 = None
-			self.refAlignment                = None
-			self.refRecord                   = None
-			self.specialAminoAcidPos         = -1
-			self.specialAminoAcidPosInAln    = -1
-			self.toLowerLimit                = -1
-			self.toUpperLimit                = -1
-			self.interestingAAPositions      = []
-			self.interestingAAPositionsInAln = []
-			self.aaToHighlight               = []
-			self.aaToHighlightInAln          = []
-			self.highlightColors             = []
-			self.alignmentData               = None
+		self.refSeqFileName              = ""
+		self.refSequence                 = None
+		self.refAlignment                = None
+		self.refRecord                   = None
+		self.specialAminoAcidPos         = -1
+		self.specialAminoAcidPosInAln    = -1
+		self.toLowerLimit                = -1
+		self.toUpperLimit                = -1
+		self.interestingAAPositions      = []
+		self.interestingAAPositionsInAln = []
+		self.aaToHighlight               = []
+		self.aaToHighlightInAln          = []
+		self.highlightColors             = []
+		self.alignmentData               = None
 
-			configFileBase = os.path.dirname(configFileName)
-			configReader = csv.reader(configFile, delimiter='\t')
-			for row in configReader:
-				# Continue if the line is empty
-				if not row:
-					continue
-				if row[0][0] == '#':
-					continue
+		try:
+			with open(configFileName, newline='') as configFile:
 
-				if len(row) > 1:
-					if row[0].lower() == "seqfile":
-						self.refSeqFileName = os.path.join(configFileBase, row[1]) # This is still not windows compatible, because the path is given with the Linux file separator
-					elif row[0].lower() == "aapos":
-						self.specialAminoAcidPos = int(row[1])
-					elif row[0].lower() == "tolowerlimit":
-						self.toLowerLimit = int(row[1])
-					elif row[0].lower() == "toupperlimit":
-						self.toUpperLimit = int(row[1])
-					elif row[0].lower() == "interestingaapositions":
-						i = 1
-						while i < len(row):
-							self.interestingAAPositions.append(int(row[i]))
-							i += 1
+				configFileBase = os.path.dirname(configFileName)
+				configReader = csv.reader(configFile, delimiter='\t')
+				for row in configReader:
+					# Continue if the line is empty
+					if not row:
+						continue
+					if row[0][0] == '#':
+						continue
 
-					elif row[0].lower() == "aatohighlight":
-						i = 1
-						while i < len(row):
-							self.aaToHighlight.append(int(row[i]))
-							i += 1
+					if len(row) > 1:
+						if row[0].lower() == "seqfile":
+							self.refSeqFileName = os.path.join(configFileBase, row[1]) # This is still not windows compatible, because the path is given with the Linux file separator
+						elif row[0].lower() == "aapos":
+							self.specialAminoAcidPos = int(row[1])
+						elif row[0].lower() == "tolowerlimit":
+							self.toLowerLimit = int(row[1])
+						elif row[0].lower() == "toupperlimit":
+							self.toUpperLimit = int(row[1])
+						elif row[0].lower() == "interestingaapositions":
+							i = 1
+							while i < len(row):
+								self.interestingAAPositions.append(int(row[i]))
+								i += 1
 
-					elif row[0].lower() == "highlightcolors":
-						i = 1
-						while i < len(row):
-							self.highlightColors.append(row[i])
-							i += 1
+						elif row[0].lower() == "aatohighlight":
+							i = 1
+							while i < len(row):
+								self.aaToHighlight.append(int(row[i]))
+								i += 1
+
+						elif row[0].lower() == "highlightcolors":
+							i = 1
+							while i < len(row):
+								self.highlightColors.append(row[i])
+								i += 1
+		except FileNotFoundError as err:
+			print(err)
+			print("This might be intended if you want to run without marking special amino acids")
+			pass
 
 	def setAlignmentData(self, alignmentData):
 		self.alignmentData = alignmentData
@@ -1244,6 +1250,7 @@ def usage(progName):
 	print('                                           amino acid positions in the reference sequence file. Such as the')
 	print('                                           lysine at position 296 in cattle rhodopsin. This position is then displayed')
 	print('                                           on the trees and used for the sequence logo.')
+	print('                                           This option is ignored if configFile does not exist.')
 	print('')
 
 ###############################################################################
@@ -1280,7 +1287,8 @@ def parseArgs(progName, argv):
 		elif opt in ("-t", "--trees"):
 			cladeTreeFile = arg
 		elif opt in ("-f", "--refSeqConfigFile"):
-			refSeqConfigData = ConfigData(arg)
+			if os.path.isfile(arg):
+				refSeqConfigData = ConfigData(arg)
 		elif opt in ("-z", "--iterestingTaxa"):
 			iterestingTaxa = arg
 		elif opt in ("-a", "--customAA"):
