@@ -898,6 +898,8 @@ def loadCladeInfo(tree, fileName, cladeTreeFile):
 			# Continue if the line is empty
 			if not row:
 				continue
+			if row[0][0] == '#':
+				continue
 
 			# Better check for the comment character
 			if len(row) < 4:
