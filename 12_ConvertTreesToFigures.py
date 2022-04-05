@@ -68,6 +68,10 @@ class Clade:
 		self.typeNode        = typeNode
 		self.rootNode        = None
 
+	def print(self):
+		print("SeqID:", self.typeSeqID)
+		print("Name:", self.name)
+
 ###############################################################################
 class ConfigData:
 	def __init__(self, configFileName):
@@ -936,6 +940,10 @@ def getLeaveOfClade(tree, cladeSeqId, cladeName, cladeTreeFile):
 		node = tree.search_nodes(name=cladeSeqId)
 		if len(node) > 0:
 			return node[0]
+
+		# In the clade tree file parentheses are replaced by underscores
+		cladeName = cladeName.replace("(", "_")
+		cladeName = cladeName.replace(")", "_")
 
 		with open(cladeTreeFile, "r") as cladeTrees:
 			for line in cladeTrees:
