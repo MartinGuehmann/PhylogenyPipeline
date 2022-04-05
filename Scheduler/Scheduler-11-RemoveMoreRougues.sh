@@ -114,6 +114,7 @@ echo "iteration:        $iteration"        >&2
 echo "bigTreeIteration: $bigTreeIteration" >&2
 echo "aligner:          $aligner"          >&2
 echo "numRoundsLeft:    $numRoundsLeft"    >&2
+echo "bigNumRoundsLeft: $bigNumRoundsLeft" >&2
 echo "allSeqs:          $allSeqs"          >&2
 echo "shuffleSeqs:      $shuffleSeqs"      >&2
 echo "suffix:           $suffix"           >&2
@@ -149,25 +150,25 @@ if [[ ! -z "$bigTreeIteration" && $bigTreeIteration == $iteration ]]
 then
 	olfSuffix=$suffix
 
-	if [ -z $suffix ]
+	if [ -z "$suffix" ]
 	then
 		suffix="-x BigTree$iteration"
 	else
-		suffix="$suffix.BigTree$iteration"
+		suffix="$suffix.BigTree$iteration" # Flag -x already included in $suffix
 	fi
 
 	if [[ -z $bigNumRoundsLeft ]]
 	then
-		bigNumRoundsLeft = "0"
+		bigNumRoundsLeft="0"
 	fi
 
 	oldAllSeqs=$allSeqs
 	allSeqs="--allSeqs"
-	if [ -z $suffix ]
+	if [ -z "$oldSuffix" ]
 	then
-		previousAligner=$aligner
+		previousAligner="-p $aligner"
 	else
-		previousAligner=$aligner.$oldSuffix
+		previousAligner="-p $aligner.$oldSuffix"
 	fi
 
 	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
@@ -204,18 +205,18 @@ if (( numDropped == 0 ))
 then
 	if [ -z "$numRoundsLeft" ]
 	then
-		numRoundsLeft=0
+		numRoundsLeft="0"
 	fi
 fi
 
 if [[ ! -z $bigTreeIteration ]]
 then
-	bigTreeIteration = "-b $bigTreeIteration"
+	bigTreeIteration="-b $bigTreeIteration"
 fi
 
 if [[ ! -z $bigNumRoundsLeft ]]
 then
-	bigNumRoundsLeft = "-b $bigNumRoundsLeft"
+	bigNumRoundsLeft="-N $bigNumRoundsLeft"
 fi
 
 # This seems to be in the environment with Slurm
