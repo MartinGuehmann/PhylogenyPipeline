@@ -161,56 +161,56 @@ then
 	exit 1
 fi
 
-if [[ -z $aligner ]]
+if [[ -z "$aligner" ]]
 then
 	aligner=$("$DIR/GetDefaultAligner.sh")
 fi
 
-if [[ -z $masterAligner ]]
+if [[ -z "$masterAligner" ]]
 then
-	masterAligner=$aligner
+	masterAligner="$aligner"
 fi
 
 # Get the names of the input files, first for the master tree
 
 # Use the input directory if supplied
 # Note that for some reason [ -d "" ] returns true
-if [[ ! -z $inputDir && -d $inputDir ]]
+if [[ ! -z "$inputDir" && -d "$inputDir" ]]
 then
-	AlignmentDir=$inputDir
+	AlignmentDir="$inputDir"
 else
-	AlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix)
+	AlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" "$suffix")
 fi
 
 # Set default for baseIteration if it is not defined.
-if [[ -z $baseIteration ]]
+if [[ -z "$baseIteration" ]]
 then
 	baseIteration="0"
 fi
 
-firstAlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i $baseIteration -a "$masterAligner" $masterSuffix)
+firstAlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "$baseIteration" -a "$masterAligner" "$masterSuffix")
 
 alignmentExtension=""
 masterAlignmentExtension=""
 if [ "$extension" != "tre" ]
 then
-	alignmentExtension=$("$DIR/GetAlignmentBit.sh" -a $aligner)
-	masterAlignmentExtension=$("$DIR/GetAlignmentBit.sh" -a $masterAligner)
+	alignmentExtension=$("$DIR/GetAlignmentBit.sh" -a "$aligner")
+	masterAlignmentExtension=$("$DIR/GetAlignmentBit.sh" -a "$masterAligner")
 fi
 
 partSequences="SequencesOfInterestShuffled.part_"
 AlignmentParts="$AlignmentDir/$partSequences"
 
-if [[ -z $cladeFile ]]
+if [[ -z "$cladeFile" ]]
 then
 	cladeFile="$DIR/$gene/Clades.csv"
 fi
 
-cladeBase=$(basename $cladeFile ".csv")
+cladeBase=$(basename "$cladeFile" ".csv")
 
 inputTree="$firstAlignmentDir/SequencesOfInterest$masterAlignmentExtension.$extension"
-inputTreeBase=$(basename $inputTree ".$extension")
-inputTreeDir=$(dirname $inputTree)
+inputTreeBase=$(basename "$inputTree" ".$extension")
+inputTreeDir=$(dirname "$inputTree")
 
 cladeTreeFile="$inputTreeDir/$inputTreeBase.$extension.$cladeBase.cladeTrees"
 
@@ -218,9 +218,9 @@ cladeTreeFile="$inputTreeDir/$inputTreeBase.$extension.$cladeBase.cladeTrees"
 # Fail gracefully if the according option is set, this might
 # happen during automatic generation, and then it is expected
 # behavior.
-if [ ! -f $inputTree ]
+if [ ! -f "$inputTree" ]
 then
-	if [ -z $ignoreIfMasterFileDoesNotExist ]
+	if [ -z "$ignoreIfMasterFileDoesNotExist" ]
 	then
 		echo "In ./$thisScript" >&2
 		echo "File $inputTree does not exist. Exiting." >&2
@@ -250,33 +250,33 @@ interestingTaxa="$DIR/$gene/InterestingTaxa.csv"
 if [[ -f "$interestingTaxa" ]]
 then
 	"$DIR/12b_InstallSpeciesDatabase.sh"
-	interestingTaxaArg="-z $interestingTaxa"
+	interestingTaxaArg="-z"
 fi
 
-seqConfigFile="-f $DIR/$gene/SpecialAminoAcids.txt"
+seqConfigFile="$DIR/$gene/SpecialAminoAcids.txt"
 
 aaFileArg=""
 aaFile="$DIR/$gene/AminoAcidColorMap.csv"
 if [[ -f "$aaFile" ]]
 then
-	aaFileArg="-a $aaFile"
+	aaFileArg="-a"
 fi
 
 additionalTaxaArg=""
 additionalTaxa="$DIR/$gene/AdditionalTaxonIdentifiers.csv"
 if [[ -f "$additionalTaxa" ]]
 then
-	additionalTaxaArg="-x $additionalTaxa"
+	additionalTaxaArg="-x"
 fi
 
 echo "Using $cladeFile" >&2
 
 # Process the master tree file if it does not exist or should be updated.
-if [[ ! -f $cladeTreeFile || ! -z $updateBig ]]
+if [[ ! -f "$cladeTreeFile" || ! -z "$updateBig" ]]
 then
 	echo "Processing $inputTree" >&2
 	echo "Creating $cladeTreeFile" >&2
-	python3 "$DIR/12_ConvertTreesToFigures.py" -m -i $inputTree -c $cladeFile $seqConfigFile $interestingTaxaArg $aaFileArg $additionalTaxaArg
+	python3 "$DIR/12_ConvertTreesToFigures.py" -m -i "$inputTree" -c "$cladeFile" -f "$seqConfigFile" "$interestingTaxaArg" "$interestingTaxa" "$aaFileArg" "$aaFile" "$additionalTaxaArg" "$additionalTaxa"
 
 	# Make a png version of the full tree
 	pdf2png "$inputTreeDir/$inputTreeBase.$extension.$cladeBase.fullTree"
@@ -284,17 +284,17 @@ fi
 
 # Get the names of the input files, second for the nth iteration master tree
 inputTree="$AlignmentDir/SequencesOfInterest$alignmentExtension.$extension"
-inputTreeBase=$(basename $inputTree ".$extension")
-inputTreeDir=$(dirname $inputTree)
+inputTreeBase=$(basename "$inputTree" ".$extension")
+inputTreeDir=$(dirname "$inputTree")
 outputFile="$inputTreeDir/$inputTreeBase.$extension.$cladeBase.collapsedTree.pdf"
 
 echo "Using $cladeTreeFile" >&2
 
 # Process the nth iteration master tree file if it does not exist or should be updated.
-if [[ -f $inputTree && ! -f $outputFile || -f $inputTree && ! -z $update && $iteration != $baseIteration ]]
+if [[ -f "$inputTree" && ! -f "$outputFile" || -f "$inputTree" && ! -z "$update" && "$iteration" != "$baseIteration" ]]
 then
 	echo "Processing $inputTree" >&2
-	python3 "$DIR/12_ConvertTreesToFigures.py" -i $inputTree -c $cladeFile -t $cladeTreeFile $seqConfigFile $interestingTaxaArg $aaFileArg $additionalTaxaArg
+	python3 "$DIR/12_ConvertTreesToFigures.py" -i "$inputTree" -c "$cladeFile" -t "$cladeTreeFile" -f "$seqConfigFile" "$interestingTaxaArg" "$interestingTaxa" "$aaFileArg" "$aaFile" "$additionalTaxaArg" "$additionalTaxa"
 
 	# Make a png version of the full tree
 	pdf2png "$inputTreeDir/$inputTreeBase.$extension.$cladeBase.fullTree"
@@ -303,19 +303,19 @@ fi
 # Get the names of the input files, third for the nth iteration sub trees
 for inputTree in "$AlignmentParts"*".$extension"
 do
-	if [ ! -f $inputTree ]
+	if [ ! -f "$inputTree" ]
 	then
 		continue
 	fi
 
-	inputTreeBase=$(basename $inputTree ".$extension")
-	inputTreeDir=$(dirname $inputTree)
+	inputTreeBase=$(basename "$inputTree" ".$extension")
+	inputTreeDir=$(dirname "$inputTree")
 	outputFile="$inputTreeDir/$inputTreeBase.$extension.$cladeBase.collapsedTree.pdf"
 
-	if [[ ! -f $outputFile || ! -z $update ]]
+	if [[ ! -f "$outputFile" || ! -z "$update" ]]
 	then
 		echo "Processing $inputTree" >&2
-		python3 "$DIR/12_ConvertTreesToFigures.py" -i $inputTree -c $cladeFile -t $cladeTreeFile $seqConfigFile $interestingTaxaArg $aaFileArg $additionalTaxaArg &
+		python3 "$DIR/12_ConvertTreesToFigures.py" -i "$inputTree" -c "$cladeFile" -t "$cladeTreeFile" -f "$seqConfigFile" "$interestingTaxaArg" "$interestingTaxa" "$aaFileArg" "$aaFile" "$additionalTaxaArg" "$additionalTaxa" &
 	fi
 done
 
