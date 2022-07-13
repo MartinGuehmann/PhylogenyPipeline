@@ -39,10 +39,10 @@
 # The extensions are applied within the function
 function pdf2png ()
 {
-	local fileBase=$1
+	local fileBase="$1"
 	local inputFile="$1.pdf"
 	local outputFile="$1.png"
-	pdftoppm -png -r 300 $inputFile > $outputFile
+	pdftoppm -png -r 600 "$inputFile" > "$outputFile"
 }
 
 # Get the directory where this script is
