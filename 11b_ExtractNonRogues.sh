@@ -162,11 +162,11 @@ then
 		rm -f $seqIDs
 	else
 		seqsPerChunk="900"
-		$DIR/SplitSequencesRandomly.sh -c "$seqsPerChunk" -f "$nextSeqsOfInterest" -o "$SequencesOfInterestShuffled" -O $rogueFreeTreesDir
+		"$DIR/SplitSequencesRandomly.sh" -c "$seqsPerChunk" -f "$nextSeqsOfInterest" -o "$SequencesOfInterestShuffled" -O $rogueFreeTreesDir
 	fi
 fi
 
 seqkit stats "$rogueFreeTreesDir/"*".fasta" > "$rogueFreeTreesDir/Statistics.txt"
 
 AlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix)
-$DIR/11c_CalculateAverageSupport.sh "$AlignmentDir" "$rogueFreeTreesDir"
+"$DIR/11c_CalculateAverageSupport.sh" "$AlignmentDir" "$rogueFreeTreesDir"

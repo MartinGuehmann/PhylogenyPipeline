@@ -69,7 +69,7 @@ cp $nrSequenceFile90 $SequencesOfInterest
 # Randomly shuffle the sequences of interests and split them into chunks of
 # about 900 sequences, this is not exactly set, since the actual number of sequences
 # won't be devidabel by 900 without rest. However, the rest is distributed over the files.
-$DIR/SplitSequencesRandomly.sh -c "$seqsPerChunk" -f "$SequencesOfInterest" -O "$SequencesOfInterestDir"
+"$DIR/SplitSequencesRandomly.sh" -c "$seqsPerChunk" -f "$SequencesOfInterest" -O "$SequencesOfInterestDir"
 
 # Get statistics about the generated files
 seqkit stats "$SequencesOfInterestDir/"*.fasta > "$SequencesOfInterestDir/Stats.txt"

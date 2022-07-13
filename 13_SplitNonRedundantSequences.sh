@@ -88,7 +88,7 @@ then
 fi
 
 numTreads=$(nproc)
-$DIR/SplitSequencesRandomly.sh -c "$seqsPerChunk" -f "$NonRedundandSequences90" -O $outputDir
+"$DIR/SplitSequencesRandomly.sh" -c "$seqsPerChunk" -f "$NonRedundandSequences90" -O $outputDir
 
 for partSeqFile in $outputDir/*".part_"*".fasta"
 do

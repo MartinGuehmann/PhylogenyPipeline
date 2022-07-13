@@ -47,7 +47,7 @@ fi
 mkdir -p $alignmentDir
 
 # Align the sequences with FAMSA
-$DIR/../FAMSA/famsa -fr -t $numTreads $inputSequences $outFile >&2 # Actually this does not put anything to stdout, but just to have it like the others
+"$DIR/../FAMSA/famsa" -fr -t $numTreads $inputSequences $outFile >&2 # Actually this does not put anything to stdout, but just to have it like the others
 
 # This must be the only stuff that goes to stdout here, since we use this as a return value
 echo "$outFile"

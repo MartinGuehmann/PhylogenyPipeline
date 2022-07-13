@@ -39,7 +39,7 @@ declare -a DataBases=(
 
 for DB in "${DataBases[@]}"
 do
-	$DIR/00a_GetGenes.sh $gene $DB &
+	"$DIR/00a_GetGenes.sh" $gene $DB &
 done
 
 wait # Wait on all the instances of 00a_GetGenes.sh having finished

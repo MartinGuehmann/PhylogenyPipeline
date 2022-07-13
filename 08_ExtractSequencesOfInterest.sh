@@ -97,4 +97,4 @@ else
 	echo "WARNING: Sequence lost during extraction, costum sequences might contain underscores that could not be detected." >&2
 fi
 
-$DIR/SplitSequencesRandomly.sh -c "$seqsPerChunk" -f "$SequencesOfInterest" -o "$SequencesOfInterestShuffled" -O "$SequencesOfInterestDir"
+"$DIR/SplitSequencesRandomly.sh" -c "$seqsPerChunk" -f "$SequencesOfInterest" -o "$SequencesOfInterestShuffled" -O "$SequencesOfInterestDir"
