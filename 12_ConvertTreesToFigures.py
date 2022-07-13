@@ -683,6 +683,12 @@ def fullTreeLayout(node):
 			node.add_face(clade_face, column=columnNum, position="float-right")
 			columnNum += 1
 
+	elif not node.img_style["draw_descendants"]:
+		# Technically this is an internal node
+		addSupportValues(node)
+		collapsedNodeLayout(node, 0, -2, "branch-right")
+		pass
+
 	else:
 		addSupportValues(node)
 
@@ -1060,6 +1066,15 @@ def collapseTree(tree, clades):
 		clade.rootNode.img_style["draw_descendants"] = False
 
 ###############################################################################
+def collapseOnlyOutgroup(tree, clades):
+	clade = clades[-1]
+
+	clade.rootNode.cladeName = clade.name
+	colorCollapsedNode(clade.rootNode, clade.forgroundColor, clade.backgroundColor)
+
+	clade.rootNode.img_style["draw_descendants"] = False
+
+###############################################################################
 def getFullTreeStyle():
 	ts = TreeStyle()
 	#ts = "c" # draw tree in circular mode
@@ -1381,6 +1396,7 @@ if __name__ == "__main__":
 	cladeTrees             = inputTree + "." + cladeBase + ".cladeTrees"
 	outCollapsedTree       = inputTree + "." + cladeBase + ".collapsedTree"
 	outFullTree            = inputTree + "." + cladeBase + ".fullTree"
+	outTree                = inputTree + "." + cladeBase + ".tree"
 	logoOutFileBase        = inputTree + "." + cladeBase
 	sortedAlignmentFile    = inputTree + "." + cladeBase + ".treeSorted.fasta"
 #	outFullTreeNeXML       = inputTree + "." + cladeBase + ".fullTree.NeXML"
@@ -1453,7 +1469,7 @@ if __name__ == "__main__":
 	ts = getFullTreeStyle()
 
 	fullTree.render(outFullTree + ".pdf", dpi=600, w=183, units="mm", tree_style=ts)
-	# svg files are not printed corrected, they have duplicated text
+	# svg files are not printed correctly, they have duplicated text
 #	fullTree.render(outFullTree + ".svg", dpi=600, w=183, units="mm", tree_style=ts)
 
 	# Dendroscope cannot load this type of tree
@@ -1469,8 +1485,14 @@ if __name__ == "__main__":
 	#command = "sed -i -e \"s/b'//g\"  -e \"s/\\\"'/\\\"/g\" " + outFullTreeNeXML
 	#os.system(command)
 
+	logging.debug("Save full tree without outgroup: " + outTree)
+	collapseOnlyOutgroup(tree, clades) # This will be done on the original tree anyway
+	collapsedOutgroupTree = tree.copy()
+
+	collapsedOutgroupTree.render(outTree + ".pdf", dpi=600, w=183, units="mm", tree_style=ts)
+
 	logging.debug("Save collapsed tree: " + outCollapsedTree)
-	collapseTree(tree, clades)
+	collapseTree(tree, clades) # This will be done on the original tree anyway
 
 	collTree = tree.copy()
 
