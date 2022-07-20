@@ -49,6 +49,9 @@ aminoAcidTreeColorMap   = {}
 taxonColorMap           = {}
 genusInterestingTaxaMap = {}
 
+# Global variable (not nice, but the easy way)
+taxonPercentsFile = None
+
 ###############################################################################
 class ColorData:
 	def __init__(self, color, entryType, rank):
@@ -233,16 +236,25 @@ def getColorsAndPercents(tree, colorMap, attribute):
 
 	countMap, numLeaves = countAttributes(tree, attribute)
 
-	percents = []
-	colors   = []
+	percents    = []
+	colors      = []
+	taxonLine   = ""
 	for key, value in countMap.items():
-		percents.append((value / numLeaves) * 100)
+		percent = (value / numLeaves) * 100
+		percents.append(percent)
 		if key in colorMap:
 			colors.append(colorMap[key].color)
 		else:
 			colors.append("Black")
 
-	return percents, colors
+	for key, value in colorMap.items():
+		if key in countMap:
+			percent = (countMap[key] / numLeaves) * 100
+		else:
+			percent = 0.0
+		taxonLine += key + "\t" + str(percent) + "\t"
+
+	return percents, colors, taxonLine
 
 ###############################################################################
 def getSortedClades(tree, clades):
@@ -818,19 +830,20 @@ def collapsedSimpleNodeLayout(node, columnNum, marginLeft, doCountLeaves, pos):
 	columnNum += 1
 
 	numLeavesStr = (" - " + str(countLeaves(node)) + " ") if doCountLeaves else ""
-	name_face = TextFace(" " + node.cladeName + numLeavesStr)
+	faceText = " " + node.cladeName + numLeavesStr
+	name_face = TextFace(faceText)
 	# Add the name face to the image at the preferred position
 	node.add_face(name_face, column=columnNum, position=pos)
 	columnNum += 1
 
-	return columnNum
+	return columnNum, faceText
 
 ###############################################################################
 def collapsedNodeLayout(node, columnNum, marginLeft, pos):
-	columnNum = collapsedSimpleNodeLayout(node, columnNum, marginLeft, True, pos)
+	columnNum, faceText = collapsedSimpleNodeLayout(node, columnNum, marginLeft, True, pos)
 
 	if hasSpecialAA():
-		percents, colors = getColorsAndPercents(node, aminoAcidTreeColorMap, 'specialAA')
+		percents, colors, taxonLine = getColorsAndPercents(node, aminoAcidTreeColorMap, 'specialAA')
 		pie_face = PieChartFace(percents, 30, 30, colors)
 		pie_face.margin_top = 4
 		pie_face.margin_bottom = 4
@@ -840,12 +853,14 @@ def collapsedNodeLayout(node, columnNum, marginLeft, pos):
 	if hasTaxa():
 		node.add_face(TextFace(" ", fsize=10), column=columnNum, position=pos)
 		columnNum += 1
-		percents, colors = getColorsAndPercents(node, taxonColorMap, 'taxonOfInterest')
+		percents, colors, taxonLine = getColorsAndPercents(node, taxonColorMap, 'taxonOfInterest')
 		pie_face = PieChartFace(percents, 30, 30, colors)
 		pie_face.margin_top = 4
 		pie_face.margin_bottom = 4
 		node.add_face(pie_face, column=columnNum, position=pos)
 		columnNum += 1
+
+		taxonPercentsFile.write(faceText + " " + taxonLine + "\n")
 
 ###############################################################################
 def addSupportValues(node):
@@ -1394,12 +1409,15 @@ if __name__ == "__main__":
 	cladeBase = os.path.splitext(cladeBase)[0]
 
 	cladeTrees             = inputTree + "." + cladeBase + ".cladeTrees"
+	taxonPercents          = inputTree + "." + cladeBase + ".TaxonPercents.txt"
 	outCollapsedTree       = inputTree + "." + cladeBase + ".collapsedTree"
 	outFullTree            = inputTree + "." + cladeBase + ".fullTree"
 	outTree                = inputTree + "." + cladeBase + ".tree"
 	logoOutFileBase        = inputTree + "." + cladeBase
 	sortedAlignmentFile    = inputTree + "." + cladeBase + ".treeSorted.fasta"
 #	outFullTreeNeXML       = inputTree + "." + cladeBase + ".fullTree.NeXML"
+
+	taxonPercentsFile = open(taxonPercents, "w")
 
 	print("Load tree:", inputTree, file=sys.stderr)
 
@@ -1525,5 +1543,8 @@ if __name__ == "__main__":
 	tree.faces_bgcolor = "White"
 	tree.img_style["draw_descendants"] = False
 	tree.render(outCollapsedTree + "Legend.pdf", dpi=600, w=400, units="mm", tree_style=ts)
+
+	# Just be formal, this should happen automatically
+	taxonPercentsFile.close()
 
 ###############################################################################
