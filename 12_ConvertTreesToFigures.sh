@@ -179,7 +179,7 @@ if [[ ! -z "$inputDir" && -d "$inputDir" ]]
 then
 	AlignmentDir="$inputDir"
 else
-	AlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" "$suffix")
+	AlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix)
 fi
 
 # Set default for baseIteration if it is not defined.
@@ -188,7 +188,7 @@ then
 	baseIteration="0"
 fi
 
-firstAlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "$baseIteration" -a "$masterAligner" "$masterSuffix")
+firstAlignmentDir=$("$DIR/GetAlignmentDirectory.sh" -g "$gene" -i "$baseIteration" -a "$masterAligner" $masterSuffix)
 
 alignmentExtension=""
 masterAlignmentExtension=""
