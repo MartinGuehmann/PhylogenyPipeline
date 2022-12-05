@@ -8,6 +8,7 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
   [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
 # This is needed, because these might be definded from qsub
 suffix=""
@@ -54,7 +55,7 @@ do
         --*)
             ;&
         *)
-            echo "Bad option $1 is ignored" >&2
+            echo "Bad option $1 is ignored in $thisScript" >&2
             ;;
     esac
     shift

@@ -129,7 +129,7 @@ do
         --*)
             ;&
         *)
-            echo "Bad option $1 is ignored" >&2
+            echo "Bad option $1 is ignored in $thisScript"  >&2
             ;;
     esac
     shift
