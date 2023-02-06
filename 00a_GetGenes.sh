@@ -29,11 +29,11 @@ HitDir="$DIR/$gene/Hits/$databaseName/"
 BaitDir="$DIR/$gene/BaitSequences/"
 AdditionalBaitDir="$DIR/$gene/AdditionalBaitSequences/"
 
-declare -a seqFiles=( $BaitDir*.fasta )
+declare -a seqFiles=( "$BaitDir"*".fasta" )
 
-if [ -d $AdditionalBaitDir ]
+if [ -d "$AdditionalBaitDir" ]
 then
-	seqFiles+=($AdditionalBaitDir*.fasta)
+	seqFiles+=("$AdditionalBaitDir"*".fasta")
 fi
 
 if [ $DB == $databaseName ]
@@ -43,30 +43,31 @@ else
 	remoteOrNumThreads="-num_threads $(nproc)"
 fi
 
-mkdir -p $HitDir
+mkdir -p "$HitDir"
 
 trials=0
 maxTrials=16
 
 while [ $trials -lt $maxTrials ]
 do
-	for seqFile in ${seqFiles[@]}
+	for ((i = 0; i < ${#seqFiles[@]}; i++))
 	do
+		seqFile="${seqFiles[$i]}"
 		[ -f "$seqFile" ] || continue # In case you put a folder with the *.fasta extension into that folder
 
-		outFileBase=$(basename $seqFile .fasta)
+		outFileBase=$(basename "$seqFile" .fasta)
 		outFile="$HitDir$outFileBase.csv"
 
 		if [ ! -f "$outFile" ]
 		then
 			echo "Writing to $outFile" >&2
-			blastp -query "$seqFile" -db $DB -evalue $evalue -max_target_seqs $maxkeep $remoteOrNumThreads -out $outFile -outfmt "6 saccver stitle evalue"
+			blastp -query "$seqFile" -db $DB -evalue $evalue -max_target_seqs $maxkeep $remoteOrNumThreads -out "$outFile" -outfmt "6 saccver stitle evalue"
 		fi
 	done
 
 	needMoreTrials="false"
 
-	for hitFile in $HitDir*.csv
+	for hitFile in "$HitDir"*".csv"
 	do
 		[ -f "$hitFile" ] || continue # In case you put a folder with the *.csv extension into that folder
 
