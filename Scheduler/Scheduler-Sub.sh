@@ -117,7 +117,8 @@ then
 		shift
 	done
 
-	jobID=$(sbatch --kill-on-invalid-dep=yes $hold $depend $range $exportFlag"$export" $script)
+	account=$(Account.sh)
+	jobID=$(sbatch --kill-on-invalid-dep=yes $hold $account $depend $range $exportFlag"$export" $script)
 	echo ${jobID##* }
 else
 	echo "No known scheduler present!" >&2
