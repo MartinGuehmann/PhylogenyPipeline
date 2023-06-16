@@ -18,7 +18,7 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 shopt -s extglob
 
-# These would need not defind guards if called via "$DIR/Scheduler-Sub.sh"
+# These would not need to be defined guards if called via "$DIR/Scheduler-Sub.sh"
 iteration="0"
 hold=""
 depend=""
