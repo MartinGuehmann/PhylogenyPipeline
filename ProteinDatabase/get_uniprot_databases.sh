@@ -13,3 +13,6 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 "$DIR/get_uniprot_database.sh" "uniprot_sprot" &
 "$DIR/get_uniprot_database.sh" "uniprot_trembl" &
+
+# Wait for all jobs completed
+wait
