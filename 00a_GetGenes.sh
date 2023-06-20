@@ -79,7 +79,7 @@ do
 		fi
 	done
 
-	if [ $needMoreTrials == "true" ]
+	if [[ $needMoreTrials == "true" && $DB != $databaseName ]]
 	then
 		echo "Not all files were downloaded, correctly. Trying $((maxTrials - trials -1)) more time(s)." >&2
 		((++trials))

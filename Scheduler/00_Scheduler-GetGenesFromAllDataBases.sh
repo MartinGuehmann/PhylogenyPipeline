@@ -1,8 +1,10 @@
 #!/bin/bash
 
-# We either need the maximum number of nodes
-# or more than we have database otherwise
-# we would use more nodes than allowed
+# makeblastdb does not care about the number of CPUs
+# assigns, it seems to just to try to use all on the
+# machine, so go with the maximum number od CPUs on
+# the node and also take the all the memory, even so
+# not needed.
 #PBS -l select=1:ncpus=24:mem=187gb
 #PBS -l walltime=72:00:00
 

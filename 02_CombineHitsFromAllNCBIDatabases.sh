@@ -18,11 +18,12 @@ then
 	exit 1
 fi
 
+# Uniprot databases not needed here
 # Download and make the uniprot databases if they do not exist
-"$DIR/ProteinDatabase/get_uniprot_databases.sh"
+#"$DIR/ProteinDatabase/get_uniprot_databases.sh"
 
-TRMBL="$DIR/ProteinDatabase/uniprot_trembl/uniprot_trembl"
-SPROT="$DIR/ProteinDatabase/uniprot_sprot/uniprot_sprot"
+#TRMBL="$DIR/ProteinDatabase/uniprot_trembl/uniprot_trembl"
+#SPROT="$DIR/ProteinDatabase/uniprot_sprot/uniprot_sprot"
 
 declare -a DataBases=(
                     # Exclude local databases
