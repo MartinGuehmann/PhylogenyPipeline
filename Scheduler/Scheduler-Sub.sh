@@ -117,7 +117,7 @@ then
 		shift
 	done
 
-	account=$(Account.sh)
+	account=$("./Account.sh")
 	jobID=$(sbatch --kill-on-invalid-dep=yes $hold $account $depend $range $exportFlag"$export" $script)
 	echo ${jobID##* }
 else
