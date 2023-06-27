@@ -27,6 +27,7 @@ then
 fi
 
 if [[ ! -f "$database.pdb" ]]
+then
 	makeblastdb -in "$database.fasta" -out "$database" -dbtype prot
 fi
 
