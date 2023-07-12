@@ -1,10 +1,10 @@
 #!/bin/bash
 
-#PBS -l select=1:ncpus=1:mem=8gb
+#PBS -l select=1:ncpus=8:mem=32gb
 #PBS -l walltime=12:00:00
 
 # Go to the first program line,
-# any PBS directive below that is ignored.
+# any PBS directive below that, is ignored.
 # Load modules
 module load apps/muscle/3.8.31
 

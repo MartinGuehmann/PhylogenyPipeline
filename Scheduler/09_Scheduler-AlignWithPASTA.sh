@@ -1,10 +1,10 @@
 #!/bin/bash
 
 #PBS -l select=1:ncpus=4:mem=30gb
-#PBS -l walltime=24:00:00
+#PBS -l walltime=72:00:00
 
 # Go to the first program line,
-# any PBS directive below that is ignored.
+# any PBS directive below that, is ignored.
 # No modules to be loaded
 
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"

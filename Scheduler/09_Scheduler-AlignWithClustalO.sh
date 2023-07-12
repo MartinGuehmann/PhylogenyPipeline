@@ -1,10 +1,10 @@
 #!/bin/bash
 
 #PBS -l select=1:ncpus=24:mem=100gb
-#PBS -l walltime=8:00:00
+#PBS -l walltime=12:00:00
 
 # Go to the first program line,
-# any PBS directive below that is ignored.
+# any PBS directive below that, is ignored.
 # Load modules
 module load apps/clustal-omega/1.2.4-gcc
 
