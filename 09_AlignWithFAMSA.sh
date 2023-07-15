@@ -43,7 +43,7 @@ then
 	exit 0
 fi
 
-# Make alignment directory if it does not exist
+# Make the alignment directory if it does not exist
 mkdir -p $alignmentDir
 
 # Align the sequences with FAMSA

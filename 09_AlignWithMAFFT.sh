@@ -43,10 +43,10 @@ then
 	exit 0
 fi
 
-# Make alignment directory if it does not exist
+# Make the alignment directory if it does not exist
 mkdir -p $alignmentDir
 
-# Align the sequences with regressive MAFFT
+# Align the sequences with MAFFT
 mafft --thread $numTreads $inputSequences > $outFile
 
 # This must be the only stuff that goes to stdout here, since we use this as a return value

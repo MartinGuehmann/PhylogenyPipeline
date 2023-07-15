@@ -43,10 +43,10 @@ then
 	exit 0
 fi
 
-# Make alignment directory if it does not exist
+# Make the alignment directory if it does not exist
 mkdir -p $alignmentDir
 
-# Align the sequences with regressive MUSCLE
+# Align the sequences with MUSCLE
 muscle -in $inputSequences -out $outFile >&2 # In case this puts something to stdout
 
 # This must be the only stuff that goes to stdout here, since we use this as a return value
