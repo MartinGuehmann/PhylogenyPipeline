@@ -47,7 +47,7 @@ fi
 mkdir -p $alignmentDir
 
 # Align the sequences with Muscle5
-muscle5 -align $inputSequences -output $outFile >&2 # In case this puts something to stdout
+muscle5 -threads $numTreads -align $inputSequences -output $outFile >&2 # In case this puts something to stdout
 
 # This must be the only stuff that goes to stdout here, since we use this as a return value
 echo "$outFile"
