@@ -33,7 +33,8 @@ fi
 # Make input and output file names
 numTreads=$(nproc)
 base=$(basename $inputSequences .fasta)
-outFile="$alignmentDir/$base.alignment.MAFFT.fasta"
+outFile="$alignmentDir/$base.alignment.MAGUS.fasta"
+workDir="$alignmentDir/$base.alignment.MAGUS"
 
 # Do not realign if the outfile already exists and is not empty
 if [ -s $outFile ]
@@ -43,11 +44,12 @@ then
 	exit 0
 fi
 
-# Make the alignment directory if it does not exist
+# Make the alignment and work directories if they do not exist
 mkdir -p $alignmentDir
+mkdir -p $workDir
 
 # Align the sequences with MAGUS
-python3 "$DIR/../MAGUS/magus.py" -np $numTreads -d $alignmentDir -i $inputSequences -o $outFile
+python3 "$DIR/../MAGUS/magus.py" -np $numTreads -d $workDir -i $inputSequences -o $outFile
 
 # This must be the only stuff that goes to stdout here, since we use this as a return value
 echo "$outFile"
