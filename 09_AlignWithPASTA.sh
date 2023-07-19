@@ -34,7 +34,7 @@ fi
 numTreads=$(nproc)
 base=$(basename $inputSequences .fasta)
 outFile="$alignmentDir/$base.alignment.PASTA.fasta"
-cleanedinputSequences="$alignmentDir/$base.fasta"
+cleanedInputSequences="$alignmentDir/$base.fasta"
 
 # Do not realign if the outfile already exists and is not empty
 if [ -s $outFile ]
@@ -68,14 +68,14 @@ sed -e '/^>/!s/J/L/g' \
     -e 's/[=: /]/_/g' \
     $inputSequences | \
 sed -e 's/__/_/g' \
-    -e 's/_$//g' > $cleanedinputSequences
+    -e 's/_$//g' > $cleanedInputSequences
 
 ###########################################################
 # Align the sequences with PASTA
 # PASTA outputs stuff to stdout, even so it should go to stderr
 # This just clogs the return stuff of this script
 maxMB="16384"
-run_pasta.py -i $cleanedinputSequences -d protein -o $alignmentDir --num-cpus=$numTreads --max-mem-mb=$maxMB --alignment-suffix="alignment.PASTA.fasta" -j $base >&2
+run_pasta.py -i $cleanedInputSequences -d protein -o $alignmentDir --num-cpus=$numTreads --max-mem-mb=$maxMB --alignment-suffix="alignment.PASTA.fasta" -j $base >&2
 
 # Remove temporary output files
 rm $alignmentDir/${base}_temp_*

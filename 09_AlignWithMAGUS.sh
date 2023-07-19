@@ -35,6 +35,7 @@ numTreads=$(nproc)
 base=$(basename $inputSequences .fasta)
 outFile="$alignmentDir/$base.alignment.MAGUS.fasta"
 workDir="$alignmentDir/$base.alignment.MAGUS"
+cleanedInputSequences="$alignmentDir/$base.fasta"
 
 # Do not realign if the outfile already exists and is not empty
 if [ -s $outFile ]
@@ -48,8 +49,27 @@ fi
 mkdir -p $alignmentDir
 mkdir -p $workDir
 
+###########################################################
+# Copy sequences and replace Js by Ls
+# Since PASTA (MAGUS?) cannot cope with that
+# Remove special characters from sequence IDs
+# So that we do not have trouble with them later
+# Let's see whether J-replacement is needed MAGUS
+#sed -e '/^>/!s/J/L/g' \
+#    -e '/^>/!s/j/l/g' \
+sed -e 's/[],[]//g' \
+    -e 's/[);(]//g' \
+    -e "s/[']//g" \
+    -e "s/[&]//g" \
+    -e 's/ $//g' \
+    -e 's/[=: /]/_/g' \
+    $inputSequences | \
+sed -e 's/__/_/g' \
+    -e 's/_$//g' > $cleanedInputSequences
+
+###########################################################
 # Align the sequences with MAGUS
-python3 "$DIR/../MAGUS/magus.py" -np $numTreads -d $workDir -i $inputSequences -o $outFile
+python3 "$DIR/../MAGUS/magus.py" -np $numTreads -d $workDir -i $cleanedInputSequences -o $outFile
 
 # This must be the only stuff that goes to stdout here, since we use this as a return value
 echo "$outFile"
