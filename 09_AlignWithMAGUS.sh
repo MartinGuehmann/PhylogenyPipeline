@@ -62,7 +62,7 @@ sed -e 's/[],[]//g' \
     -e "s/[']//g" \
     -e "s/[&]//g" \
     -e 's/ $//g' \
-    -e 's/[=: /]/_/g' \
+    -e 's/[=: /\]/_/g' \
     $inputSequences | \
 sed -e 's/__/_/g' \
     -e 's/_$//g' > $cleanedInputSequences
