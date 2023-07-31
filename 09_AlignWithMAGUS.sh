@@ -69,7 +69,7 @@ sed -e 's/__/_/g' \
 
 ###########################################################
 # Align the sequences with MAGUS
-python3 "$DIR/../MAGUS/magus.py" -np $numTreads -d $workDir -i $cleanedInputSequences -o $outFile
+python3 "$DIR/../MAGUS/magus.py" -np $numTreads -d $workDir -i $cleanedInputSequences -o $outFile >&2
 
 # This must be the only stuff that goes to stdout here, since we use this as a return value
 echo "$outFile"
