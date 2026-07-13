@@ -57,6 +57,21 @@ The needed programms are installed in mainly three different ways, depending on 
 
 The pipeline is designed to run on a cluster computer, either with PBS Pro or Slurm as scheduler. In principle, more schedulers could be added. Another possibility would to install a scheduler such as PBS-Pro or Slurm on a local computer.
 
+## Gene Data Repositories
+
+The pipeline scripts build paths as `$DIR/$gene/...`, where `$DIR` is this
+repository's own directory and `$gene` is whatever is passed via `-g`. The
+gene-specific data itself (bait sequences, clade definitions, orchestration
+scripts, and the pipeline's generated output for that gene) is kept in a
+separate, per-gene-family repository rather than inside this one.
+
+The convention is to check that gene repository out as a sibling of this
+one, under the same parent directory, and have its orchestration scripts
+pass `-g "../<GeneRepoName>"` so that `$DIR/$gene/...` resolves back up
+into it. See [Opsins](https://github.com/MartinGuehmann/Opsins) for a
+worked example, including which subdirectories are hand-curated inputs
+versus pipeline-generated output.
+
 ## Databases
 
 The phylogeny pipeline downloads the uniprot protein databases sprot and trembl in fasta format and builds from them blast databases, which requires about 210 GB as of August 2021.
