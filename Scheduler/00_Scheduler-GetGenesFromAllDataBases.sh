@@ -5,11 +5,8 @@
 # machine, so go with the maximum number od CPUs on
 # the node and also take the all the memory, even so
 # not needed.
-#PBS -l select=1:ncpus=24:mem=187gb
-#PBS -l walltime=72:00:00
 
-# Go to the first program line,
-# any PBS directive below that is ignored.
+# Resources for this job (cpus, mem, walltime) are set in Scheduler/Resources.cfg.
 module load apps/blast/2.11.0+
 
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"

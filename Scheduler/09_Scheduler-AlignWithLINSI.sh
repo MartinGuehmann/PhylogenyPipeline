@@ -1,10 +1,6 @@
 #!/bin/bash
 
-#PBS -l select=1:ncpus=24:mem=187gb
-#PBS -l walltime=24:00:00
-
-# Go to the first program line,
-# any PBS directive below that is ignored.
+# Resources for this job (cpus, mem, walltime) are set in Scheduler/Resources.cfg.
 # Load modules
 module load apps/mafft/7.429
 

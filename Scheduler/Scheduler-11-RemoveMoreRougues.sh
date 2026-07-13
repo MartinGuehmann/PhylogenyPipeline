@@ -1,10 +1,6 @@
 #!/bin/bash
 
-#PBS -l select=1:ncpus=1:mem=1gb
-#PBS -l walltime=0:10:00
-
-# Go to the first program line,
-# any PBS directive below that is ignored.
+# Resources for this job (cpus, mem, walltime) are set in Scheduler/Resources.cfg.
 # No modules to load
 
 if [ -z $DIR ]
@@ -144,7 +140,6 @@ fi
 nextIteration="$((iteration + 1))"
 rogueFreeTreesDir=$("$DIR/../GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$nextIteration" -a "$aligner" $suffix)
 droppedFinal="$rogueFreeTreesDir/SequencesOfInterest.dropped.fasta"
-
 
 if [[ ! -z "$bigTreeIteration" && $bigTreeIteration == $iteration ]]
 then

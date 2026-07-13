@@ -5,6 +5,11 @@
 # dependency, and exported environment variables. Add if you
 # need more. Call this script with these options as you would
 # call qsub.
+#
+# The cpu/mem/walltime resources for the submitted script are looked
+# up by its basename in Resources.cfg and passed on the command line,
+# so tuning resources for a cluster means editing that one file
+# instead of every job script.
 
 hold=""
 depend=""
@@ -64,7 +69,15 @@ then
 		shift
 	done
 
-	qsub $hold $depend $range $exportFlag "$export" $script
+	resourceLine=$(grep -m1 "^$(basename "$script")[[:space:]]" "./Resources.cfg")
+	resources=""
+	if [ -n "$resourceLine" ]
+	then
+		read -r _ cpus mem walltime <<< "$resourceLine"
+		resources="-l select=1:ncpus=$cpus:mem=${mem}gb -l walltime=$walltime"
+	fi
+
+	qsub $hold $depend $range $resources $exportFlag "$export" $script
 elif [ -x "$(command -v sbatch)" ]
 then
 	# Idiomatic parameter and option handling in sh
@@ -118,7 +131,16 @@ then
 	done
 
 	account=$("./Account.sh")
-	jobID=$(sbatch --kill-on-invalid-dep=yes $hold $account $depend $range $exportFlag"$export" $script)
+
+	resourceLine=$(grep -m1 "^$(basename "$script")[[:space:]]" "./Resources.cfg")
+	resources=""
+	if [ -n "$resourceLine" ]
+	then
+		read -r _ cpus mem walltime <<< "$resourceLine"
+		resources="--cpus-per-task=$cpus --mem=${mem}G --time=$walltime"
+	fi
+
+	jobID=$(sbatch --kill-on-invalid-dep=yes $hold $account $depend $range $resources $exportFlag"$export" $script)
 	echo ${jobID##* }
 else
 	echo "No known scheduler present!" >&2

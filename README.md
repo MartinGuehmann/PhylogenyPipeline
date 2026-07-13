@@ -71,43 +71,33 @@ If you need to supply account information, when you start a job then go to file 
 
 ## Scheduler Setup
 
-All job scripts in ./Scheduler/ declare their resources as `#PBS -l select=...`
-and `#PBS -l walltime=...` comments. `Scheduler-Sub.sh` picks the scheduler
-to submit to at runtime:
+`Scheduler-Sub.sh` picks the scheduler to submit to at runtime:
 
 	- If a `qsub` command is on the path, it is used, with PBS/Torque-style
 	  options (`-W depend=`, `-J`, `-h`, `-v`).
 	- Otherwise, if `sbatch` is on the path, it is used with translated
 	  Slurm options.
 
-Whether the `#PBS` resource lines inside a script are actually honored
-depends on which branch is taken:
+The cpu/mem/walltime resources for each job script are not hardcoded in
+the script itself. They are looked up by script name in
+./Scheduler/Resources.cfg and passed on the command line
+(`-l select=...`/`-l walltime=...` for qsub, `--cpus-per-task`/`--mem`/
+`--time` for sbatch). This means tuning resources for a cluster, or for
+a particular gene that needs more memory, is a matter of editing one
+table instead of every job script.
 
-	- Some Slurm installations that migrated from PBS/Torque provide a
-	  `qsub` compatibility wrapper (e.g. Slurm's contribs/torque `qsub.pl`)
-	  that reads the `#PBS` lines from the script itself and translates
-	  them into the matching `sbatch` submission. If this wrapper is
-	  present, the existing scripts work unchanged.
-	- If the cluster only has native Slurm commands (no `qsub` at all),
-	  `Scheduler-Sub.sh` falls back to calling `sbatch` directly on the
-	  script. Plain `sbatch` does not parse `#PBS` lines, so they are
-	  silently ignored and jobs run with the cluster's default resources
-	  instead of what each script requests.
-
-Check which case applies on a new cluster before relying on the resource
-requests in the scripts:
-
-	command -v qsub && file "$(command -v qsub)"
-
-If `qsub` is missing or the fallback `sbatch` path is being used, either
-add matching `#SBATCH` lines to the scripts in ./Scheduler/, or pass the
-resources explicitly on the `sbatch` command line.
+Note that some Slurm installations that migrated from PBS/Torque provide
+a `qsub` compatibility wrapper (e.g. Slurm's contribs/torque `qsub.pl`)
+that would also read `#PBS` directives directly out of a script. This
+pipeline no longer relies on that: `Resources.cfg` is the single source
+of truth regardless of which branch `Scheduler-Sub.sh` takes.
 
 ## Moving to a new cluster
 
 Checklist for getting the pipeline running on a cluster it hasn't run on before:
 
-	- Check the qsub/sbatch scheduler compatibility question above.
+	- Adjust ./Scheduler/Resources.cfg if the new cluster's node sizes or
+	  usual walltime limits differ from what is currently in there.
 	- Update every `module load ...` line in ./Scheduler/*.sh to module
 	  names/versions that exist on the new cluster.
 	- Recreate the `vcmsa_env` conda environment used by

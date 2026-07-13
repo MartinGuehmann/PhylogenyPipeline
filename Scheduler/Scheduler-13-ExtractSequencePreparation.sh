@@ -1,10 +1,6 @@
 #!/bin/bash
 
-#PBS -l select=1:ncpus=1:mem=1gb
-#PBS -l walltime=0:10:00
-
-# Go to the first program line,
-# any PBS directive below that is ignored.
+# Resources for this job (cpus, mem, walltime) are set in Scheduler/Resources.cfg.
 # No modules to load
 
 if [ -z $DIR ]
@@ -121,7 +117,6 @@ fi
 # Change the working directory to the directory of this script
 # so that the standard and error output files to the directory of this script
 cd $DIR
-
 
 if [ -z "$useFullDataset" ]
 then

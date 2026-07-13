@@ -1,10 +1,6 @@
 #!/bin/bash
 
-#PBS -l select=1:ncpus=8:mem=100gb
-#PBS -l walltime=24:00:00
-
-# Go to the first program line,
-# any PBS directive below that is ignored.
+# Resources for this job (cpus, mem, walltime) are set in Scheduler/Resources.cfg.
 # Load modules
 module load lang/python/anaconda/3.8.8-2021.05-2.5
 # You also need to install dendropy

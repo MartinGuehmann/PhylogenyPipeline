@@ -9,11 +9,8 @@
 
 # We need quite some time since we
 # interact with the server of NCBI
-#PBS -l select=1:ncpus=8:mem=8gb
-#PBS -l walltime=8:00:00
 
-# Go to the first program line,
-# any PBS directive below that is ignored.
+# Resources for this job (cpus, mem, walltime) are set in Scheduler/Resources.cfg.
 # Load modules
 #efetch from e-utilities is missing
 # In principle we just need the uniprot fasta files

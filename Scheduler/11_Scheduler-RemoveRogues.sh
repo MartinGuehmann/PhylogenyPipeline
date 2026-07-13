@@ -1,10 +1,6 @@
 #!/bin/bash
 
-#PBS -l select=1:ncpus=4:mem=8gb
-#PBS -l walltime=1:00:00
-
-# Go to the first program line,
-# any PBS directive below that is ignored.
+# Resources for this job (cpus, mem, walltime) are set in Scheduler/Resources.cfg.
 # Modules to load, TreeShrink does not work with R >= 4.0
 # And we need Phython 2.7
 module load lang/r/3.6.1
