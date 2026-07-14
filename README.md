@@ -95,9 +95,38 @@ vendored in the tarball, that `go build` will try to reach the network,
 which Nix's sandboxed build blocks - see the comment in flake.nix for
 the `pkgs.buildGoModule` fallback if that happens.
 
-Still not attempted: T-Coffee (its build wants `g77`, a Fortran compiler
-GCC dropped long ago) and PASTA (needs a whole separate
-`sate-tools-linux` repo of bundled third-party binaries).
+T-Coffee and PASTA are now also built, likewise modeled on their
+[bioconda](https://github.com/bioconda/bioconda-recipes) recipes rather
+than each project's own install docs, since bioconda's CI actually builds
+and tests them and gives pinned versions/hashes to match. Both needed
+real compromises versus the bioconda recipe, so treat them as the least
+trustworthy derivations in this flake:
+
+- **T-Coffee**: only the core `t_coffee`/`TMalign` compile step is
+  replicated (`cd t_coffee_source && make all`), not bioconda's full
+  install, which also runs T-Coffee's own installer to fetch its bundled
+  meta-aligner plugins over the network - not usable in a sandboxed Nix
+  build, and not needed since this pipeline only calls the base
+  `t_coffee` binary anyway. A small upstream patch bioconda applies
+  (`coredump.patch`, fixing `set_nproc`'s signature in util.c) was
+  skipped since only its two changed lines were available, not full
+  context; if the build fails around `set_nproc`, that's the fix needed.
+- **PASTA**: needs several more tools at *specific old versions*, now
+  also built from source and bundled alongside it: classic MUSCLE v3
+  (PASTA's own code expects v3's CLI flags, not v5's - published only as
+  an x86_64 static binary, so this piece doesn't exist on aarch64),
+  ClustalW 2.1, FastTree 2.2.0, and PRANK, plus `pkgs.raxml` and
+  `pkgs.hmmer` from nixpkgs and a single `opal.jar` fetched directly
+  (not the whole `sate-tools-linux` bundle it comes from). These are
+  handed to PASTA via its own `PASTA_TOOLS_RUNDIR` environment variable
+  rather than bioconda's approach of patching PASTA's source to look at
+  `$CONDA_PREFIX/bin` - this is the least certain part of the whole
+  flake: bioconda's choice to patch instead of using that variable hints
+  it may not cover every tool lookup in PASTA's code. If PASTA can't find
+  a tool at runtime despite it being available, patching
+  `pasta/__init__.py`'s tool-directory functions the way bioconda's
+  `fix_tooldir.patch` does is the documented fallback (see the comment
+  above the `pastaToolsDir` derivation in flake.nix).
 
 ## Gene Data Repositories
 

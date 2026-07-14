@@ -174,10 +174,198 @@
             # wget is a buildInput only so it's pulled into the devShell
             # below; the scripts shell out to it at runtime, not build time.
           };
+
+          # --- T-Coffee and PASTA -----------------------------------------
+          #
+          # Both were initially left out as too risky to blind-package (see
+          # git history), then attempted anyway. They turned out to have
+          # real bioconda recipes (bioconda/bioconda-recipes on GitHub),
+          # which is the ground truth these derivations are modeled on
+          # instead of each project's own install docs - bioconda actually
+          # builds and tests these on their CI, so their pinned
+          # versions/hashes are used directly (no fakeHash) where bioconda
+          # provided one.
+
+          t-coffee = pkgs.stdenv.mkDerivation rec {
+            pname = "t-coffee";
+            version = "13.46.2.7c9e712d"; # matches bioconda's pin
+            src = pkgs.fetchurl {
+              url = "https://s3.eu-central-1.amazonaws.com/tcoffee-packages/Archives/T-COFFEE_distribution_Version_${version}.tar.gz";
+              sha256 = "84f9b4076767d39dec6619c5eb91c9538a7c58c68a3731a92ebbf2e1f914296f";
+            };
+            nativeBuildInputs = [ pkgs.gfortran pkgs.perl ];
+            # bioconda's build.sh runs the source through T-Coffee's own
+            # `install` perl script, which also tries to download plugin
+            # binaries over the network - unusable in a sandboxed Nix
+            # build. Instead this only replicates bioconda's *compile*
+            # step (`cd t_coffee_source && make all`), which is enough for
+            # a standalone t_coffee binary (the one this pipeline actually
+            # needs, not T-Coffee's whole bundled meta-aligner ensemble).
+            # Skipped: bioconda's own `coredump.patch` (a small upstream
+            # fix to util.c's set_nproc signature) - not applied here
+            # since only its two changed lines, not full context, were
+            # available. If `make all` fails around `set_nproc`, that
+            # patch is the fix.
+            buildPhase = ''
+              runHook preBuild
+              sed -i 's|CC=g++|CC=$(CXX)|' t_coffee_source/makefile
+              sed -i 's|$(FCC)|$(FC)|' t_coffee_source/makefile
+              (cd t_coffee_source && make all -j"$NIX_BUILD_CORES")
+              runHook postBuild
+            '';
+            installPhase = ''
+              runHook preInstall
+              mkdir -p $out/bin
+              cp t_coffee_source/t_coffee $out/bin/
+              [ -f t_coffee_source/TMalign ] && cp t_coffee_source/TMalign $out/bin/
+              runHook postInstall
+            '';
+          };
+
+          clustalw = pkgs.stdenv.mkDerivation rec {
+            pname = "clustalw";
+            version = "2.1"; # matches bioconda's pin
+            src = pkgs.fetchurl {
+              url = "http://www.clustal.org/download/current/clustalw-${version}.tar.gz";
+              sha256 = "e052059b87abfd8c9e695c280bfba86a65899138c82abccd5b00478a80f49486";
+            };
+            nativeBuildInputs = [ pkgs.autoreconfHook ];
+            postInstall = ''
+              ln -sf $out/bin/clustalw2 $out/bin/clustalw
+            '';
+          };
+
+          fasttree = pkgs.stdenv.mkDerivation rec {
+            pname = "fasttree";
+            version = "2.2.0"; # matches bioconda's pin
+            src = pkgs.fetchFromGitHub {
+              owner = "morgannprice";
+              repo = "fasttree";
+              rev = "v${version}";
+              sha256 = "db5f0d2d1e2b9099193a3a68a5c44f71166a870a7a4269398b9258b1e3478e12";
+            };
+            dontConfigure = true;
+            # bioconda passes CPU-specific -march flags here; dropped for
+            # portability across unknown cluster node generations, same
+            # reasoning as FAMSA's PLATFORM=avx2 choice above.
+            buildPhase = ''
+              runHook preBuild
+              $CC -O3 -funsafe-math-optimizations -o FastTree FastTree.c -lm
+              $CC -DOPENMP -O3 -fopenmp -funsafe-math-optimizations -o FastTreeMP FastTree.c -lm
+              runHook postBuild
+            '';
+            installPhase = ''
+              mkdir -p $out/bin
+              install -m755 FastTree $out/bin/FastTree
+              install -m755 FastTree $out/bin/fasttree
+              install -m755 FastTreeMP $out/bin/FastTreeMP
+            '';
+          };
+
+          prank = pkgs.stdenv.mkDerivation rec {
+            pname = "prank";
+            version = "251117"; # matches bioconda's pin
+            src = pkgs.fetchFromGitHub {
+              owner = "ariloytynoja";
+              repo = "prank-msa";
+              rev = "v.${version}"; # tag is literally "v.251117"
+              sha256 = "992eb5980f3c8c331b2860093756b98491f501999d4d09fc4d16ea89d849a105";
+            };
+            buildPhase = ''
+              runHook preBuild
+              mkdir -p $out/bin
+              make -C src CC="$CC" CXX="$CXX" LINK="$CXX" TARGET="$out/bin/prank" -j"$NIX_BUILD_CORES"
+              runHook postBuild
+            '';
+            dontInstall = true;
+          };
+
+          # Classic MUSCLE v3 (PASTA needs its command-line syntax; v5 in
+          # the devShell above is not a substitute - see the PASTA
+          # requirements below). No source build: drive5.com only ever
+          # published static binaries for this series, and no aarch64
+          # build exists, so this is x86_64-linux only.
+          muscle3 = assert pkgs.lib.assertMsg pkgs.stdenv.hostPlatform.isx86_64
+            "muscle3 is only published as an x86_64 Linux static binary";
+          pkgs.stdenv.mkDerivation {
+            pname = "muscle3";
+            version = "3.8.31";
+            src = pkgs.fetchurl {
+              url = "https://drive5.com/muscle/downloads3.8.31/muscle3.8.31_i86linux64.tar.gz";
+              hash = pkgs.lib.fakeHash;
+            };
+            dontBuild = true;
+            installPhase = ''
+              mkdir -p $out/bin
+              install -m755 muscle3.8.31_i86linux64 $out/bin/muscle3
+            '';
+          };
+
+          # A single small file, not the whole sate-tools-linux repo.
+          opalJar = pkgs.fetchurl {
+            url = "https://github.com/smirarab/sate-tools-linux/raw/master/opal.jar";
+            hash = pkgs.lib.fakeHash;
+          };
+
+          # Merged directory of PASTA's external tools, handed to it via
+          # PASTA_TOOLS_RUNDIR (see the `pasta` derivation below). This is
+          # the single riskiest guess in this whole flake: PASTA's own
+          # code (pasta/__init__.py, pasta_tools_deploy_dir()) defaults to
+          # a flat "../bin"-style directory of plainly-named executables
+          # when PASTA_TOOLS_RUNDIR is unset, which is what's modeled
+          # here - but bioconda's own recipe achieves the equivalent by
+          # source-patching pasta/__init__.py to point at $CONDA_PREFIX/bin
+          # instead of relying on this variable, which suggests the
+          # variable alone may not be sufficient for every tool lookup in
+          # the codebase. If tools "aren't found" at runtime despite being
+          # in this join, patching pasta/__init__.py the way bioconda does
+          # (its fix_tooldir.patch) is the documented working fallback.
+          pastaToolsDir = pkgs.symlinkJoin {
+            name = "pasta-tools-dir";
+            paths = [
+              pkgs.mafft
+              muscle3
+              clustalw
+              pkgs.raxml
+              pkgs.hmmer
+              fasttree
+              prank
+            ];
+            postBuild = ''
+              ln -sf ${muscle3}/bin/muscle3 $out/bin/muscle
+              ln -sf ${pkgs.raxml}/bin/raxmlHPC $out/bin/raxml
+              cp ${opalJar} $out/bin/opal.jar
+            '';
+          };
+
+          pasta = py.buildPythonApplication rec {
+            pname = "pasta";
+            version = "1.9.3"; # matches bioconda's pin
+            src = pkgs.fetchFromGitHub {
+              owner = "smirarab";
+              repo = "pasta";
+              rev = "v${version}";
+              sha256 = "4bbd77b148c7a0954e1103d0b6e834e3a507c3ada9ba556e2731109beb3d92fe";
+            };
+            format = "setuptools";
+            # PASTA imports the long-removed stdlib `imp` module for an
+            # old frozen-executable check that's dead code either way;
+            # importing it at all crashes outright on Python 3.12+, where
+            # `imp` was deleted. Same fix bioconda applies.
+            postPatch = ''
+              sed -i 's/^\(.*import imp\)/#\1/' pasta/__init__.py
+              sed -i 's/^\(.*imp\.is_frozen.*\)/#\1/' pasta/__init__.py
+            '';
+            propagatedBuildInputs = [ py.dendropy py.pymongo ];
+            doCheck = false;
+            makeWrapperArgs = [ "--set" "PASTA_TOOLS_RUNDIR" "${pastaToolsDir}/bin" ];
+            # Provides run_pasta.py on PATH.
+          };
         in
         {
           packages = {
-            inherit raxml-ng roguenarok famsa treeshrink magus entrez-direct;
+            inherit raxml-ng roguenarok famsa treeshrink magus entrez-direct
+              t-coffee clustalw fasttree prank muscle3 pasta;
           };
           devShell = pkgs.mkShell {
             # Enter with `nix develop` (or `nix-portable nix develop` if
@@ -196,7 +384,21 @@
               muscle # nixpkgs' muscle is v5.1.0: covers MUSCLE5 and SUPER5 (muscle -super5 ...)
               clustal-omega
               mafft # also provides linsi
-            ]) ++ [ raxml-ng roguenarok famsa treeshrink magus entrez-direct ];
+              openjdk # needed by PASTA's bundled opal.jar merger at runtime
+            ]) ++ [
+              raxml-ng
+              roguenarok
+              famsa
+              treeshrink
+              magus
+              entrez-direct
+              t-coffee
+              clustalw
+              fasttree
+              prank
+              muscle3
+              pasta
+            ];
           };
         });
     in
@@ -205,16 +407,7 @@
       devShells = forAllSystems (system: { default = perSystem.${system}.devShell; });
     };
 
-  # Deliberately not packaged here - see the reasoning below rather than
-  # forcing a derivation that's likely to fail in a network-sandboxed
-  # Nix build:
-  #   - T-Coffee: its build depends on g77, a Fortran compiler dropped
-  #     from GCC long ago in favor of gfortran; unclear if the Makefile
-  #     tolerates the substitution without patching.
-  #   - PASTA: needs a whole separate sate-tools-linux repo bundling
-  #     MAFFT, OPAL, Muscle, FastTree, RAxML, HMMER, Contralign and
-  #     ProbCons as prebuilt binaries - packaging PASTA properly means
-  #     packaging that whole bundle too.
+  # Deliberately not packaged here:
   #   - ete3: left for later per your note; also still needs a real or
   #     virtual X server regardless of how it's installed.
 }
