@@ -71,11 +71,23 @@ use [nix-portable](https://github.com/DavHau/nix-portable) instead of the
 regular installer; it runs Nix entirely out of your home directory via a
 user namespace/bubblewrap trick, e.g. `nix-portable nix develop`.
 
-Not everything is covered: raxml-ng, T-Coffee, PASTA, FAMSA, TreeShrink,
-RogueNaRok-parallel, and efetch/entrez-direct are not packaged in nixpkgs
-(nixpkgs' `raxml` is the older, classic RAxML, not raxml-ng - do not
-substitute it) and still need the manual/module-load installs described
-above.
+The shell also builds raxml-ng, RogueNaRok-parallel (plus its rnr-prune/
+rnr-lsi/rnr-tii/rnr-mast helpers), FAMSA, TreeShrink, and MAGUS straight
+from their GitHub repos (nixpkgs' own `raxml` package is the older,
+classic RAxML, not raxml-ng - do not substitute it), since none of those
+are packaged in nixpkgs either. These derivations are unverified - built
+from each project's documented build commands, not build-tested against
+a real Nix install - so the first `nix build .#<name>` (e.g. `nix build
+.#raxml-ng`) will likely need its `fakeHash` placeholder replaced with
+the real hash Nix reports, and possibly a small installPhase fix if a
+binary ends up somewhere other than guessed. Also note the flake's
+TreeShrink is v1.4.0, which needs Python 3.8+, not the Python 2.7 in the
+Prerequisites list above - check it still behaves the same before relying
+on it for a production run.
+
+Still not attempted: T-Coffee (its build wants `g77`, a Fortran compiler
+GCC dropped long ago), PASTA (needs a whole separate `sate-tools-linux`
+repo of bundled third-party binaries), and efetch/entrez-direct.
 
 ## Gene Data Repositories
 
@@ -137,7 +149,8 @@ Checklist for getting the pipeline running on a cluster it hasn't run on before:
 	  names/versions that exist on the new cluster.
 	- Recreate the `vcmsa_env` conda environment used by
 	  09_Scheduler-AlignWithVCMSA.sh, and pip-install dendropy for the
-	  Python module used by 09_Scheduler-AlignWithMAGUS.sh.
+	  Python module used by 09_Scheduler-AlignWithMAGUS.sh (or use the
+		  flake's `magus` package, which pulls in dendropy already).
 	- Set the account string in ./Scheduler/Account.sh, if the cluster
 	  requires one.
 	- Install the "user path" and "base folder" tools listed under
