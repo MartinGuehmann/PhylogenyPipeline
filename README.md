@@ -18,7 +18,7 @@ The pipeline requires to run:
 	- efetch (user path)
 	- blastp (module load)
 	- TrimAl (base folder)
-	- RogueNaRok-parallel (base folder)
+	- RogueNaRok-parallel (user path)
 	- TreeShrink (user path) with Python 2.7 (module load)
 
 Steps 0 and 3 query NCBI remotely (BLAST and efetch). If the cluster's
@@ -36,8 +36,8 @@ Supported aligners are:
 	- LINSI (module load, ships with MAFFT)
 	- FAMSA (user path)
 	- Clustal-Omega (module load)
-	- MAGUS (module load Python 3 + dendropy installed for that Python:
-	  `python3 -m pip install --user -U dendropy`)
+	- MAGUS (user path: a `magus` command, e.g. via
+	  `pip install --user magus-msa`, or the flake's `magus` package)
 	- vcMSA (module load Python 3 + a conda environment named `vcmsa_env`)
 
 Optional, however if not installed will generate an error:
@@ -60,16 +60,34 @@ The pipeline is designed to run on a cluster computer, either with PBS Pro or Sl
 ### Installing prerequisites with Nix
 
 `./flake.nix` provides a `nix develop` shell with the "user path" tools that
-are packaged in nixpkgs: SeqKit, IQ-Tree2, cd-hit, TrimAl, blastp, MUSCLE
-(v5, also covers SUPER5), Clustal-Omega, and MAFFT/LINSI. This turns those
-installs into a single reproducible environment instead of one recipe per
-tool, and is a fallback for tools such as blastp if they are not available
-via `module load` on a given cluster.
+are packaged in nixpkgs: SeqKit, cd-hit, TrimAl, blastp, Clustal-Omega, and
+MAFFT/LINSI. This turns those installs into a single reproducible
+environment instead of one recipe per tool, and is a fallback for tools
+such as blastp if they are not available via `module load` on a given
+cluster.
 
 If Nix itself isn't installed on the cluster and you have no root access,
 use [nix-portable](https://github.com/DavHau/nix-portable) instead of the
 regular installer; it runs Nix entirely out of your home directory via a
 user namespace/bubblewrap trick, e.g. `nix-portable nix develop`.
+
+IQ-Tree is deliberately *not* in the devShell yet: nixpkgs' `iqtree`
+package currently builds IQ-TREE 3 (`iqtree3`), a major version ahead of
+the `iqtree2` that `10_MakeTreeWithIQ-Tree.sh` expects - still deciding
+whether to upgrade the pipeline to match, or pin an IQ-TREE2 build in the
+flake instead. Until that's settled, `module load` (Scheduler/Modules.cfg)
+is the only way to get IQ-Tree2 in this setup.
+
+The devShell's binary *names* were audited against what the pipeline
+scripts actually call, not assumed from each tool's usual name:
+
+- **MUSCLE**: `09_AlignWithMUSCLE.sh` calls a plain `muscle` expecting
+  classic v3's `-in`/`-out` syntax, and `09_AlignWithMUSCLE5.sh`/
+  `SUPER5.sh` call `muscle5` expecting v5's `-align`/`-super5` syntax.
+  nixpkgs' own `muscle` package is v5.1.0 but installs its binary as
+  plain `muscle` - so the flake exposes classic MUSCLE v3 (built from a
+  drive5.com static binary) as `muscle`, and re-exposes nixpkgs' v5
+  package under the name `muscle5` instead, matching both scripts.
 
 The shell also builds raxml-ng, RogueNaRok-parallel (plus its rnr-prune/
 rnr-lsi/rnr-tii/rnr-mast helpers), FAMSA, TreeShrink, MAGUS, and
@@ -141,6 +159,25 @@ etetoolkit.org on install unless told not to; disabled outright here
 since that network call would fail in Nix's sandboxed build anyway. It
 still needs a real or virtual X server at runtime (e.g. `xvfb-run`) -
 packaging it doesn't remove that requirement.
+
+`12_ConvertTreesToFigures.py` isn't a standalone `ete3` command, though -
+it's run as plain `python3 12_ConvertTreesToFigures.py` and does
+`from ete3 import ...` internally. A wrapped, isolated `ete3` console
+script wouldn't help there, since a *separate* `python3` on PATH
+wouldn't have ete3 importable. So ete3 is instead built as a plain
+importable package and merged into its own `python3` via
+`pkgs.python3.withPackages`, and it's *that* interpreter (not a bare
+`ete3` command) that the devShell puts on PATH as `python3`.
+
+FAMSA, RogueNaRok, and MAGUS needed a different kind of fix: the pipeline
+called them via hardcoded sibling-directory paths
+(`$DIR/../FAMSA/famsa`, `$DIR/../RogueNaRok/RogueNaRok-parallel`,
+`python3 $DIR/../MAGUS/magus.py`) rather than a PATH lookup, so the
+devShell's versions were never reached no matter what was on PATH.
+`09_AlignWithFAMSA.sh`, `11_RemoveRogues.sh`, and `09_AlignWithMAGUS.sh`
+now call `famsa`, `RogueNaRok-parallel`, and `magus` directly instead,
+so they resolve through the Nix devShell (or `module load`/base-folder
+installs, if you're not using the flake).
 
 ## Gene Data Repositories
 
@@ -214,9 +251,9 @@ Checklist for getting the pipeline running on a cluster it hasn't run on before:
 	  on the new cluster, or blank an entry out to fall back to Nix
 	  instead (see "Scheduler Setup" above).
 	- Recreate the `vcmsa_env` conda environment used by
-	  09_Scheduler-AlignWithVCMSA.sh, and pip-install dendropy for the
-	  Python module used by 09_Scheduler-AlignWithMAGUS.sh (or use the
-	  flake's `magus` package, which pulls in dendropy already).
+	  09_Scheduler-AlignWithVCMSA.sh. MAGUS just needs a `magus` command
+	  on PATH (`pip install --user magus-msa`, or the flake's `magus`
+	  package).
 	- Set the account string in ./Scheduler/Account.sh, if the cluster
 	  requires one.
 	- Install the "user path" and "base folder" tools listed under

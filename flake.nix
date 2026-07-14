@@ -280,11 +280,16 @@
             dontInstall = true;
           };
 
-          # Classic MUSCLE v3 (PASTA needs its command-line syntax; v5 in
-          # the devShell above is not a substitute - see the PASTA
-          # requirements below). No source build: drive5.com only ever
-          # published static binaries for this series, and no aarch64
-          # build exists, so this is x86_64-linux only.
+          # Classic MUSCLE v3. The pipeline's own 09_AlignWithMUSCLE.sh
+          # calls a plain `muscle` command expecting v3's `-in`/`-out`
+          # flags, which nixpkgs' own `muscle` (v5.1.0, `-align`/`-output`)
+          # does not accept - so *this* is what devShell exposes as
+          # `muscle`, and nixpkgs' v5 is exposed as `muscle5` instead (see
+          # the muscle5 derivation below), matching what
+          # 09_AlignWithMUSCLE5.sh/09_AlignWithSUPER5.sh actually call.
+          # No source build: drive5.com only ever published static
+          # binaries for this series, and no aarch64 build exists, so
+          # this is x86_64-linux only.
           muscle3 = assert pkgs.lib.assertMsg pkgs.stdenv.hostPlatform.isx86_64
             "muscle3 is only published as an x86_64 Linux static binary";
           pkgs.stdenv.mkDerivation {
@@ -297,9 +302,18 @@
             dontBuild = true;
             installPhase = ''
               mkdir -p $out/bin
-              install -m755 muscle3.8.31_i86linux64 $out/bin/muscle3
+              install -m755 muscle3.8.31_i86linux64 $out/bin/muscle
             '';
           };
+
+          # nixpkgs' own muscle package (v5.1.0) installs its binary as
+          # plain `muscle`, but 09_AlignWithMUSCLE5.sh/SUPER5.sh call it
+          # as `muscle5` - so re-expose it under that name instead of
+          # colliding with classic MUSCLE v3 above.
+          muscle5 = pkgs.runCommand "muscle5" { } ''
+            mkdir -p $out/bin
+            ln -s ${pkgs.muscle}/bin/muscle $out/bin/muscle5
+          '';
 
           # A single small file, not the whole sate-tools-linux repo.
           opalJar = pkgs.fetchurl {
@@ -332,7 +346,6 @@
               prank
             ];
             postBuild = ''
-              ln -sf ${muscle3}/bin/muscle3 $out/bin/muscle
               ln -sf ${pkgs.raxml}/bin/raxmlHPC $out/bin/raxml
               cp ${opalJar} $out/bin/opal.jar
             '';
@@ -368,7 +381,15 @@
           # rebase/API-adjustment work separate and later. Re-pin the rev
           # (and probably restructure this derivation - the new major
           # version likely packages very differently) once that's done.
-          ete3 = py.buildPythonApplication rec {
+          #
+          # This is a plain buildPythonPackage, not buildPythonApplication:
+          # 12_ConvertTreesToFigures.py does `from ete3 import ...` and is
+          # run via a bare `python3 12_ConvertTreesToFigures.py`, not an
+          # `ete3` command - so what's actually needed on PATH is a
+          # `python3` that has ete3 importable, not an isolated wrapper
+          # that only exposes ete3's own console script. See
+          # `pythonWithEte3` below, which is what goes into the devShell.
+          ete3 = py.buildPythonPackage rec {
             pname = "ete3";
             version = "3-addfacefloatright-7b6ef8d";
             src = pkgs.fetchFromGitHub {
@@ -381,11 +402,11 @@
             # This old setup.py phones home to etetoolkit.org on install
             # (an `urlopen()` call) unless "--donottrackinstall" is in
             # argv, which nothing here passes, and which wouldn't be
-            # straightforward to plumb through buildPythonApplication's
-            # own build invocation anyway. A network call would fail in
-            # Nix's sandboxed build regardless, so disable the whole
-            # thing outright by short-circuiting the condition that
-            # guards it, rather than relying on argv.
+            # straightforward to plumb through the build invocation
+            # anyway. A network call would fail in Nix's sandboxed build
+            # regardless, so disable the whole thing outright by
+            # short-circuiting the condition that guards it, rather than
+            # relying on argv.
             postPatch = ''
               sed -i 's/if TRACKINSTALL is not None and (wanted & seen) and not (notwanted & seen):/if False:/' setup.py
             '';
@@ -394,15 +415,21 @@
             # at runtime, so propagate them for real here.
             propagatedBuildInputs = [ py.numpy py.pyqt5 py.lxml py.six ];
             doCheck = false;
-            # Provides the `ete3` command and importable package. Still
-            # needs a real or virtual X server at runtime (e.g.
-            # xvfb-run) - packaging doesn't remove that requirement.
+            # Still needs a real or virtual X server at runtime (e.g.
+            # xvfb-run) - packaging it doesn't remove that requirement.
           };
+
+          # A python3 with ete3 (and its deps) merged into its own
+          # site-packages, so that a bare `python3 script.py` - not just
+          # ete3's own console script - can `import ete3`. This, not the
+          # `ete3` package above directly, is what goes into the devShell.
+          pythonWithEte3 = pkgs.python3.withPackages (ps: [ ete3 ]);
         in
         {
           packages = {
             inherit raxml-ng roguenarok famsa treeshrink magus entrez-direct
-              t-coffee clustalw fasttree prank muscle3 pasta ete3;
+              t-coffee clustalw fasttree prank muscle3 muscle5 pasta ete3
+              pythonWithEte3;
           };
           devShell = pkgs.mkShell {
             # Enter with `nix develop` (or `nix-portable nix develop` if
@@ -414,11 +441,15 @@
             # is tied to the cluster's MPI/BLAST database setup.
             packages = (with pkgs; [
               seqkit
-              iqtree # IQ-Tree2
+              # NOT iqtree here: nixpkgs' `iqtree` currently builds IQ-TREE
+              # 3 (`iqtree3`), a major version ahead of what
+              # 10_MakeTreeWithIQ-Tree.sh expects (`iqtree2`) - still
+              # deciding whether to upgrade the pipeline to match, or pin
+              # an IQ-TREE2 build here instead. Until then, `module load`
+              # (Scheduler/Modules.cfg) is the only way to get IQ-Tree2.
               cd-hit
               trimal
               blast # blastp, makeblastdb, etc., in case module load isn't available
-              muscle # nixpkgs' muscle is v5.1.0: covers MUSCLE5 and SUPER5 (muscle -super5 ...)
               clustal-omega
               mafft # also provides linsi
               openjdk # needed by PASTA's bundled opal.jar merger at runtime
@@ -434,8 +465,9 @@
               fasttree
               prank
               muscle3
+              muscle5
               pasta
-              ete3
+              pythonWithEte3
             ];
           };
         });
