@@ -2,7 +2,7 @@
 
 # Resources for this job (cpus, mem, walltime) are set in Scheduler/Resources.cfg.
 # Load modules
-module add apps/iqtree/2.0.6
+module add apps/iqtree/2.2.0.3
 
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 

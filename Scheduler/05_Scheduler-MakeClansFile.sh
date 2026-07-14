@@ -2,7 +2,7 @@
 
 # Resources for this job (cpus, mem, walltime) are set in Scheduler/Resources.cfg.
 # Load modules
-module add apps/blast/2.10.0+
+module add apps/blast/2.11.0+
 
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
