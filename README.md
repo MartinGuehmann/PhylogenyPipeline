@@ -262,9 +262,19 @@ Checklist for getting the pipeline running on a cluster it hasn't run on before:
 	  on the new cluster, or blank an entry out to fall back to Nix
 	  instead (see "Scheduler Setup" above).
 	- Recreate the `vcmsa_env` conda environment used by
-	  09_Scheduler-AlignWithVCMSA.sh. MAGUS just needs a `magus` command
-	  on PATH (`pip install --user magus-msa`, or the flake's `magus`
-	  package).
+	  09_Scheduler-AlignWithVCMSA.sh, per
+	  [vcMSA's own install instructions](https://github.com/clairemcwhite/vcmsa):
+	  `conda create -n vcmsa_env --file vcmsa/environment.txt` (from a
+	  clone of that repo), then `conda activate vcmsa_env` and
+	  `pip install vcmsa`. Use `-n`, not vcMSA's own `--prefix
+	  vcmsa_env` - 09_Scheduler-AlignWithVCMSA.sh activates the env by
+	  bare name (`conda activate vcmsa_env`) from whatever directory the
+	  job runs in, so it needs to resolve the same way regardless of the
+	  job's working directory, which only a named env (registered in
+	  conda's envs_dirs) guarantees; a `--prefix` env only activates by
+	  that name when the current directory happens to be its parent.
+	  MAGUS just needs a `magus` command on PATH
+	  (`pip install --user magus-msa`, or the flake's `magus` package).
 	- Set the account string in ./Scheduler/Account.sh, if the cluster
 	  requires one.
 	- Install the "user path" and "base folder" tools listed under
