@@ -131,10 +131,53 @@
             # so this replaces the separate MAGUS dendropy pip-install
             # note further down in the README.
           };
+          entrez-direct = pkgs.stdenv.mkDerivation rec {
+            pname = "entrez-direct";
+            # EDirect has no public source repo - NCBI ships it only via
+            # FTP. This mirrors bioconda's recipes/entrez-direct/build.sh,
+            # the most reliable ground truth available, including its
+            # pinned version/hash (bioconda's CI actually builds this).
+            version = "25.3.20260410";
+            src = pkgs.fetchurl {
+              url = "https://ftp.ncbi.nlm.nih.gov/entrez/entrezdirect/versions/${version}/edirect.tar.gz";
+              sha256 = "189382f1fe4a1b43872855cd5b442ed25111192dd4b00330268c1cad6d7216bf";
+            };
+            nativeBuildInputs = [ pkgs.go ];
+            buildInputs = [ pkgs.wget ];
+            # Biggest unverified risk of this whole flake: cmd/build.sh
+            # (bundled in the tarball) builds xtract/rchive/transmute/etc.
+            # from Go source. If EDirect's Go modules aren't vendored in
+            # the tarball, this `go build` will try to fetch them over the
+            # network, which Nix's sandboxed build phase blocks. If that
+            # happens, this needs converting to `pkgs.buildGoModule` with
+            # a real `vendorHash` instead of plain `go` here.
+            buildPhase = ''
+              runHook preBuild
+              export HOME="$TMPDIR"
+              export GOCACHE="$TMPDIR/go-cache"
+              export GOPATH="$TMPDIR/go-path"
+              mkdir -p bin nobin
+              mv xy-* nobin 2>/dev/null || true
+              mv $(find * -type d -prune -o -print | sed '/^[A-Z]/d;/[.]pdf$/d;/[.]pem$/d;/[.]py$/d;/conda/d;/build/d') bin
+              mkdir -p "$out/bin"
+              (cd cmd && sh -ex ./build.sh "$out/bin")
+              runHook postBuild
+            '';
+            installPhase = ''
+              runHook preInstall
+              mkdir -p "$out/bin/data" "$out/bin/help"
+              install -m 644 data/* "$out/bin/data"
+              install -m 644 help/* "$out/bin/help"
+              install -m 755 bin/* "$out/bin"
+              runHook postInstall
+            '';
+            # wget is a buildInput only so it's pulled into the devShell
+            # below; the scripts shell out to it at runtime, not build time.
+          };
         in
         {
           packages = {
-            inherit raxml-ng roguenarok famsa treeshrink magus;
+            inherit raxml-ng roguenarok famsa treeshrink magus entrez-direct;
           };
           devShell = pkgs.mkShell {
             # Enter with `nix develop` (or `nix-portable nix develop` if
@@ -153,7 +196,7 @@
               muscle # nixpkgs' muscle is v5.1.0: covers MUSCLE5 and SUPER5 (muscle -super5 ...)
               clustal-omega
               mafft # also provides linsi
-            ]) ++ [ raxml-ng roguenarok famsa treeshrink magus ];
+            ]) ++ [ raxml-ng roguenarok famsa treeshrink magus entrez-direct ];
           };
         });
     in
@@ -172,7 +215,6 @@
   #     MAFFT, OPAL, Muscle, FastTree, RAxML, HMMER, Contralign and
   #     ProbCons as prebuilt binaries - packaging PASTA properly means
   #     packaging that whole bundle too.
-  #   - efetch/entrez-direct: not in nixpkgs, no attempt made yet.
   #   - ete3: left for later per your note; also still needs a real or
   #     virtual X server regardless of how it's installed.
 }
