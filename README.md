@@ -192,18 +192,31 @@ that would also read `#PBS` directives directly out of a script. This
 pipeline no longer relies on that: `Resources.cfg` is the single source
 of truth regardless of which branch `Scheduler-Sub.sh` takes.
 
+Likewise, the `module load ...` lines are not hardcoded in each job
+script either. Each script instead sources `Load-Module.sh` and calls
+`load_module MODULE_KEY`, which looks `MODULE_KEY` up in
+./Scheduler/Modules.cfg and runs `module load` with whatever value it
+finds there. If a key is missing or blank in Modules.cfg, or the
+`module` command doesn't exist on the cluster at all, `load_module` does
+nothing and the script falls back to whatever is already on PATH - e.g.
+tools from the Nix devShell (see "Installing prerequisites with Nix"
+above). So adjusting module names/versions for a new cluster, or
+dropping a module entirely in favor of Nix, is a matter of editing one
+table instead of every job script.
+
 ## Moving to a new cluster
 
 Checklist for getting the pipeline running on a cluster it hasn't run on before:
 
 	- Adjust ./Scheduler/Resources.cfg if the new cluster's node sizes or
 	  usual walltime limits differ from what is currently in there.
-	- Update every `module load ...` line in ./Scheduler/*.sh to module
-	  names/versions that exist on the new cluster.
+	- Update ./Scheduler/Modules.cfg to module names/versions that exist
+	  on the new cluster, or blank an entry out to fall back to Nix
+	  instead (see "Scheduler Setup" above).
 	- Recreate the `vcmsa_env` conda environment used by
 	  09_Scheduler-AlignWithVCMSA.sh, and pip-install dendropy for the
 	  Python module used by 09_Scheduler-AlignWithMAGUS.sh (or use the
-		  flake's `magus` package, which pulls in dendropy already).
+	  flake's `magus` package, which pulls in dendropy already).
 	- Set the account string in ./Scheduler/Account.sh, if the cluster
 	  requires one.
 	- Install the "user path" and "base folder" tools listed under
