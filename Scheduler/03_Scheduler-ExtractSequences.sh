@@ -11,13 +11,13 @@
 # interact with the server of NCBI
 
 # Resources for this job (cpus, mem, walltime) are set in Scheduler/Resources.cfg.
-# Load modules
 #efetch from e-utilities is missing
 # In principle we just need the uniprot fasta files
 # but erroring because makeblastdb is not there, is
 # not nice. Even so pipeline should continue without
 # further errors.
-module load apps/blast/2.11.0+
+source "$DIR/Load-Module.sh"
+load_module MODULE_BLAST
 
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 

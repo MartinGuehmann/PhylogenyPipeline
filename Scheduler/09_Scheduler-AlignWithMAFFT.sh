@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Resources for this job (cpus, mem, walltime) are set in Scheduler/Resources.cfg.
-# Load modules
-module load apps/mafft/7.429
+source "$DIR/Load-Module.sh"
+load_module MODULE_MAFFT
 
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 

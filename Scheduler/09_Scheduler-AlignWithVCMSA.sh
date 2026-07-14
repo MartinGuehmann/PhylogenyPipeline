@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Resources for this job (cpus, mem, walltime) are set in Scheduler/Resources.cfg.
-# Load modules
-module load lang/python/anaconda/3.10.4-2021-11-fencis
+source "$DIR/Load-Module.sh"
+load_module MODULE_PYTHON_VCMSA
 conda activate vcmsa_env
 
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"

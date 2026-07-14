@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Resources for this job (cpus, mem, walltime) are set in Scheduler/Resources.cfg.
-# Load modules
-module load lang/python/anaconda/3.8.8-2021.05-2.5
+source "$DIR/Load-Module.sh"
+load_module MODULE_PYTHON_MAGUS
 # You also need to install dendropy
 # Installs dendropy for the current user and the selected python version
 # python3 -m pip install --user  -U dendropy

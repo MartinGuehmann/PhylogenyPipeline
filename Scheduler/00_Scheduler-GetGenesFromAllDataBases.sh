@@ -7,7 +7,8 @@
 # not needed.
 
 # Resources for this job (cpus, mem, walltime) are set in Scheduler/Resources.cfg.
-module load apps/blast/2.11.0+
+source "$DIR/Load-Module.sh"
+load_module MODULE_BLAST
 
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Resources for this job (cpus, mem, walltime) are set in Scheduler/Resources.cfg.
-# Load modules
-module load apps/muscle5/5.1
+source "$DIR/Load-Module.sh"
+load_module MODULE_MUSCLE5
 
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 

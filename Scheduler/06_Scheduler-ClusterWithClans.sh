@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Resources for this job (cpus, mem, walltime) are set in Scheduler/Resources.cfg.
-# Load modules
-module add lang/java/1.8.0_201
+source "$DIR/Load-Module.sh"
+load_module MODULE_JAVA
 
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
