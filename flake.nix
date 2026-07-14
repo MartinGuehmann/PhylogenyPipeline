@@ -315,6 +315,24 @@
             ln -s ${pkgs.muscle}/bin/muscle $out/bin/muscle5
           '';
 
+          # Decided to upgrade rather than pin IQ-TREE2 from source:
+          # nixpkgs' `iqtree` builds IQ-TREE 3 (binary `iqtree3`), which
+          # per IQ-TREE3's own release notes is an additive major release
+          # (mixture models, concordance factors, DecentTree, piqtree) -
+          # no evidence found of any flag used in 10_MakeTreeWithIQ-Tree.sh
+          # (-s, -B, --abayes, --alrt, -m TEST, -nt/-ntmax, --boot-trees)
+          # being renamed or removed. Not build-tested against a real
+          # cluster run yet. Aliased to `iqtree2` (the script's own
+          # `module load`-era command name) rather than changing the
+          # script, matching how every other tool swap in this flake
+          # works: same command the script already calls, different
+          # implementation behind it. `iqtree2 --version` will report 3.x
+          # - that's expected, not a packaging bug.
+          iqtree2 = pkgs.runCommand "iqtree2" { } ''
+            mkdir -p $out/bin
+            ln -s ${pkgs.iqtree}/bin/iqtree3 $out/bin/iqtree2
+          '';
+
           # A single small file, not the whole sate-tools-linux repo.
           opalJar = pkgs.fetchurl {
             url = "https://github.com/smirarab/sate-tools-linux/raw/master/opal.jar";
@@ -428,8 +446,8 @@
         {
           packages = {
             inherit raxml-ng roguenarok famsa treeshrink magus entrez-direct
-              t-coffee clustalw fasttree prank muscle3 muscle5 pasta ete3
-              pythonWithEte3;
+              t-coffee clustalw fasttree prank muscle3 muscle5 iqtree2 pasta
+              ete3 pythonWithEte3;
           };
           devShell = pkgs.mkShell {
             # Enter with `nix develop` (or `nix-portable nix develop` if
@@ -441,12 +459,6 @@
             # is tied to the cluster's MPI/BLAST database setup.
             packages = (with pkgs; [
               seqkit
-              # NOT iqtree here: nixpkgs' `iqtree` currently builds IQ-TREE
-              # 3 (`iqtree3`), a major version ahead of what
-              # 10_MakeTreeWithIQ-Tree.sh expects (`iqtree2`) - still
-              # deciding whether to upgrade the pipeline to match, or pin
-              # an IQ-TREE2 build here instead. Until then, `module load`
-              # (Scheduler/Modules.cfg) is the only way to get IQ-Tree2.
               cd-hit
               trimal
               blast # blastp, makeblastdb, etc., in case module load isn't available
@@ -466,6 +478,7 @@
               prank
               muscle3
               muscle5
+              iqtree2
               pasta
               pythonWithEte3
             ];

@@ -71,13 +71,6 @@ use [nix-portable](https://github.com/DavHau/nix-portable) instead of the
 regular installer; it runs Nix entirely out of your home directory via a
 user namespace/bubblewrap trick, e.g. `nix-portable nix develop`.
 
-IQ-Tree is deliberately *not* in the devShell yet: nixpkgs' `iqtree`
-package currently builds IQ-TREE 3 (`iqtree3`), a major version ahead of
-the `iqtree2` that `10_MakeTreeWithIQ-Tree.sh` expects - still deciding
-whether to upgrade the pipeline to match, or pin an IQ-TREE2 build in the
-flake instead. Until that's settled, `module load` (Scheduler/Modules.cfg)
-is the only way to get IQ-Tree2 in this setup.
-
 The devShell's binary *names* were audited against what the pipeline
 scripts actually call, not assumed from each tool's usual name:
 
@@ -88,6 +81,24 @@ scripts actually call, not assumed from each tool's usual name:
   plain `muscle` - so the flake exposes classic MUSCLE v3 (built from a
   drive5.com static binary) as `muscle`, and re-exposes nixpkgs' v5
   package under the name `muscle5` instead, matching both scripts.
+- **IQ-Tree**: nixpkgs' `iqtree` package builds IQ-TREE 3 (binary
+  `iqtree3`), a major version ahead of the `iqtree2` that
+  `10_MakeTreeWithIQ-Tree.sh` calls. Decided to upgrade rather than pin
+  an IQ-TREE2 build from source: IQ-TREE3's own release notes describe it
+  as an additive release (mixture models, concordance factors,
+  DecentTree, a `piqtree` Python interface), and none of the flags this
+  pipeline uses (`-s`, `-B`, `--abayes`, `--alrt`, `-m TEST`,
+  `-nt`/`-ntmax`, `--boot-trees`) turned up as renamed or removed
+  anywhere in IQ-TREE's docs. So `iqtree3` is aliased to the command name
+  `iqtree2` in the devShell rather than changing the script - same
+  pattern as MUSCLE above, same command the script already calls, a
+  different implementation behind it (`iqtree2 --version` will report
+  3.x; that's expected). This hasn't been run against a real cluster
+  workload yet - worth a smoke-test comparison against a known IQ-TREE2
+  result before trusting it for production, since a major-version jump
+  can shift numerical results even with identical flags. `module load`
+  (Scheduler/Modules.cfg) still gives the cluster's real IQ-TREE2 module
+  if you need to fall back to it.
 
 The shell also builds raxml-ng, RogueNaRok-parallel (plus its rnr-prune/
 rnr-lsi/rnr-tii/rnr-mast helpers), FAMSA, TreeShrink, MAGUS, and
