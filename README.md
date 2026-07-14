@@ -57,6 +57,26 @@ The needed programms are installed in mainly three different ways, depending on 
 
 The pipeline is designed to run on a cluster computer, either with PBS Pro or Slurm as scheduler. In principle, more schedulers could be added. Another possibility would to install a scheduler such as PBS-Pro or Slurm on a local computer.
 
+### Installing prerequisites with Nix
+
+`./flake.nix` provides a `nix develop` shell with the "user path" tools that
+are packaged in nixpkgs: SeqKit, IQ-Tree2, cd-hit, TrimAl, blastp, MUSCLE
+(v5, also covers SUPER5), Clustal-Omega, and MAFFT/LINSI. This turns those
+installs into a single reproducible environment instead of one recipe per
+tool, and is a fallback for tools such as blastp if they are not available
+via `module load` on a given cluster.
+
+If Nix itself isn't installed on the cluster and you have no root access,
+use [nix-portable](https://github.com/DavHau/nix-portable) instead of the
+regular installer; it runs Nix entirely out of your home directory via a
+user namespace/bubblewrap trick, e.g. `nix-portable nix develop`.
+
+Not everything is covered: raxml-ng, T-Coffee, PASTA, FAMSA, TreeShrink,
+RogueNaRok-parallel, and efetch/entrez-direct are not packaged in nixpkgs
+(nixpkgs' `raxml` is the older, classic RAxML, not raxml-ng - do not
+substitute it) and still need the manual/module-load installs described
+above.
+
 ## Gene Data Repositories
 
 The pipeline scripts build paths as `$DIR/$gene/...`, where `$DIR` is this
@@ -121,7 +141,9 @@ Checklist for getting the pipeline running on a cluster it hasn't run on before:
 	- Set the account string in ./Scheduler/Account.sh, if the cluster
 	  requires one.
 	- Install the "user path" and "base folder" tools listed under
-	  Prerequisites; they are not covered by module load.
+	  Prerequisites; they are not covered by module load. `nix develop`
+	  (see "Installing prerequisites with Nix" above) covers a subset of
+	  these.
 	- Make sure compute nodes have internet access for steps 0 and 3, or
 	  plan to run those steps outside the scheduler.
 	- Provision storage for the ~210 GB Uniprot BLAST databases and the
