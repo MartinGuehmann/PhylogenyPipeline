@@ -361,11 +361,48 @@
             makeWrapperArgs = [ "--set" "PASTA_TOOLS_RUNDIR" "${pastaToolsDir}/bin" ];
             # Provides run_pasta.py on PATH.
           };
+
+          # A custom AddFaceFloatRight branch, pinned to its tip commit
+          # as of 2026-07-14 - deliberately from *before* rebasing onto
+          # upstream ete's major version bump, to keep the
+          # rebase/API-adjustment work separate and later. Re-pin the rev
+          # (and probably restructure this derivation - the new major
+          # version likely packages very differently) once that's done.
+          ete3 = py.buildPythonApplication rec {
+            pname = "ete3";
+            version = "3-addfacefloatright-7b6ef8d";
+            src = pkgs.fetchFromGitHub {
+              owner = "MartinGuehmann";
+              repo = "ete";
+              rev = "7b6ef8dc2ee06e1919616b7b961281e2cb75fe21"; # tip of AddFaceFloatRight
+              hash = pkgs.lib.fakeHash;
+            };
+            format = "setuptools";
+            # This old setup.py phones home to etetoolkit.org on install
+            # (an `urlopen()` call) unless "--donottrackinstall" is in
+            # argv, which nothing here passes, and which wouldn't be
+            # straightforward to plumb through buildPythonApplication's
+            # own build invocation anyway. A network call would fail in
+            # Nix's sandboxed build regardless, so disable the whole
+            # thing outright by short-circuiting the condition that
+            # guards it, rather than relying on argv.
+            postPatch = ''
+              sed -i 's/if TRACKINSTALL is not None and (wanted & seen) and not (notwanted & seen):/if False:/' setup.py
+            '';
+            # setup.py's own install_requires is empty (it only *checks*
+            # for these and warns if missing); they're genuinely needed
+            # at runtime, so propagate them for real here.
+            propagatedBuildInputs = [ py.numpy py.pyqt5 py.lxml py.six ];
+            doCheck = false;
+            # Provides the `ete3` command and importable package. Still
+            # needs a real or virtual X server at runtime (e.g.
+            # xvfb-run) - packaging doesn't remove that requirement.
+          };
         in
         {
           packages = {
             inherit raxml-ng roguenarok famsa treeshrink magus entrez-direct
-              t-coffee clustalw fasttree prank muscle3 pasta;
+              t-coffee clustalw fasttree prank muscle3 pasta ete3;
           };
           devShell = pkgs.mkShell {
             # Enter with `nix develop` (or `nix-portable nix develop` if
@@ -398,6 +435,7 @@
               prank
               muscle3
               pasta
+              ete3
             ];
           };
         });
@@ -406,8 +444,4 @@
       packages = forAllSystems (system: perSystem.${system}.packages);
       devShells = forAllSystems (system: { default = perSystem.${system}.devShell; });
     };
-
-  # Deliberately not packaged here:
-  #   - ete3: left for later per your note; also still needs a real or
-  #     virtual X server regardless of how it's installed.
 }

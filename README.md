@@ -128,6 +128,20 @@ trustworthy derivations in this flake:
   `fix_tooldir.patch` does is the documented fallback (see the comment
   above the `pastaToolsDir` derivation in flake.nix).
 
+The shell also builds a custom ete3 fork
+([MartinGuehmann/ete](https://github.com/MartinGuehmann/ete), branch
+`AddFaceFloatRight`), pinned to that branch's tip commit
+(`7b6ef8d`) as of 2026-07-14 - deliberately from *before* rebasing onto
+upstream ete's major version bump, since that rebase and the API
+adjustments it needs are being kept as separate, later work rather than
+entangled with this packaging. Re-pin the `rev` (and likely rework this
+derivation - a major version bump probably changes how ete3 packages
+itself) once that rebase happens. Its old setup.py also "phones home" to
+etetoolkit.org on install unless told not to; disabled outright here
+since that network call would fail in Nix's sandboxed build anyway. It
+still needs a real or virtual X server at runtime (e.g. `xvfb-run`) -
+packaging it doesn't remove that requirement.
+
 ## Gene Data Repositories
 
 The pipeline scripts build paths as `$DIR/$gene/...`, where `$DIR` is this
