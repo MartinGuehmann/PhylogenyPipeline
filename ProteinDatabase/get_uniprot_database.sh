@@ -19,9 +19,9 @@ cd "$DIR/$database"
 
 if [[ ! -f "$database.fasta" ]]
 then
-	if [[ ! -f "$database.fasta.gz" ]]
+	if ! gzip -t "$database.fasta.gz" 2>/dev/null
 	then
-		wget "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/$database.fasta.gz"
+		wget -c "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/$database.fasta.gz"
 	fi
 	gunzip "$database.fasta.gz"
 fi
