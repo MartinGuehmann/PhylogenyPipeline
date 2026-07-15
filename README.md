@@ -235,29 +235,34 @@ the script itself. They are looked up by script name in
 a particular gene that needs more memory, is a matter of editing one
 table instead of every job script.
 
-One entry in that table looks out of proportion:
-`00_Scheduler-GetGenesFromAllDataBases.sh` requests 24 CPUs / 187 GB,
-which was simply the biggest node available on the old cluster — the job
-itself (a remote BLAST search) doesn't need anywhere near that. It's
-sized that way because `00_GetGenesFromAllDataBases.sh`,
-`01_CombineHitsForEachDatabase.sh`, and `03_ExtractSequences.sh` all
-call `ProteinDatabase/get_uniprot_databases.sh`, which downloads and
-`makeblastdb`-builds the local Uniprot sprot/trembl BLAST databases if
-they don't already exist yet (see Databases below). `makeblastdb`
-ignores whatever CPU count it's actually assigned and just tries to use
-everything on the node it lands on, so if that build is ever triggered,
-the job needs the whole node to itself to avoid starving whatever else
-is sharing it.
+`00_GetGenesFromAllDataBases.sh`, `01_CombineHitsForEachDatabase.sh`, and
+`03_ExtractSequences.sh` all call `ProteinDatabase/get_uniprot_databases.sh`,
+which downloads and `makeblastdb`-builds the local Uniprot sprot/trembl
+BLAST databases if they don't already exist yet (see Databases below).
+`makeblastdb` ignores whatever CPU count it's actually assigned and just
+tries to use everything on the node it lands on, so if that build is ever
+triggered, the job needs the whole node to itself to avoid starving
+whatever else is sharing it.
 
-Only step 0's entry actually reflects that. `03_Scheduler-ExtractSequences.sh`
-instead just carries a comment warning to bump ncpus/walltime manually if
-a rebuild is needed there; its default (8 CPUs / 8 GB / 8h) assumes the
-databases already exist. `01_Scheduler-CombineHitsForEachDatabase.sh` has
-neither the comment nor the bumped resources, despite calling the exact
-same conditional rebuild — worth reviewing if step 1 has ever actually
-had to trigger it. When moving to a new cluster, size step 0's entry (and
-step 3's, if a rebuild is ever triggered there) to that cluster's node
-instead of carrying the old numbers over.
+Rather than permanently sizing those three scripts' `Resources.cfg` lines
+to the whole node just in case, `Scheduler-Call.sh` checks
+`ProteinDatabase/NeedsBuilding.sh` before submitting steps 0, 1, and 3 (it
+exits 0 if either database is still missing its `.pdb` index). If a build
+is needed, it passes `--resources`/`-R AskForWholeNode` to
+`Scheduler-Sub.sh`, which looks up the named `AskForWholeNode` entry in
+`Resources.cfg` instead of the script's own line for that one submission.
+Otherwise the script's own line applies as normal. `AskForWholeNode` still
+just holds the old cluster's biggest node size (24 CPUs / 187 GB / 72h);
+resize that one entry for a new cluster's node rather than the old
+per-script lines.
+
+Step 0's own line (used whenever the databases already exist, the common
+case) was lowered from that same whole-node size to 8 CPUs / 32 GB / 12h.
+`nproc`-based CPU limits are honestly respected on this cluster, so 8 CPUs
+genuinely constrains the local `blastp` searches `00_GetGenesFromAllDataBases.sh`
+runs — but the actual memory/walltime those searches need isn't known
+precisely, so treat this as a starting estimate to retune from observed
+job behavior, not an authoritative figure.
 
 Note that some Slurm installations that migrated from PBS/Torque provide
 a `qsub` compatibility wrapper (e.g. Slurm's contribs/torque `qsub.pl`)
@@ -283,10 +288,8 @@ Checklist for getting the pipeline running on a cluster it hasn't run on before:
 
 	- Adjust ./Scheduler/Resources.cfg if the new cluster's node sizes or
 	  usual walltime limits differ from what is currently in there,
-	  including the whole-node request for
-	  `00_Scheduler-GetGenesFromAllDataBases.sh` and, if a Uniprot
-	  database rebuild is ever triggered there, for
-	  `03_Scheduler-ExtractSequences.sh` (see "Scheduler Setup" above).
+	  including the `AskForWholeNode` entry and step 0's own line (see
+	  "Scheduler Setup" above).
 	- Update ./Scheduler/Modules.cfg to module names/versions that exist
 	  on the new cluster, or blank an entry out to fall back to Nix
 	  instead (see "Scheduler Setup" above).

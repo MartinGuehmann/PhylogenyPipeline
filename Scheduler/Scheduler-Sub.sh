@@ -9,7 +9,9 @@
 # The cpu/mem/walltime resources for the submitted script are looked
 # up by its basename in Resources.cfg and passed on the command line,
 # so tuning resources for a cluster means editing that one file
-# instead of every job script.
+# instead of every job script. Pass --resources/-R NAME to look up NAME
+# instead of the script's own basename, e.g. to ask for a different
+# named profile such as AskForWholeNode.
 
 hold=""
 depend=""
@@ -17,6 +19,7 @@ range=""
 export=""
 exportFlag=""
 script=""
+resourceName=""
 
 if [ -x "$(command -v qsub)" ]
 then
@@ -50,6 +53,12 @@ then
 				export="$1"
 				exportFlag="-v"
 				;;
+			--resources)
+				;&
+			-R)
+				shift
+				resourceName="$1"
+				;;
 			-*)
 				;&
 			--*)
@@ -69,7 +78,7 @@ then
 		shift
 	done
 
-	resourceLine=$(grep -m1 "^$(basename "$script")[[:space:]]" "./Resources.cfg")
+	resourceLine=$(grep -m1 "^${resourceName:-$(basename "$script")}[[:space:]]" "./Resources.cfg")
 	resources=""
 	if [ -n "$resourceLine" ]
 	then
@@ -111,6 +120,12 @@ then
 				export="${export//, /,}"
 				exportFlag="--export="
 				;;
+			--resources)
+				;&
+			-R)
+				shift
+				resourceName="$1"
+				;;
 			-*)
 				;&
 			--*)
@@ -132,7 +147,7 @@ then
 
 	account=$("./Account.sh")
 
-	resourceLine=$(grep -m1 "^$(basename "$script")[[:space:]]" "./Resources.cfg")
+	resourceLine=$(grep -m1 "^${resourceName:-$(basename "$script")}[[:space:]]" "./Resources.cfg")
 	resources=""
 	if [ -n "$resourceLine" ]
 	then

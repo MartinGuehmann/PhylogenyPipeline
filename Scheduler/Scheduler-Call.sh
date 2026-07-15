@@ -204,17 +204,27 @@ case $step in
 0)
 	# Depends on the server of NCBI, thus quite slow and thus a cluster is not useful
 	# This is a bit supoptimal, but still works
-	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/00_Scheduler-GetGenesFromAllDataBases.sh")
+	# Ask for the whole node if the local Uniprot BLAST databases still
+	# need building - makeblastdb ignores its assigned CPU count
+	resourceOverride=""
+	"$DIR/../ProteinDatabase/NeedsBuilding.sh" && resourceOverride="-R AskForWholeNode"
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend $resourceOverride -v "DIR=$DIR, gene=$gene" "$DIR/00_Scheduler-GetGenesFromAllDataBases.sh")
 	;;
 1)
-	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/01_Scheduler-CombineHitsForEachDatabase.sh")
+	# Same database-build concern as step 0 above
+	resourceOverride=""
+	"$DIR/../ProteinDatabase/NeedsBuilding.sh" && resourceOverride="-R AskForWholeNode"
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend $resourceOverride -v "DIR=$DIR, gene=$gene" "$DIR/01_Scheduler-CombineHitsForEachDatabase.sh")
 	;;
 2)
 	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/02_Scheduler-CombineHitsFromAllNCBIDatabases.sh")
 	;;
 3)
 	# Efetch is missing for that, anyway this can be done on a laptop
-	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/03_Scheduler-ExtractSequences.sh")
+	# Same database-build concern as step 0 above
+	resourceOverride=""
+	"$DIR/../ProteinDatabase/NeedsBuilding.sh" && resourceOverride="-R AskForWholeNode"
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend $resourceOverride -v "DIR=$DIR, gene=$gene" "$DIR/03_Scheduler-ExtractSequences.sh")
 	;;
 4)
 	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -v "DIR=$DIR, gene=$gene" "$DIR/04_Scheduler-MakeNonRedundant.sh")
