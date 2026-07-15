@@ -239,12 +239,25 @@ One entry in that table looks out of proportion:
 `00_Scheduler-GetGenesFromAllDataBases.sh` requests 24 CPUs / 187 GB,
 which was simply the biggest node available on the old cluster — the job
 itself (a remote BLAST search) doesn't need anywhere near that. It's
-sized that way because `makeblastdb` ignores whatever CPU count it's
-actually assigned and just tries to use everything on the node it lands
-on (see the comment in that script), so the only way to keep it from
-starving other jobs sharing the same node is to request the whole node
-for it. When moving to a new cluster, size this line to that cluster's
-node instead of carrying the old numbers over.
+sized that way because `00_GetGenesFromAllDataBases.sh`,
+`01_CombineHitsForEachDatabase.sh`, and `03_ExtractSequences.sh` all
+call `ProteinDatabase/get_uniprot_databases.sh`, which downloads and
+`makeblastdb`-builds the local Uniprot sprot/trembl BLAST databases if
+they don't already exist yet (see Databases below). `makeblastdb`
+ignores whatever CPU count it's actually assigned and just tries to use
+everything on the node it lands on, so if that build is ever triggered,
+the job needs the whole node to itself to avoid starving whatever else
+is sharing it.
+
+Only step 0's entry actually reflects that. `03_Scheduler-ExtractSequences.sh`
+instead just carries a comment warning to bump ncpus/walltime manually if
+a rebuild is needed there; its default (8 CPUs / 8 GB / 8h) assumes the
+databases already exist. `01_Scheduler-CombineHitsForEachDatabase.sh` has
+neither the comment nor the bumped resources, despite calling the exact
+same conditional rebuild — worth reviewing if step 1 has ever actually
+had to trigger it. When moving to a new cluster, size step 0's entry (and
+step 3's, if a rebuild is ever triggered there) to that cluster's node
+instead of carrying the old numbers over.
 
 Note that some Slurm installations that migrated from PBS/Torque provide
 a `qsub` compatibility wrapper (e.g. Slurm's contribs/torque `qsub.pl`)
@@ -271,8 +284,9 @@ Checklist for getting the pipeline running on a cluster it hasn't run on before:
 	- Adjust ./Scheduler/Resources.cfg if the new cluster's node sizes or
 	  usual walltime limits differ from what is currently in there,
 	  including the whole-node request for
-	  `00_Scheduler-GetGenesFromAllDataBases.sh` (see "Scheduler Setup"
-	  above).
+	  `00_Scheduler-GetGenesFromAllDataBases.sh` and, if a Uniprot
+	  database rebuild is ever triggered there, for
+	  `03_Scheduler-ExtractSequences.sh` (see "Scheduler Setup" above).
 	- Update ./Scheduler/Modules.cfg to module names/versions that exist
 	  on the new cluster, or blank an entry out to fall back to Nix
 	  instead (see "Scheduler Setup" above).
