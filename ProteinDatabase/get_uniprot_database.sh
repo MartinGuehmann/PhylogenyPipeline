@@ -12,6 +12,7 @@ done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 database="$1"
+url="ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/$database.fasta.gz"
 
 mkdir -p "$DIR/$database"
 
@@ -21,7 +22,15 @@ if [[ ! -f "$database.fasta" ]]
 then
 	if ! gzip -t "$database.fasta.gz" 2>/dev/null
 	then
-		wget -c "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/$database.fasta.gz"
+		wget -c "$url"
+		if ! gzip -t "$database.fasta.gz" 2>/dev/null
+		then
+			# Resuming still left an invalid file - the remote file may
+			# have changed since the partial download started, so a
+			# byte-offset resume no longer lines up with it. Start over.
+			rm -f "$database.fasta.gz"
+			wget "$url"
+		fi
 	fi
 	gunzip "$database.fasta.gz"
 fi
