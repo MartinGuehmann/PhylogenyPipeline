@@ -203,7 +203,8 @@ one, under the same parent directory, and have its orchestration scripts
 pass `-g "../<GeneRepoName>"` so that `$DIR/$gene/...` resolves back up
 into it. See [Opsins](https://github.com/MartinGuehmann/Opsins) for a
 worked example, including which subdirectories are hand-curated inputs
-versus pipeline-generated output.
+versus pipeline-generated output, or start a new one from
+[GeneFamilyTemplate](https://github.com/MartinGuehmann/GeneFamilyTemplate).
 
 ## Databases
 
