@@ -37,9 +37,28 @@ declare -a DataBases=(
                       "tsa_nr"          # Transcriptome Shotgun Assembly proteins
                      )
 
+declare -a pids=()
+declare -a dbNames=()
+
 for DB in "${DataBases[@]}"
 do
 	"$DIR/00a_GetGenes.sh" $gene $DB &
+	pids+=($!)
+	dbNames+=("$(basename $DB)")
 done
 
-wait # Wait on all the instances of 00a_GetGenes.sh having finished
+failed="false"
+
+for ((i = 0; i < ${#pids[@]}; i++))
+do
+	if ! wait "${pids[$i]}"
+	then
+		echo "Failed to fully extract sequences from ${dbNames[$i]}" >&2
+		failed="true"
+	fi
+done
+
+if [ "$failed" == "true" ]
+then
+	exit 1
+fi

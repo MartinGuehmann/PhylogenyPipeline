@@ -62,31 +62,63 @@ do
 		then
 			echo "Writing to $outFile" >&2
 			blastp -query "$seqFile" -db $DB -evalue $evalue -max_target_seqs $maxkeep $remoteOrNumThreads -out "$outFile" -outfmt "6 saccver stitle evalue"
+			if [ $? -ne 0 ]
+			then
+				echo "blastp failed for $outFile" >&2
+				rm -f "$outFile"
+			fi
 		fi
 	done
 
 	needMoreTrials="false"
 
-	for hitFile in "$HitDir"*".csv"
+	for seqFile in "${seqFiles[@]}"
 	do
-		[ -f "$hitFile" ] || continue # In case you put a folder with the *.csv extension into that folder
+		[ -f "$seqFile" ] || continue
 
-		if [ ! -s "$hitFile" ]
+		outFileBase=$(basename "$seqFile" .fasta)
+		outFile="$HitDir$outFileBase.csv"
+
+		# A missing file means blastp either hasn't run yet this trial or
+		# failed and was removed above - an *empty but present* file is a
+		# confirmed, legitimate zero-hit result and is left alone.
+		if [ ! -f "$outFile" ]
 		then
 			needMoreTrials="true"
-			echo "File is empty: $hitFile" >&2
-			rm "$hitFile"
 		fi
 	done
 
 	if [[ $needMoreTrials == "true" && $DB == $databaseName ]]
 	then
 		echo "Not all files were downloaded, correctly. Trying $((maxTrials - trials -1)) more time(s)." >&2
+		sleep 30 # Back off before hammering NCBI again - untuned starting value
 		((++trials))
 	else
 		trials=$maxTrials
 	fi
 
 done
+
+missing="false"
+
+for seqFile in "${seqFiles[@]}"
+do
+	[ -f "$seqFile" ] || continue
+
+	outFileBase=$(basename "$seqFile" .fasta)
+	outFile="$HitDir$outFileBase.csv"
+
+	if [ ! -f "$outFile" ]
+	then
+		echo "Missing after $maxTrials trials: $outFile" >&2
+		missing="true"
+	fi
+done
+
+if [ "$missing" == "true" ]
+then
+	echo "Failed to extract all sequences from $databaseName" >&2
+	exit 1
+fi
 
 echo "All sequences extracted from $databaseName" >&2
