@@ -499,6 +499,17 @@
             '';
             propagatedBuildInputs = [ py.dendropy py.pymongo ];
             doCheck = false;
+            # setup.py's own build step (separate from the runtime wrapper
+            # below) also looks for a "SATe tools bundle directory" via
+            # $PASTA_TOOLS_DEVDIR, defaulting to a hardcoded
+            # /build/sate-tools-linux guess when unset - confirmed failing
+            # on 2026-07-17 ("Could not find SATe tools bundle
+            # directory"), exactly the "variable alone may not be
+            # sufficient for every tool lookup" risk flagged above.
+            # Pointing it at the same pastaToolsDir satisfies this
+            # build-time lookup too, without needing to patch
+            # pasta/__init__.py the way bioconda's own recipe does.
+            env.PASTA_TOOLS_DEVDIR = "${pastaToolsDir}/bin";
             makeWrapperArgs = [ "--set" "PASTA_TOOLS_RUNDIR" "${pastaToolsDir}/bin" ];
             # Provides run_pasta.py on PATH.
           };
