@@ -240,15 +240,28 @@
             '';
           };
 
-          clustalw = pkgs.stdenv.mkDerivation rec {
+          clustalw = pkgs.stdenv.mkDerivation {
             pname = "clustalw";
             version = "2.1"; # matches bioconda's pin
+            # clustal.org's own download started returning HTTP 403 from
+            # the cluster's network (same symptom muscle3 below hit
+            # against drive5.com - academic sites blocking the cluster's
+            # proxy egress IP outright, confirmed on 2026-07-17 with a
+            # retry that still 403'd), so this pulls bioconda's
+            # precompiled binary from anaconda.org instead of building
+            # from source. Dynamically linked against libstdc++/libm/
+            # libgcc_s/libc (confirmed via `file`/`readelf -d`), which
+            # resolve fine against a normal Linux distro's system
+            # libraries - not patched for NixOS-style store-only linking,
+            # matching how muscle3 below is handled too.
             src = pkgs.fetchurl {
-              url = "http://www.clustal.org/download/current/clustalw-${version}.tar.gz";
-              sha256 = "e052059b87abfd8c9e695c280bfba86a65899138c82abccd5b00478a80f49486";
+              url = "https://conda.anaconda.org/bioconda/linux-64/clustalw-2.1-0.tar.bz2";
+              hash = "sha256-4N9s1jPhRrosf03MiJsNGggLHP3fb4GjjXf145f9uD4=";
             };
-            nativeBuildInputs = [ pkgs.autoreconfHook ];
-            postInstall = ''
+            dontBuild = true;
+            installPhase = ''
+              mkdir -p $out/bin
+              install -m755 bin/clustalw2 $out/bin/
               ln -sf $out/bin/clustalw2 $out/bin/clustalw
             '';
           };
@@ -305,22 +318,31 @@
           # `muscle`, and nixpkgs' v5 is exposed as `muscle5` instead (see
           # the muscle5 derivation below), matching what
           # 09_AlignWithMUSCLE5.sh/09_AlignWithSUPER5.sh actually call.
-          # No source build: drive5.com only ever published static
-          # binaries for this series, and no aarch64 build exists, so
-          # this is x86_64-linux only.
+          # No source build: only ever published as a static binary for
+          # this series, and no aarch64 build exists (confirmed against
+          # bioconda's own release listing for 3.8.31 specifically, even
+          # though bioconda's channel has aarch64 builds for newer MUSCLE
+          # v5), so this is x86_64-linux only. Pulled from bioconda's
+          # anaconda.org mirror rather than drive5.com directly: the
+          # latter started returning HTTP 403 from the cluster's network
+          # (confirmed on 2026-07-17 with a retry that still 403'd, same
+          # symptom clustalw above hit against a different site) -
+          # academic sites apparently blocking the cluster's proxy
+          # egress IP outright. Statically linked (confirmed via `file`),
+          # so no dynamic-linking concerns either way.
           muscle3 = assert pkgs.lib.assertMsg pkgs.stdenv.hostPlatform.isx86_64
             "muscle3 is only published as an x86_64 Linux static binary";
           pkgs.stdenv.mkDerivation {
             pname = "muscle3";
             version = "3.8.31";
             src = pkgs.fetchurl {
-              url = "https://drive5.com/muscle/downloads3.8.31/muscle3.8.31_i86linux64.tar.gz";
-              hash = pkgs.lib.fakeHash;
+              url = "https://conda.anaconda.org/bioconda/linux-64/muscle-3.8.31-0.tar.bz2";
+              hash = "sha256-xGsjT8X/3fythulpCK5Ya6cXOQqQs6SKZehi2OKJy6c=";
             };
             dontBuild = true;
             installPhase = ''
               mkdir -p $out/bin
-              install -m755 muscle3.8.31_i86linux64 $out/bin/muscle
+              install -m755 bin/muscle $out/bin/muscle
             '';
           };
 
