@@ -242,7 +242,7 @@
               owner = "morgannprice";
               repo = "fasttree";
               rev = "v${version}";
-              sha256 = "db5f0d2d1e2b9099193a3a68a5c44f71166a870a7a4269398b9258b1e3478e12";
+              sha256 = "sha256-vIi60XveGxYeMZpoGklTidqnl+ROBbxLyEsygB8Digg=";
             };
             dontConfigure = true;
             # bioconda passes CPU-specific -march flags here; dropped for
@@ -269,7 +269,7 @@
               owner = "ariloytynoja";
               repo = "prank-msa";
               rev = "v.${version}"; # tag is literally "v.251117"
-              sha256 = "992eb5980f3c8c331b2860093756b98491f501999d4d09fc4d16ea89d849a105";
+              sha256 = "sha256-ayBqHmjeQ5QNr2rv19cJYAR+HMbFdvtjzyJiWl3pdPI=";
             };
             buildPhase = ''
               runHook preBuild
