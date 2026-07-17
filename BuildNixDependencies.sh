@@ -76,7 +76,12 @@ declare -a failed=()
 for pkg in "${packages[@]}"
 do
 	echo "=== Building $pkg ===" >&2
-	if ! $nixCmd build ".#$pkg" --no-link -L
+	# --refresh: this script exists specifically to be re-run against a
+	# changing flake.nix (the fakeHash-fix-rerun workflow above), and
+	# without it Nix has been observed serving a stale cached evaluation
+	# of an unchanged-looking .drv path even after a real fix landed in
+	# flake.nix - confirmed on 2026-07-17, cost real time to track down.
+	if ! $nixCmd build ".#$pkg" --no-link -L --refresh
 	then
 		failed+=("$pkg")
 	fi
@@ -85,7 +90,7 @@ done
 # Also realizes the plain nixpkgs tools (seqkit, blast, mafft, etc.) that
 # the devShell pulls in directly and aren't their own named package above.
 echo "=== Building devShell ===" >&2
-if ! $nixCmd develop --command true
+if ! $nixCmd develop --refresh --command true
 then
 	failed+=("devShell")
 fi
