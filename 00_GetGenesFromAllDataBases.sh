@@ -24,23 +24,28 @@ fi
 TRMBL="$DIR/ProteinDatabase/uniprot_trembl/uniprot_trembl"
 SPROT="$DIR/ProteinDatabase/uniprot_sprot/uniprot_sprot"
 
-declare -a DataBases=(
+declare -a LocalDataBases=(
                       $TRMBL            # UniProt TRMBL saved locally
                       $SPROT            # UniProt SwissProt saved locally
+                     )
+
+declare -a RemoteDataBases=(
                       "nr"              # Non-redundant protein sequences
                       "refseq_protein"  # Reference proteins
                     # "landmark"        # Model Organisms, does not work
                       "swissprot"       # UniProtKB/Swiss-Prot, just the confirmed sequences, the version from uniprot is more up to date, but including those does not hurt
                     # "pataa"           # Patented protein sequences, mutated proteins from patients are not needed
                     # "pdb"             # Protein Data Bank Proteins, chimeras for christalization just screw up things
-                    # "env_nr"          # Metagenomic proteins, most come back empty for opsins, so it is not worth 
+                    # "env_nr"          # Metagenomic proteins, most come back empty for opsins, so it is not worth
                       "tsa_nr"          # Transcriptome Shotgun Assembly proteins
                      )
 
 declare -a pids=()
 declare -a dbNames=()
 
-for DB in "${DataBases[@]}"
+# Local databases don't touch NCBI's servers, so they run in the background
+# while the remote databases below are handled.
+for DB in "${LocalDataBases[@]}"
 do
 	"$DIR/00a_GetGenes.sh" $gene $DB &
 	pids+=($!)
@@ -48,6 +53,18 @@ do
 done
 
 failed="false"
+
+# NCBI asks that only one BLAST+ remote search run against their servers at
+# a time (see the BLAST+ remote service docs), so these run one after
+# another instead of in parallel.
+for DB in "${RemoteDataBases[@]}"
+do
+	if ! "$DIR/00a_GetGenes.sh" $gene $DB
+	then
+		echo "Failed to fully extract sequences from $(basename $DB)" >&2
+		failed="true"
+	fi
+done
 
 for ((i = 0; i < ${#pids[@]}; i++))
 do
