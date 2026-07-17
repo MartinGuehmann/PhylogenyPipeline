@@ -32,7 +32,7 @@
               repo = "raxml-ng";
               rev = version;
               fetchSubmodules = true; # pulls bundled coraxlib/terraphast
-              hash = pkgs.lib.fakeHash;
+              hash = "sha256-Yd5IaeE8wT3cgGev39QmZ9qWqp0tvH+I91Ew5k5jTYo=";
             };
             nativeBuildInputs = [ pkgs.cmake ];
             buildInputs = [ pkgs.gmp pkgs.htslib pkgs.zlib pkgs.bzip2 pkgs.xz ];
@@ -54,7 +54,7 @@
               owner = "aberer";
               repo = "RogueNaRok";
               rev = "v${version}";
-              hash = pkgs.lib.fakeHash;
+              hash = "sha256-ubPF/wFF0k7XcBvfgFxQKPf6GHkXvQRrdGyvyrcv6M0=";
             };
             buildPhase = ''
               make mode=parallel
@@ -73,7 +73,7 @@
               repo = "FAMSA";
               rev = "v${version}";
               fetchSubmodules = true; # pulls bundled mimalloc etc.
-              hash = pkgs.lib.fakeHash;
+              hash = "sha256-X3jK46XCLfjIQd+4k/1YbNLNq4Fd6E+0pr9JYPb4o3s=";
             };
             nativeBuildInputs = [ pkgs.gnumake ];
             # avx2 is FAMSA's own documented default: broad x86-64 coverage
@@ -95,7 +95,7 @@
             format = "setuptools";
             src = pkgs.fetchPypi {
               inherit pname version;
-              hash = pkgs.lib.fakeHash;
+              hash = "sha256-O9HbOkXb1EMFGk+eyvyZqOOLI7R6KDM4eMHu9uj2fn4=";
             };
             doCheck = false;
           };
@@ -121,7 +121,7 @@
             pyproject = true;
             src = pkgs.fetchPypi {
               inherit pname version;
-              hash = pkgs.lib.fakeHash;
+              hash = "sha256-raxaEQbojWBbYlxyZ6e0mjH2Nso4aDbFoUeIeVi6IoY=";
             };
             build-system = [ py.setuptools ];
             propagatedBuildInputs = [ py.dendropy ];
@@ -336,7 +336,7 @@
           # A single small file, not the whole sate-tools-linux repo.
           opalJar = pkgs.fetchurl {
             url = "https://github.com/smirarab/sate-tools-linux/raw/master/opal.jar";
-            hash = pkgs.lib.fakeHash;
+            hash = "sha256-VCOQIx2Yh59BX+H5MFJ0QHUDAQPmNOdXrtnH8+E9WNM=";
           };
 
           # Merged directory of PASTA's external tools, handed to it via
@@ -414,7 +414,7 @@
               owner = "MartinGuehmann";
               repo = "ete";
               rev = "7b6ef8dc2ee06e1919616b7b961281e2cb75fe21"; # tip of AddFaceFloatRight
-              hash = pkgs.lib.fakeHash;
+              hash = "sha256-pzIdhZbZ4Lz0Nrc3pFupjiMFNExI3EWytWGH6NdaXoY=";
             };
             format = "setuptools";
             # This old setup.py phones home to etetoolkit.org on install
