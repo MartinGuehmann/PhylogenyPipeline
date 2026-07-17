@@ -1,10 +1,11 @@
 #!/bin/bash
 
 # Builds every dependency in flake.nix and caches it in the Nix store, so
-# that `nix develop` (used throughout the Scheduler scripts) only ever has
-# to link an already-built environment instead of building tools - some of
-# them from source - the first time a pipeline run happens to need them.
-# Run this once after cloning, and again whenever flake.nix changes.
+# that entering the `nix develop` shell (see README.md's "Installing
+# prerequisites with Nix") only ever has to link an already-built
+# environment instead of building tools - some of them from source - the
+# first time a pipeline run happens to need them. Run this once after
+# cloning, and again whenever flake.nix changes.
 #
 # Several of flake.nix's derivations still have `hash = pkgs.lib.fakeHash;`
 # placeholders (see its own comments) because none of them have been
@@ -24,6 +25,31 @@ done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 cd "$DIR"
+
+# A multi-user Nix install isn't on PATH until its profile scripts are
+# sourced - harmless to source these if they don't apply here, since each
+# is only sourced when present.
+for profileScript in \
+	/nix/var/nix/profiles/default/etc/profile.d/nix.sh \
+	/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+do
+	[ -f "$profileScript" ] && . "$profileScript"
+done
+
+# Clusters often have no Nix install and no root access to add one - see
+# README.md's "Installing prerequisites with Nix" - so fall back to
+# nix-portable the same way that section documents for `nix develop`.
+if command -v nix >/dev/null 2>&1
+then
+	nixCmd="nix"
+elif command -v nix-portable >/dev/null 2>&1
+then
+	nixCmd="nix-portable nix"
+else
+	echo "Neither nix nor nix-portable is on PATH." >&2
+	echo "See README.md's 'Installing prerequisites with Nix' section." >&2
+	exit 1
+fi
 
 # One buildable output per custom derivation in flake.nix's `packages`.
 declare -a packages=(
@@ -50,7 +76,7 @@ declare -a failed=()
 for pkg in "${packages[@]}"
 do
 	echo "=== Building $pkg ===" >&2
-	if ! nix build ".#$pkg" --no-link -L
+	if ! $nixCmd build ".#$pkg" --no-link -L
 	then
 		failed+=("$pkg")
 	fi
@@ -59,7 +85,7 @@ done
 # Also realizes the plain nixpkgs tools (seqkit, blast, mafft, etc.) that
 # the devShell pulls in directly and aren't their own named package above.
 echo "=== Building devShell ===" >&2
-if ! nix develop --command true
+if ! $nixCmd develop --command true
 then
 	failed+=("devShell")
 fi
