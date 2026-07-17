@@ -64,7 +64,18 @@
             # definition" link error - confirmed on 2026-07-17. Restoring
             # -fcommon is the standard fix for this exact, common
             # legacy-C-on-modern-GCC regression.
-            env.NIX_CFLAGS_COMPILE = "-fcommon";
+            #
+            # Separately, rnr-lsi.c calls printHelpFile(FALSE) against a
+            # `void printHelpFile()` declaration - old-style K&R/ANSI-C
+            # "unspecified arguments", not accepting zero arguments the
+            # way `(void)` would. GCC 14 switched its default C standard
+            # from gnu17 to gnu23, and C23 gives empty parens the `(void)`
+            # meaning instead, turning this into a hard "too many
+            # arguments" error - confirmed on 2026-07-17, same class of
+            # regression as -fcommon above, just a different GCC-version
+            # default change. -std=gnu17 restores the old, looser
+            # semantics this code relies on.
+            env.NIX_CFLAGS_COMPILE = "-fcommon -std=gnu17";
             buildPhase = ''
               make mode=parallel
             '';
