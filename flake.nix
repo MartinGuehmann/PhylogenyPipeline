@@ -157,6 +157,18 @@
             # them in their own dedicated, network-permitted fixed-output
             # step (vendorHash below).
             modRoot = "cmd";
+            # cmd/edict.go imports github.com/gin-gonic/gin, which isn't
+            # declared in cmd/go.mod or cmd/go.sum - confirmed on
+            # 2026-07-17, Go's module resolution fails on it before
+            # buildGoModule can even compute vendorHash, even though
+            # build.sh (and buildPhase below) never builds edict.go at
+            # all, only xtract/rchive/transmute. Removing it sidesteps
+            # that resolution failure entirely. This runs before
+            # buildGoModule's own separate vendor-fetching derivation
+            # too, since that reuses this same postPatch.
+            postPatch = ''
+              rm cmd/edict.go
+            '';
             vendorHash = pkgs.lib.fakeHash;
             buildInputs = [ pkgs.wget ];
             # Force using nixpkgs' own `go` rather than whatever toolchain
