@@ -131,7 +131,7 @@
             # so this replaces the separate MAGUS dendropy pip-install
             # note further down in the README.
           };
-          entrez-direct = pkgs.stdenv.mkDerivation rec {
+          entrez-direct = pkgs.buildGoModule rec {
             pname = "entrez-direct";
             # EDirect has no public source repo - NCBI ships it only via
             # FTP. This mirrors bioconda's recipes/entrez-direct/build.sh,
@@ -142,33 +142,51 @@
               url = "https://ftp.ncbi.nlm.nih.gov/entrez/entrezdirect/versions/${version}/edirect.tar.gz";
               sha256 = "189382f1fe4a1b43872855cd5b442ed25111192dd4b00330268c1cad6d7216bf";
             };
-            nativeBuildInputs = [ pkgs.go ];
+            # Confirmed by inspecting the real tarball (2026-07-17): cmd/
+            # (Go module "edirect") and eutils/ (Go module "eutils", the
+            # shared library cmd's *.go files import) are two separate
+            # local Go modules, linked via a `replace eutils => ../eutils`
+            # directive in cmd/go.mod. modRoot points buildGoModule at
+            # cmd/; the relative replace path still resolves since both
+            # directories travel together inside $src. This replaces the
+            # plain `pkgs.go` + hand-rolled build.sh invocation this
+            # derivation used before, which failed: build.sh's `go build`
+            # needs network access to fetch Go module dependencies (none
+            # are vendored in the tarball), which Nix's sandboxed build
+            # phase blocks - buildGoModule instead fetches and verifies
+            # them in their own dedicated, network-permitted fixed-output
+            # step (vendorHash below).
+            modRoot = "cmd";
+            vendorHash = pkgs.lib.fakeHash;
             buildInputs = [ pkgs.wget ];
-            # Biggest unverified risk of this whole flake: cmd/build.sh
-            # (bundled in the tarball) builds xtract/rchive/transmute/etc.
-            # from Go source. If EDirect's Go modules aren't vendored in
-            # the tarball, this `go build` will try to fetch them over the
-            # network, which Nix's sandboxed build phase blocks. If that
-            # happens, this needs converting to `pkgs.buildGoModule` with
-            # a real `vendorHash` instead of plain `go` here.
+            # Force using nixpkgs' own `go` rather than whatever toolchain
+            # version cmd/go.mod's `go 1.26.1` directive requests - newer
+            # Go versions auto-download a matching toolchain over the
+            # network by default (GOTOOLCHAIN=auto) if the one available
+            # doesn't satisfy that directive, which would hit the same
+            # sandboxed-network wall vendorHash exists to avoid.
+            env.GOTOOLCHAIN = "local";
+            # xtract/rchive/transmute are three separate `main`s that
+            # coexist as individual .go files in one directory (cmd/)
+            # rather than three package directories - confirmed in
+            # cmd/build.sh, which builds them the same way: one named
+            # file at a time, not buildGoModule's normal ./... package
+            # build. modRoot puts the working directory at cmd/ for both
+            # phases below, so ../data and ../help reach the sibling
+            # directories from the top of the extracted source tree.
             buildPhase = ''
               runHook preBuild
-              export HOME="$TMPDIR"
-              export GOCACHE="$TMPDIR/go-cache"
-              export GOPATH="$TMPDIR/go-path"
-              mkdir -p bin nobin
-              mv xy-* nobin 2>/dev/null || true
-              mv $(find * -type d -prune -o -print | sed '/^[A-Z]/d;/[.]pdf$/d;/[.]pem$/d;/[.]py$/d;/conda/d;/build/d') bin
-              mkdir -p "$out/bin"
-              (cd cmd && sh -ex ./build.sh "$out/bin")
+              for exc in xtract rchive transmute; do
+                go build -o "$exc" "$exc.go"
+              done
               runHook postBuild
             '';
             installPhase = ''
               runHook preInstall
               mkdir -p "$out/bin/data" "$out/bin/help"
-              install -m 644 data/* "$out/bin/data"
-              install -m 644 help/* "$out/bin/help"
-              install -m 755 bin/* "$out/bin"
+              install -m 755 xtract rchive transmute "$out/bin"
+              install -m 644 ../data/* "$out/bin/data"
+              install -m 644 ../help/* "$out/bin/help"
               runHook postInstall
             '';
             # wget is a buildInput only so it's pulled into the devShell
