@@ -147,7 +147,7 @@
               # exact name. Pinned to the tag's actual commit instead,
               # which sidesteps the ambiguity entirely.
               rev = "a31070dbdf4c95165dc9943749cc199eb44ab6e2";
-              hash = pkgs.lib.fakeHash;
+              hash = "sha256-Pocwz0qwil18WaOt+k3hNmAL+cXA9J45qZtRKLSW+vY=";
             };
             format = "setuptools";
             propagatedBuildInputs = [ treeswift py.numpy py.scipy ];
@@ -211,6 +211,13 @@
             '';
             vendorHash = "sha256-9Ys43yzO8AXSCIQJ2XnitkoIivDfQ8b6z3H8LUdvaT0=";
             buildInputs = [ pkgs.wget ];
+            # buildGoModule's default checkPhase assumes a normal package
+            # layout it can discover and test - confirmed on 2026-07-17
+            # ("getGoDirs: command not found") that doesn't apply cleanly
+            # here, given modRoot plus the nonstandard one-file-at-a-time
+            # buildPhase below. Not needed anyway: this only builds three
+            # binaries, it doesn't run edirect's own Go test suite.
+            doCheck = false;
             # Force using nixpkgs' own `go` rather than whatever toolchain
             # version cmd/go.mod's `go 1.26.1` directive requests - newer
             # Go versions auto-download a matching toolchain over the
