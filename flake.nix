@@ -510,6 +510,17 @@
             postPatch = ''
               sed -i 's/^\(.*import imp\)/#\1/' pasta/__init__.py
               sed -i 's/^\(.*imp\.is_frozen.*\)/#\1/' pasta/__init__.py
+              # setup.py also expects the legacy sate-tools-linux bundle's
+              # nested mafftdir/{bin,libexec} layout on top of the flat
+              # tools directory - confirmed failing on 2026-07-17
+              # ("FileNotFoundError: .../pasta-tools-dir/bin/mafftdir/bin").
+              # pastaToolsDir below is flat (nixpkgs' own mafft package
+              # already puts everything MAFFT needs directly in one bin/
+              # directory, unlike upstream's separate bin/libexec split,
+              # confirmed by every mafft-* binary linking successfully
+              # from the flat layer already), so both nested entries are
+              # redundant and genuinely don't exist here.
+              sed -i "s|, 'mafftdir/bin','mafftdir/libexec'||" setup.py
             '';
             propagatedBuildInputs = [ py.dendropy py.pymongo ];
             doCheck = false;
