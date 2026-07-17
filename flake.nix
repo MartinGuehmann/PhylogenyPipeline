@@ -270,6 +270,13 @@
               url = "https://conda.anaconda.org/bioconda/linux-64/clustalw-2.1-0.tar.bz2";
               hash = "sha256-4N9s1jPhRrosf03MiJsNGggLHP3fb4GjjXf145f9uD4=";
             };
+            # Conda packages aren't wrapped in a single top-level
+            # directory (bin/, info/, etc. sit directly at the archive
+            # root), which the default unpackPhase can't auto-cd into -
+            # confirmed on 2026-07-17 ("unpacker produced multiple
+            # directories"). sourceRoot = "." keeps it at the top instead
+            # of guessing.
+            sourceRoot = ".";
             dontBuild = true;
             installPhase = ''
               mkdir -p $out/bin
@@ -351,6 +358,10 @@
               url = "https://conda.anaconda.org/bioconda/linux-64/muscle-3.8.31-0.tar.bz2";
               hash = "sha256-xGsjT8X/3fythulpCK5Ya6cXOQqQs6SKZehi2OKJy6c=";
             };
+            # Same reason as clustalw above: conda packages have no single
+            # top-level wrapping directory, so the default unpackPhase
+            # can't auto-cd into one.
+            sourceRoot = ".";
             dontBuild = true;
             installPhase = ''
               mkdir -p $out/bin
