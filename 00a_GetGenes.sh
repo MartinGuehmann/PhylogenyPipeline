@@ -65,7 +65,16 @@ do
 			if [ $? -ne 0 ]
 			then
 				echo "blastp failed for $outFile" >&2
-				rm -f "$outFile"
+				# Keep one non-empty failed attempt around for inspection
+				# instead of just discarding it - but only one, so a run
+				# that keeps failing doesn't pile up copies.
+				if [ -s "$outFile" ] && [ ! -f "$outFile.error" ]
+				then
+					mv "$outFile" "$outFile.error"
+					echo "Kept the failed output for inspection at $outFile.error" >&2
+				else
+					rm -f "$outFile"
+				fi
 			fi
 		fi
 	done
