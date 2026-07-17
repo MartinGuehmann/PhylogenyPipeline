@@ -120,7 +120,13 @@
             src = pkgs.fetchFromGitHub {
               owner = "uym2";
               repo = "TreeShrink";
-              rev = "v${version}";
+              # The tag name "v1.4.0" is ambiguous in this repo - GitHub's
+              # own archive endpoint refused it outright on 2026-07-17
+              # ("the given path has multiple possibilities"), a tag and
+              # some other ref (likely a branch) apparently share that
+              # exact name. Pinned to the tag's actual commit instead,
+              # which sidesteps the ambiguity entirely.
+              rev = "a31070dbdf4c95165dc9943749cc199eb44ab6e2";
               hash = pkgs.lib.fakeHash;
             };
             format = "setuptools";
