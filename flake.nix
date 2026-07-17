@@ -459,7 +459,7 @@
               owner = "smirarab";
               repo = "pasta";
               rev = "v${version}";
-              sha256 = "4bbd77b148c7a0954e1103d0b6e834e3a507c3ada9ba556e2731109beb3d92fe";
+              sha256 = "sha256-kU6kPNHB/uIvp2WQhuP+asVYNFArvSR0lW3ixzUHP9Y=";
             };
             format = "setuptools";
             # PASTA imports the long-removed stdlib `imp` module for an
