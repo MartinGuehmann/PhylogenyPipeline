@@ -110,6 +110,20 @@
             # 2026-07-17). Disabling it leaves cmake on PATH without
             # letting it hijack the phase.
             dontUseCmakeConfigure = true;
+            # refresh.mk's cmake invocation for the bundled zlib-ng
+            # submodule doesn't disable zlib-ng's own test suite, which
+            # defaults to on (ZLIB_ENABLE_TESTS/WITH_GTEST, both ON by
+            # default in libs/zlib-ng/CMakeLists.txt) and fetches
+            # googletest from GitHub mid-build via CMake's
+            # FetchContent_Populate - confirmed failing on 2026-07-17
+            # ("Failed to clone repository"), the same class of
+            # sandboxed-network-access issue as entrez-direct's Go
+            # modules, just via CMake instead. We only need zlib-ng's
+            # compiled library, not its tests, so disabling both avoids
+            # the fetch entirely.
+            postPatch = ''
+              sed -i 's/-DWITH_GZFILEOP=ON/-DWITH_GZFILEOP=ON -DZLIB_ENABLE_TESTS=OFF -DWITH_GTEST=OFF/' refresh.mk
+            '';
             # avx2 is FAMSA's own documented default: broad x86-64 coverage
             # without needing to know every cluster node's CPU generation.
             # Override to PLATFORM=native for a single known machine, or
