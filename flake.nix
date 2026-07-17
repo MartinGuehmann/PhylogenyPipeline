@@ -101,6 +101,15 @@
             # or directory" and cmake's own "required software ... not
             # installed" check). Neither was declared before.
             nativeBuildInputs = [ pkgs.gnumake pkgs.git pkgs.cmake ];
+            # cmake ships a setup hook that auto-takes-over configurePhase
+            # for any derivation that has it as a build input, assuming a
+            # top-level CMake project - but FAMSA is a plain Makefile
+            # project that only shells out to cmake internally for a
+            # couple of bundled submodules, so that hook fails outright
+            # ("does not appear to contain CMakeLists.txt", confirmed on
+            # 2026-07-17). Disabling it leaves cmake on PATH without
+            # letting it hijack the phase.
+            dontUseCmakeConfigure = true;
             # avx2 is FAMSA's own documented default: broad x86-64 coverage
             # without needing to know every cluster node's CPU generation.
             # Override to PLATFORM=native for a single known machine, or
