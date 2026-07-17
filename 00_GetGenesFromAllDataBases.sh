@@ -33,7 +33,7 @@ declare -a RemoteDataBases=(
                       "nr"              # Non-redundant protein sequences
                       "refseq_protein"  # Reference proteins
                     # "landmark"        # Model Organisms, does not work
-                      "swissprot"       # UniProtKB/Swiss-Prot, just the confirmed sequences, the version from uniprot is more up to date, but including those does not hurt
+                    # "swissprot"       # UniProtKB/Swiss-Prot, just the confirmed sequences, redundant with the local, more up-to-date uniprot_sprot above, not worth the extra NCBI remote load
                     # "pataa"           # Patented protein sequences, mutated proteins from patients are not needed
                     # "pdb"             # Protein Data Bank Proteins, chimeras for christalization just screw up things
                     # "env_nr"          # Metagenomic proteins, most come back empty for opsins, so it is not worth
