@@ -189,7 +189,7 @@
             postPatch = ''
               rm cmd/edict.go
             '';
-            vendorHash = pkgs.lib.fakeHash;
+            vendorHash = "sha256-9Ys43yzO8AXSCIQJ2XnitkoIivDfQ8b6z3H8LUdvaT0=";
             buildInputs = [ pkgs.wget ];
             # Force using nixpkgs' own `go` rather than whatever toolchain
             # version cmd/go.mod's `go 1.26.1` directive requests - newer
