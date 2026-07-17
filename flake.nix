@@ -56,6 +56,15 @@
               rev = "v${version}";
               hash = "sha256-ubPF/wFF0k7XcBvfgFxQKPf6GHkXvQRrdGyvyrcv6M0=";
             };
+            # RogueNaRok's C code (2013) tentatively declares globals like
+            # processID/bits_in_16bits in headers without extern, relying
+            # on GCC's old -fcommon default to merge those tentative
+            # definitions across translation units. GCC 10 switched the
+            # default to -fno-common, turning that into a hard "multiple
+            # definition" link error - confirmed on 2026-07-17. Restoring
+            # -fcommon is the standard fix for this exact, common
+            # legacy-C-on-modern-GCC regression.
+            env.NIX_CFLAGS_COMPILE = "-fcommon";
             buildPhase = ''
               make mode=parallel
             '';
@@ -75,7 +84,12 @@
               fetchSubmodules = true; # pulls bundled mimalloc etc.
               hash = "sha256-X3jK46XCLfjIQd+4k/1YbNLNq4Fd6E+0pr9JYPb4o3s=";
             };
-            nativeBuildInputs = [ pkgs.gnumake ];
+            # FAMSA's Makefile shells out to both at build time (for its
+            # bundled submodule dependencies like zlib-ng/isa-l) -
+            # confirmed missing on 2026-07-17 ("make: git: No such file
+            # or directory" and cmake's own "required software ... not
+            # installed" check). Neither was declared before.
+            nativeBuildInputs = [ pkgs.gnumake pkgs.git pkgs.cmake ];
             # avx2 is FAMSA's own documented default: broad x86-64 coverage
             # without needing to know every cluster node's CPU generation.
             # Override to PLATFORM=native for a single known machine, or
