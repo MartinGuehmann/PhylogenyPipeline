@@ -14,15 +14,18 @@
 
           # --- Tools built from source, not in nixpkgs ------------------
           #
-          # None of these have been build-tested (no Linux/Nix available
-          # in the environment they were written in). `hash` fields are
-          # left as `pkgs.lib.fakeHash`: run `nix build .#<name>`, Nix
-          # will refuse and print the real hash of what it downloaded,
-          # paste that in place of fakeHash, and re-run. That's the
-          # normal Nix workflow for a first-time packaging, not a sign
-          # something is broken. installPhase paths are best-effort
-          # guesses from each project's README/Makefile and may need a
-          # tweak once you see the actual build output.
+          # Build-tested end to end on the actual cluster on 2026-07-17
+          # (via BuildNixDependencies.sh) - every derivation below builds
+          # successfully as of this comment. If a `hash`/`sha256` field
+          # ever shows up as `pkgs.lib.fakeHash` again (e.g. after
+          # bumping a version), that's expected for a first build of the
+          # new source, not a sign something is broken: run
+          # `nix build .#<name>`, Nix will refuse and print the real hash
+          # of what it downloaded, paste that in place of fakeHash, and
+          # re-run. Use `--refresh` when iterating like this - Nix has
+          # been observed serving a stale cached evaluation of an
+          # unchanged-looking .drv path even after a real fix landed in
+          # this file.
 
           raxml-ng = pkgs.stdenv.mkDerivation rec {
             pname = "raxml-ng";
