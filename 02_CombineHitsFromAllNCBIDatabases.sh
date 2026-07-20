@@ -18,26 +18,11 @@ then
 	exit 1
 fi
 
-# Uniprot databases not needed here
-# Download and make the uniprot databases if they do not exist
-#"$DIR/ProteinDatabase/get_uniprot_databases.sh"
+# Uniprot databases not needed here - this only combines hits from the
+# remote NCBI databases, not the local ones.
+source "$DIR/Databases.sh"
 
-#TRMBL="$DIR/ProteinDatabase/uniprot_trembl/uniprot_trembl"
-#SPROT="$DIR/ProteinDatabase/uniprot_sprot/uniprot_sprot"
-
-declare -a DataBases=(
-                    # Exclude local databases
-                    # $TRMBL            # UniProt TRMBL saved locally
-                    # $SPROT            # UniProt SwissProt saved locally
-                      "nr"              # Non-redundant protein sequences
-                      "refseq_protein"  # Reference proteins
-                    # "landmark"        # Model Organisms, does not work
-                      "swissprot"       # UniProtKB/Swiss-Prot, just the confirmed sequences, the version from uniprot is more up to date, but including those does not hurt
-                    # "pataa"           # Patented protein sequences, mutated proteins from patients are not needed
-                    # "pdb"             # Protein Data Bank Proteins, chimeras for christalization just screw up things
-                    # "env_nr"          # Metagenomic proteins, most come back empty for opsins, so it is not worth 
-                      "tsa_nr"          # Transcriptome Shotgun Assembly proteins
-                     )
+declare -a DataBases=("${RemoteDataBases[@]}")
 
 
 hitsAll="$DIR/$gene/Hits/All"

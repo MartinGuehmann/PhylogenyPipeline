@@ -25,11 +25,8 @@ then
 	exit 1
 fi
 
-TRMBL_DB="$DIR/ProteinDatabase/uniprot_trembl/uniprot_trembl"
-SPROT_DB="$DIR/ProteinDatabase/uniprot_sprot/uniprot_sprot"
+source "$DIR/Databases.sh"
 
-TRMBL=$(basename $TRMBL_DB)
-SPROT=$(basename $SPROT_DB)
 AllNCBI="All"
 
 hits="$DIR/$gene/Hits"
@@ -55,7 +52,7 @@ rm -f $sequenceFileBase*".fasta"
 rm -f $sequenceNCBIFileBase*".fasta"
 
 # Extract the sequences from uniprot
-for DB_PATH in $SPROT_DB $TRMBL_DB
+for DB_PATH in "${LocalDataBases[@]}"
 do
 	DB=$(basename $DB_PATH)
 

@@ -18,28 +18,12 @@ then
 	exit 1
 fi
 
-# Download and make the uniprot databases if they do not exist
-if ! "$DIR/ProteinDatabase/get_uniprot_databases.sh"
-then
-	echo "Failed to get/build the local Uniprot databases" >&2
-	exit 1
-fi
+# 01a_CombineHits.sh only sorts/dedupes hit CSVs that step 0 already
+# wrote to $gene/Hits/ - it never reads the actual databases, so unlike
+# steps 0 and 3, there's nothing here that needs them downloaded/built.
+source "$DIR/Databases.sh"
 
-TRMBL="$DIR/ProteinDatabase/uniprot_trembl/uniprot_trembl"
-SPROT="$DIR/ProteinDatabase/uniprot_sprot/uniprot_sprot"
-
-declare -a DataBases=(
-                      $TRMBL            # UniProt TRMBL saved locally
-                      $SPROT            # UniProt SwissProt saved locally
-                      "nr"              # Non-redundant protein sequences
-                      "refseq_protein"  # Reference proteins
-                    # "landmark"        # Model Organisms, does not work
-                      "swissprot"       # UniProtKB/Swiss-Prot, just the confirmed sequences, the version from uniprot is more up to date, but including those does not hurt
-                    # "pataa"           # Patented protein sequences, mutated proteins from patients are not needed
-                    # "pdb"             # Protein Data Bank Proteins, chimeras for christalization just screws up things
-                    # "env_nr"          # Metagenomic proteins, most come back empty for opsins, so it is not worth 
-                      "tsa_nr"          # Transcriptome Shotgun Assembly proteins
-                     )
+declare -a DataBases=("${LocalDataBases[@]}" "${RemoteDataBases[@]}")
 
 for DB in "${DataBases[@]}"
 do

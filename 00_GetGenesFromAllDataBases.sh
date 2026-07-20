@@ -18,24 +18,7 @@ then
 	exit 1
 fi
 
-TRMBL="$DIR/ProteinDatabase/uniprot_trembl/uniprot_trembl"
-SPROT="$DIR/ProteinDatabase/uniprot_sprot/uniprot_sprot"
-
-declare -a LocalDataBases=(
-                      $TRMBL            # UniProt TRMBL saved locally
-                      $SPROT            # UniProt SwissProt saved locally
-                     )
-
-declare -a RemoteDataBases=(
-                      "nr"              # Non-redundant protein sequences
-                      "refseq_protein"  # Reference proteins
-                    # "landmark"        # Model Organisms, does not work
-                    # "swissprot"       # UniProtKB/Swiss-Prot, just the confirmed sequences, redundant with the local, more up-to-date uniprot_sprot above, not worth the extra NCBI remote load
-                    # "pataa"           # Patented protein sequences, mutated proteins from patients are not needed
-                    # "pdb"             # Protein Data Bank Proteins, chimeras for christalization just screw up things
-                    # "env_nr"          # Metagenomic proteins, most come back empty for opsins, so it is not worth
-                      "tsa_nr"          # Transcriptome Shotgun Assembly proteins
-                     )
+source "$DIR/Databases.sh"
 
 declare -a pids=()
 declare -a dbNames=()
