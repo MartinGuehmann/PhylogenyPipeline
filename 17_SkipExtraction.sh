@@ -1,7 +1,9 @@
 #!/bin/bash
 
 #
-# This script extracts from a set of Newick trees the according sequences of interest.
+# Skips extracting sequences of interest from a set of Newick trees and
+# just copies the non-redundant sequences through directly instead (see
+# "Skip the extraction" below).
 # Parameters:
 #  --gene (-g)
 #     The gene of interest, actually a subdirectory

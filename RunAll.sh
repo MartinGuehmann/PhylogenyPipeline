@@ -216,9 +216,9 @@ case $step in
 	echo "3. Sequences from the database were extracted." >&2
 	;;
 4)
-	echo "4. Make non redundant databases." >&2
+	echo "4. Make non redundant sequences." >&2
 	"$DIR/04_MakeNonRedundant.sh" "$gene"
-	echo "4. Non reduntant database was made." >&2
+	echo "4. Non redundant sequences were made." >&2
 	;;
 5)
 	echo "5. Prepare sequences for CLANS." >&2
