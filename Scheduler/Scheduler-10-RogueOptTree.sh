@@ -158,7 +158,7 @@ then
 
 	# Some scheduling problem is here
 	# Update all pdf files
-	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, extension=$extension" -W "depend=afternotok$jobIds" "$DIR/Scheduler-12-RevisualizeAllTrees.sh"
+	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, extension=$extension" -W "depend=afternotok$jobIDs" "$DIR/Scheduler-12-RevisualizeAllTrees.sh"
 else
 	# Depends only on the jobs from step 10
 	jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "12" -i "$iteration" -a "$aligner" -d "$holdJobs" $suffix $extension -u -M)
