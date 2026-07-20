@@ -18,13 +18,6 @@ then
 	exit 1
 fi
 
-# Download and make the uniprot databases if they do not exist
-if ! "$DIR/ProteinDatabase/get_uniprot_databases.sh"
-then
-	echo "Failed to get/build the local Uniprot databases" >&2
-	exit 1
-fi
-
 TRMBL="$DIR/ProteinDatabase/uniprot_trembl/uniprot_trembl"
 SPROT="$DIR/ProteinDatabase/uniprot_sprot/uniprot_sprot"
 
@@ -47,20 +40,35 @@ declare -a RemoteDataBases=(
 declare -a pids=()
 declare -a dbNames=()
 
-# Local databases don't touch NCBI's servers, so they run in the background
-# while the remote databases below are handled.
+# Each local database is built and then searched as its own background
+# chain, independent of the other one - uniprot_sprot's search can start
+# the moment uniprot_sprot is built, without waiting on uniprot_trembl
+# (usually the much bigger, slower one to build) or vice versa. All of
+# this also runs concurrently with the remote searches below, since NCBI's
+# one-request-at-a-time rule only applies to BLAST+ searches against their
+# servers, not to plain file downloads or local searches.
 for DB in "${LocalDataBases[@]}"
 do
-	"$DIR/00a_GetGenes.sh" $gene $DB &
+	dbName=$(basename $DB)
+	(
+		if "$DIR/ProteinDatabase/get_uniprot_database.sh" "$dbName"
+		then
+			"$DIR/00a_GetGenes.sh" $gene $DB
+		else
+			echo "Failed to get/build $dbName" >&2
+			exit 1
+		fi
+	) &
 	pids+=($!)
-	dbNames+=("$(basename $DB)")
+	dbNames+=("$dbName")
 done
 
 failed="false"
 
 # NCBI asks that only one BLAST+ remote search run against their servers at
 # a time (see the BLAST+ remote service docs), so these run one after
-# another instead of in parallel.
+# another instead of in parallel - concurrently with the per-database
+# build+search chains above, since they don't depend on them.
 for DB in "${RemoteDataBases[@]}"
 do
 	if ! "$DIR/00a_GetGenes.sh" $gene $DB
@@ -74,7 +82,7 @@ for ((i = 0; i < ${#pids[@]}; i++))
 do
 	if ! wait "${pids[$i]}"
 	then
-		echo "Failed to fully extract sequences from ${dbNames[$i]}" >&2
+		echo "Failed to get/build or search ${dbNames[$i]}" >&2
 		failed="true"
 	fi
 done
