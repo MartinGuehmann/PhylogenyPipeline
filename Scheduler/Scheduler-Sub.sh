@@ -78,12 +78,23 @@ then
 		shift
 	done
 
-	resourceLine=$(grep -m1 "^${resourceName:-$(basename "$script")}[[:space:]]" "./Resources.cfg")
+	profileName="${resourceName:-$(basename "$script")}"
+	resourceLine=$(grep -m1 "^${profileName}[[:space:]]" "./Resources.cfg")
 	resources=""
 	if [ -n "$resourceLine" ]
 	then
 		read -r _ cpus mem walltime <<< "$resourceLine"
 		resources="-l select=1:ncpus=$cpus:mem=${mem}gb -l walltime=$walltime"
+		if [ "$profileName" == "AskForWholeNode" ]
+		then
+			# PBS Pro's exclusive-node flag, unlike Slurm's --exclusive
+			# below, still needs the ncpus/mem above to size the select
+			# statement - place=excl just additionally guarantees no
+			# other job shares the node, which is the whole reason this
+			# profile exists (makeblastdb ignores its assigned CPU count
+			# and grabs everything on the node it lands on).
+			resources="$resources -l place=excl"
+		fi
 	fi
 
 	qsub $hold $depend $range $resources $exportFlag "$export" $script
@@ -147,12 +158,24 @@ then
 
 	account=$("./Account.sh")
 
-	resourceLine=$(grep -m1 "^${resourceName:-$(basename "$script")}[[:space:]]" "./Resources.cfg")
+	profileName="${resourceName:-$(basename "$script")}"
+	resourceLine=$(grep -m1 "^${profileName}[[:space:]]" "./Resources.cfg")
 	resources=""
 	if [ -n "$resourceLine" ]
 	then
 		read -r _ cpus mem walltime <<< "$resourceLine"
-		resources="--cpus-per-task=$cpus --mem=${mem}G --time=$walltime"
+		if [ "$profileName" == "AskForWholeNode" ]
+		then
+			# --exclusive hands the whole node to this job regardless of
+			# its actual size, so no --cpus-per-task/--mem here - unlike
+			# the PBS branch above, Slurm doesn't need an explicit size
+			# to grant the full node. This is also why this profile's
+			# ncpus/mem in Resources.cfg no longer need resizing for a
+			# new cluster on the Slurm side (PBS still uses them).
+			resources="--exclusive --time=$walltime"
+		else
+			resources="--cpus-per-task=$cpus --mem=${mem}G --time=$walltime"
+		fi
 	fi
 
 	jobID=$(sbatch --kill-on-invalid-dep=yes $hold $account $depend $range $resources $exportFlag"$export" $script)
