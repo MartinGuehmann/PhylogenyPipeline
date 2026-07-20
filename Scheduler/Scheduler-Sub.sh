@@ -85,7 +85,11 @@ then
 	then
 		read -r _ cpus mem walltime partition <<< "$resourceLine"
 		resources="-l select=1:ncpus=$cpus:mem=${mem}gb -l walltime=$walltime"
-		[ -n "$partition" ] && resources="$resources -q $partition"
+		# PBS has no equivalent of Slurm's multi-partition candidate list
+		# (-q only ever takes one queue name), so a comma-separated
+		# partition value here just isn't passed at all, falling back to
+		# PBS's own default/routing queue instead.
+		[[ -n "$partition" && "$partition" != *,* ]] && resources="$resources -q $partition"
 		if [ "$profileName" == "AskForWholeNode" ]
 		then
 			# PBS Pro's exclusive-node flag, unlike Slurm's --exclusive

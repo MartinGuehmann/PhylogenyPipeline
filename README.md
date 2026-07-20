@@ -257,12 +257,31 @@ resize that one entry for a new cluster's node rather than the old
 per-script lines.
 
 Step 0's own line (used whenever the databases already exist, the common
-case) was lowered from that same whole-node size to 8 CPUs / 32 GB / 12h.
+case) was lowered from that same whole-node size to 8 CPUs / 32 GB / 72h.
 `nproc`-based CPU limits are honestly respected on this cluster, so 8 CPUs
 genuinely constrains the local `blastp` searches `00_GetGenesFromAllDataBases.sh`
 runs — but the actual memory/walltime those searches need isn't known
 precisely, so treat this as a starting estimate to retune from observed
 job behavior, not an authoritative figure.
+
+`Resources.cfg`'s 5th column is a comma-separated list of Slurm
+partitions the job may run in (`--partition=a,b,c`); Slurm places it
+into whichever listed partition can start it soonest, skipping any
+whose own time limit is shorter than the job's requested walltime.
+Leaving it blank submits into the cluster's own default partition
+instead. This matters because a job's `--time` exceeding every listed
+partition's own limit gets rejected at submission outright, not just
+queued longer - and a cluster's default partition (the one `sinfo`
+marks with a `*`) is not guaranteed to be a generous one; it can be the
+most restrictive partition on the whole cluster. PBS Pro has no
+equivalent of a multi-partition candidate list (`-q` only takes one
+queue name), so a comma-separated value here is simply not passed to
+`qsub` at all, falling back to PBS's own default/routing queue - PBS
+routing queues (if the cluster has them configured) already do real
+automatic queue selection from the resource request server-side, which
+Slurm has no equivalent of without cluster-admin-level configuration
+(a `job_submit` plugin); the multi-partition list is the closest
+approximation achievable from this repo alone.
 
 Note that some Slurm installations that migrated from PBS/Torque provide
 a `qsub` compatibility wrapper (e.g. Slurm's contribs/torque `qsub.pl`)
@@ -312,11 +331,13 @@ Checklist for getting the pipeline running on a cluster it hasn't run on before:
 	  including the `AskForWholeNode` entry and step 0's own line (see
 	  "Scheduler Setup" above). Also check each partition's own time
 	  limit (`sinfo`) against the walltime column: a job's `--time`
-	  exceeding its target partition's limit gets rejected at submission,
-	  not just queued longer, and the cluster's default partition (the
-	  one `sinfo` marks with a `*`) may have a much shorter limit than
-	  the partition actually meant for real work - update the partition
-	  column accordingly (blank stays on the default).
+	  exceeding every one of its listed partitions' limits gets rejected
+	  at submission, not just queued longer, and the cluster's default
+	  partition (the one `sinfo` marks with a `*`) may have a much
+	  shorter limit than the partitions actually meant for real work -
+	  update the comma-separated partition column accordingly (blank
+	  stays on the default; see "Scheduler Setup" above for how Slurm
+	  picks among several listed partitions automatically).
 	- Update ./Scheduler/Modules.cfg to module names/versions that exist
 	  on the new cluster, or blank an entry out to fall back to Nix
 	  instead (see "Scheduler Setup" above).
