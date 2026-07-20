@@ -11,8 +11,30 @@ done
 # Directory and the name of this script
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
-"$DIR/get_uniprot_database.sh" "uniprot_sprot" &
-"$DIR/get_uniprot_database.sh" "uniprot_trembl" &
+declare -a databases=(uniprot_sprot uniprot_trembl)
+declare -a pids=()
 
-# Wait for all jobs completed
-wait
+for database in "${databases[@]}"
+do
+	"$DIR/get_uniprot_database.sh" "$database" &
+	pids+=($!)
+done
+
+failed="false"
+
+# Wait for all jobs completed, individually so each one's exit code is
+# actually checked - a bare `wait` with no arguments always returns 0
+# regardless of whether the backgrounded builds succeeded.
+for ((i = 0; i < ${#pids[@]}; i++))
+do
+	if ! wait "${pids[$i]}"
+	then
+		echo "Failed to get/build ${databases[$i]}" >&2
+		failed="true"
+	fi
+done
+
+if [ "$failed" == "true" ]
+then
+	exit 1
+fi
