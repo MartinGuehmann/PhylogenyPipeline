@@ -18,6 +18,16 @@ mkdir -p "$DIR/$database"
 
 cd "$DIR/$database"
 
+# Only one process at a time may check/download/build this database -
+# without this, two concurrent callers (e.g. two gene pipelines both
+# needing it before either has built it yet) can both wget into the
+# same file and/or both makeblastdb into the same output basename at
+# once, silently corrupting it. A second process just blocks on the
+# lock until the first is done, then finds the database already built
+# and skips straight past both checks below.
+(
+flock -x 200
+
 if [[ ! -f "$database.fasta" ]]
 then
 	if ! gzip -t "$database.fasta.gz" 2>/dev/null
@@ -30,14 +40,27 @@ then
 			# byte-offset resume no longer lines up with it. Start over.
 			rm -f "$database.fasta.gz"
 			wget "$url"
+			if ! gzip -t "$database.fasta.gz" 2>/dev/null
+			then
+				echo "$database.fasta.gz is still not a valid gzip file after a fresh download" >&2
+				exit 1
+			fi
 		fi
 	fi
-	gunzip "$database.fasta.gz"
+	if ! gunzip "$database.fasta.gz"
+	then
+		echo "gunzip failed on $database.fasta.gz" >&2
+		exit 1
+	fi
 fi
 
 if [[ ! -f "$database.pdb" ]]
 then
 	makeblastdb -in "$database.fasta" -out "$database" -dbtype prot
 fi
+) 200>"$database.lock"
+status=$?
 
 wait # Wait until all are done
+
+exit $status
