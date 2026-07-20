@@ -206,9 +206,9 @@ case $step in
 	echo "1. Gene IDs for each database were combined into one file, duplicates were removed." >&2
 	;;
 2)
-	echo "2. Combine the gene IDs for each database into one file, remove duplicates." >&2
+	echo "2. Combine the gene IDs for all database into one file, remove duplicates." >&2
 	"$DIR/02_CombineHitsFromAllNCBIDatabases.sh" "$gene"
-	echo "2. Gene IDs for each database were combined into one file, duplicates were removed." >&2
+	echo "2. Gene IDs for all database were combined into one file, duplicates were removed." >&2
 	;;
 3)
 	echo "3. Extract sequences from the databases." >&2
