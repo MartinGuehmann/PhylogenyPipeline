@@ -4,6 +4,7 @@
 # Load modules
 # cd-hit missing
 
+source "$DIR/Enter-NixDevShell.sh"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
 if [ -z "$gene" ]

@@ -282,16 +282,26 @@ above). So adjusting module names/versions for a new cluster, or
 dropping a module entirely in favor of Nix, is a matter of editing one
 table instead of every job script.
 
-If a job script is run from inside a `nix develop` shell (Nix tools
-already on PATH) *and* a Modules.cfg key resolves to a real module,
-both provide the same command (e.g. `blastp`) and only one wins: `module
-load` runs after `nix develop` in the pipeline's normal order of
-operations (enter the devShell first, then submit/run jobs from inside
-it), and environment-modules/Lmod prepend a loaded module's `bin/`
-directory to the front of PATH rather than appending it - so the
-module's binary shadows the Nix one whenever both are present. Blanking
-the Modules.cfg key is the only way to guarantee the Nix version is used
-instead.
+Every job script also sources `Enter-NixDevShell.sh` first, before
+`Load-Module.sh`. Job scripts run as freshly submitted `qsub`/`sbatch`
+jobs, not inside whatever interactive shell you happened to submit them
+from, so they can't just inherit a `nix develop` shell you entered by
+hand beforehand - `Enter-NixDevShell.sh` re-execs the job script inside
+`nix develop` itself if Nix (or nix-portable) is available and it isn't
+already running inside one, so the flake's tools end up on PATH either
+way. If a cluster has no Nix install at all, it does nothing and the
+script falls back to `module load`/whatever's already on PATH, same as
+before this existed - Nix is only ever a fallback, never a requirement,
+for users who install every prerequisite by hand or get everything from
+`module load`.
+
+Because `Enter-NixDevShell.sh` always runs *before* `Load-Module.sh`,
+and environment-modules/Lmod prepend a loaded module's `bin/` directory
+to the front of PATH rather than appending it, a real module configured
+in Modules.cfg still shadows the Nix version of the same tool (e.g.
+`blastp`) whenever both are present - `module load` simply runs later
+and wins. Blanking the Modules.cfg key is the only way to guarantee the
+Nix version is used instead.
 
 ## Moving to a new cluster
 

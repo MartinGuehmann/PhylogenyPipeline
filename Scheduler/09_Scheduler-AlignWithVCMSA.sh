@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Resources for this job (cpus, mem, walltime) are set in Scheduler/Resources.cfg.
+source "$DIR/Enter-NixDevShell.sh"
 source "$DIR/Load-Module.sh"
 load_module MODULE_PYTHON_VCMSA
 conda activate vcmsa_env

@@ -3,6 +3,7 @@
 # Resources for this job (cpus, mem, walltime) are set in Scheduler/Resources.cfg.
 # No modules to load, we use the standard python3
 
+source "$DIR/Enter-NixDevShell.sh"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
 if [ -z "$gene" ]

@@ -16,6 +16,7 @@
 # but erroring because makeblastdb is not there, is
 # not nice. Even so pipeline should continue without
 # further errors.
+source "$DIR/Enter-NixDevShell.sh"
 source "$DIR/Load-Module.sh"
 load_module MODULE_BLAST
 
