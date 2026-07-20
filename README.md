@@ -310,7 +310,13 @@ Checklist for getting the pipeline running on a cluster it hasn't run on before:
 	- Adjust ./Scheduler/Resources.cfg if the new cluster's node sizes or
 	  usual walltime limits differ from what is currently in there,
 	  including the `AskForWholeNode` entry and step 0's own line (see
-	  "Scheduler Setup" above).
+	  "Scheduler Setup" above). Also check each partition's own time
+	  limit (`sinfo`) against the walltime column: a job's `--time`
+	  exceeding its target partition's limit gets rejected at submission,
+	  not just queued longer, and the cluster's default partition (the
+	  one `sinfo` marks with a `*`) may have a much shorter limit than
+	  the partition actually meant for real work - update the partition
+	  column accordingly (blank stays on the default).
 	- Update ./Scheduler/Modules.cfg to module names/versions that exist
 	  on the new cluster, or blank an entry out to fall back to Nix
 	  instead (see "Scheduler Setup" above).

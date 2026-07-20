@@ -6,9 +6,9 @@
 # need more. Call this script with these options as you would
 # call qsub.
 #
-# The cpu/mem/walltime resources for the submitted script are looked
-# up by its basename in Resources.cfg and passed on the command line,
-# so tuning resources for a cluster means editing that one file
+# The cpu/mem/walltime/partition resources for the submitted script are
+# looked up by its basename in Resources.cfg and passed on the command
+# line, so tuning resources for a cluster means editing that one file
 # instead of every job script. Pass --resources/-R NAME to look up NAME
 # instead of the script's own basename, e.g. to ask for a different
 # named profile such as AskForWholeNode.
@@ -83,8 +83,9 @@ then
 	resources=""
 	if [ -n "$resourceLine" ]
 	then
-		read -r _ cpus mem walltime <<< "$resourceLine"
+		read -r _ cpus mem walltime partition <<< "$resourceLine"
 		resources="-l select=1:ncpus=$cpus:mem=${mem}gb -l walltime=$walltime"
+		[ -n "$partition" ] && resources="$resources -q $partition"
 		if [ "$profileName" == "AskForWholeNode" ]
 		then
 			# PBS Pro's exclusive-node flag, unlike Slurm's --exclusive
@@ -163,7 +164,7 @@ then
 	resources=""
 	if [ -n "$resourceLine" ]
 	then
-		read -r _ cpus mem walltime <<< "$resourceLine"
+		read -r _ cpus mem walltime partition <<< "$resourceLine"
 		if [ "$profileName" == "AskForWholeNode" ]
 		then
 			# --exclusive hands the whole node to this job regardless of
@@ -176,6 +177,7 @@ then
 		else
 			resources="--cpus-per-task=$cpus --mem=${mem}G --time=$walltime"
 		fi
+		[ -n "$partition" ] && resources="$resources --partition=$partition"
 	fi
 
 	jobID=$(sbatch --kill-on-invalid-dep=yes $hold $account $depend $range $resources $exportFlag"$export" $script)
