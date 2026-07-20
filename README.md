@@ -282,6 +282,17 @@ above). So adjusting module names/versions for a new cluster, or
 dropping a module entirely in favor of Nix, is a matter of editing one
 table instead of every job script.
 
+If a job script is run from inside a `nix develop` shell (Nix tools
+already on PATH) *and* a Modules.cfg key resolves to a real module,
+both provide the same command (e.g. `blastp`) and only one wins: `module
+load` runs after `nix develop` in the pipeline's normal order of
+operations (enter the devShell first, then submit/run jobs from inside
+it), and environment-modules/Lmod prepend a loaded module's `bin/`
+directory to the front of PATH rather than appending it - so the
+module's binary shadows the Nix one whenever both are present. Blanking
+the Modules.cfg key is the only way to guarantee the Nix version is used
+instead.
+
 ## Moving to a new cluster
 
 Checklist for getting the pipeline running on a cluster it hasn't run on before:
