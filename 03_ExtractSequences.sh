@@ -19,7 +19,11 @@ then
 fi
 
 # Download and make the uniprot databases if they do not exist
-"$DIR/ProteinDatabase/get_uniprot_databases.sh"
+if ! "$DIR/ProteinDatabase/get_uniprot_databases.sh"
+then
+	echo "Failed to get/build the local Uniprot databases" >&2
+	exit 1
+fi
 
 TRMBL_DB="$DIR/ProteinDatabase/uniprot_trembl/uniprot_trembl"
 SPROT_DB="$DIR/ProteinDatabase/uniprot_sprot/uniprot_sprot"
