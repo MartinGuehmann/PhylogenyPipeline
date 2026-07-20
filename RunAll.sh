@@ -193,7 +193,7 @@ echo "" >&2
 
 case $step in
 0)
-	# Note if you want to rerun this step you must delete the files in \$gene\Hits\
+	# Note if you want to rerun this step you must delete the files in $gene/Hits/
 	echo "0. Obtaining gene IDs from all databases." >&2
 	echo "   Searching for sequences in NCBI databases remotely, takes some time." >&2
 	echo "   Therefore, just skip if files in $DIR/$gene/Hits/ already exist." >&2
