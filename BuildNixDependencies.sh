@@ -69,6 +69,7 @@ declare -a packages=(
 	pasta
 	ete3
 	pythonWithEte3
+	blast2_9
 )
 
 declare -a failed=()
