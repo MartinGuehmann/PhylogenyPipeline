@@ -75,13 +75,62 @@ numIDs=${#IDs[@]}
 range=8000 # With more we seem to get into trouble
 i=0
 
+failed="false"
+
 while [ $i -lt $numIDs ]
 do
 	part=${IDs[@]:$i:$range}
 	part=$(echo $part | tr ' ' ',')
-	efetch -db sequences -format fasta -id $part >> $sequenceNCBIFile
+
+	# Write each batch to its own temp file rather than appending directly
+	# - efetch can fail partway through a response (e.g. the connection
+	# dying mid-transfer), and appending straight to $sequenceNCBIFile
+	# would leave a truncated record behind on the next retry instead of
+	# just overwriting the bad attempt.
+	batchFile=$(mktemp)
+	stderrFile=$(mktemp)
+	trials=0
+	maxTrials=5
+	success="false"
+
+	while [ $trials -lt $maxTrials ]
+	do
+		efetch -db sequences -format fasta -id $part > "$batchFile" 2> "$stderrFile"
+		cat "$stderrFile" >&2
+		# efetch exits 0 even when it fails, so the exit code alone can't
+		# be trusted (same issue as blastp -remote elsewhere in this
+		# pipeline). A transport-level failure (e.g. a dropped connection)
+		# prints "ERROR:" to stderr; a data-level failure (e.g. an ID NCBI
+		# didn't recognize) prints "Error:" to stdout instead of any
+		# actual FASTA - check both rather than $?.
+		if ! grep -q "^ERROR:" "$stderrFile" && ! grep -q "^Error:" "$batchFile"
+		then
+			success="true"
+			break
+		fi
+		echo "efetch failed for IDs $i..$((i + range - 1)), trying $((maxTrials - trials - 1)) more time(s)" >&2
+		sleep 30 # Back off before hammering NCBI again - untuned starting value
+		((++trials))
+	done
+	rm -f "$stderrFile"
+
+	if [ "$success" == "true" ]
+	then
+		cat "$batchFile" >> $sequenceNCBIFile
+	else
+		echo "efetch permanently failed for IDs $i..$((i + range - 1)) after $maxTrials trials" >&2
+		failed="true"
+	fi
+	rm -f "$batchFile"
+
 	let i+=range
 done
+
+if [ "$failed" == "true" ]
+then
+	echo "Some NCBI sequences could not be fetched, see above for which ID ranges - $sequenceNCBIFile is incomplete" >&2
+	exit 1
+fi
 
 # Split the sequence file into handy chuncks if we want to store it on github
 # The maximum file size is 100 MB, but we should stay below of that.
