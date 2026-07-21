@@ -12,6 +12,12 @@
 # instead of every job script. Pass --resources/-R NAME to look up NAME
 # instead of the script's own basename, e.g. to ask for a different
 # named profile such as AskForWholeNode.
+#
+# Pass --gene/-g NAME to place this job's stdout/stderr files under
+# ../NAME/Logs (relative to the current working directory, same as the
+# Resources.cfg lookup above - so this must be run with Scheduler/ as
+# the working directory). That's a per-gene Logs directory next to
+# Sequences, Hits, etc. Without --gene, files land in ../Logs instead.
 
 hold=""
 depend=""
@@ -20,6 +26,7 @@ export=""
 exportFlag=""
 script=""
 resourceName=""
+gene=""
 
 if [ -x "$(command -v qsub)" ]
 then
@@ -59,6 +66,12 @@ then
 				shift
 				resourceName="$1"
 				;;
+			--gene)
+				;&
+			-g)
+				shift
+				gene="$1"
+				;;
 			-*)
 				;&
 			--*)
@@ -77,6 +90,10 @@ then
 		esac
 		shift
 	done
+
+	logDir="../$gene/Logs"
+	mkdir -p "$logDir"
+	scriptName=$(basename "$script")
 
 	profileName="${resourceName:-$(basename "$script")}"
 	resourceLine=$(grep -m1 "^${profileName}[[:space:]]" "./Resources.cfg")
@@ -102,7 +119,13 @@ then
 		fi
 	fi
 
-	qsub $hold $depend $range $resources $exportFlag "$export" $script
+	# PBS has no equivalent of Slurm's %j placeholder below that gets
+	# resolved once the job is actually queued, so the job ID can't be put
+	# first in the filename here. Pointing -o/-e at a directory instead of
+	# a file falls back to PBS's own default naming (job name defaults to
+	# the script's file name), giving "$scriptName.o<jobid>"/".e<jobid>"
+	# in $logDir instead.
+	qsub $hold $depend $range $resources $exportFlag "$export" -o "$logDir/" -e "$logDir/" $script
 elif [ -x "$(command -v sbatch)" ]
 then
 	# Idiomatic parameter and option handling in sh
@@ -142,6 +165,12 @@ then
 				shift
 				resourceName="$1"
 				;;
+			--gene)
+				;&
+			-g)
+				shift
+				gene="$1"
+				;;
 			-*)
 				;&
 			--*)
@@ -162,6 +191,10 @@ then
 	done
 
 	account=$("./Account.sh")
+
+	logDir="../$gene/Logs"
+	mkdir -p "$logDir"
+	scriptName=$(basename "$script")
 
 	profileName="${resourceName:-$(basename "$script")}"
 	resourceLine=$(grep -m1 "^${profileName}[[:space:]]" "./Resources.cfg")
@@ -184,7 +217,11 @@ then
 		[ -n "$partition" ] && resources="$resources --partition=$partition"
 	fi
 
-	jobID=$(sbatch --kill-on-invalid-dep=yes $hold $account $depend $range $resources $exportFlag"$export" $script)
+	# %j is resolved by Slurm itself once the job is queued, so unlike the
+	# PBS branch above, the job ID can go first in the filename here.
+	logOptions="--output=$logDir/%j_$scriptName.out --error=$logDir/%j_$scriptName.err"
+
+	jobID=$(sbatch --kill-on-invalid-dep=yes $hold $account $depend $range $resources $logOptions $exportFlag"$export" $script)
 	echo ${jobID##* }
 else
 	echo "No known scheduler present!" >&2
