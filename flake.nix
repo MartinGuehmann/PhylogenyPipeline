@@ -227,7 +227,17 @@
               rm cmd/edict.go
             '';
             vendorHash = "sha256-9Ys43yzO8AXSCIQJ2XnitkoIivDfQ8b6z3H8LUdvaT0=";
-            buildInputs = [ pkgs.wget ];
+            # No buildInputs needed here: the buildPhase below only runs
+            # `go build`, nothing shells out to curl/wget at build time.
+            # curl/wget are runtime dependencies of nquire (efetch's HTTP
+            # layer, see installPhase) instead, and neither buildInputs nor
+            # propagatedBuildInputs actually put them on PATH for a plain
+            # `nix develop`/`nix shell` listing this package - confirmed
+            # 2026-07-21 (both tested directly: `which curl` kept resolving
+            # to the system's /usr/bin/curl either way). Those only affect
+            # *other derivations* building against this one, not a human's
+            # shell PATH. curl is listed directly in devShell.packages
+            # below instead, which is the mechanism that actually works.
             # buildGoModule's default checkPhase assumes a normal package
             # layout it can discover and test - confirmed on 2026-07-17
             # ("getGoDirs: command not found") that doesn't apply cleanly
@@ -263,10 +273,27 @@
               install -m 755 xtract rchive transmute "$out/bin"
               install -m 644 ../data/* "$out/bin/data"
               install -m 644 ../help/* "$out/bin/help"
+              # efetch/esearch/esummary/elink/epost/einfo are plain shell
+              # scripts shipped at the tarball root (not part of the cmd/
+              # Go module above) - confirmed 2026-07-21 by extracting the
+              # real tarball; previously none of these were installed at
+              # all, so `efetch` was silently missing from the devShell
+              # entirely (03_ExtractSequences.sh's efetch calls were only
+              # ever satisfied by a system-installed efetch outside Nix).
+              # Each resolves its own `dirname "$0"` at runtime to find its
+              # required sibling ecommon.sh - this does NOT follow
+              # symlinks (a `ln -s` here would break exactly like a
+              # symlinked /usr/bin/efetch did on Orion on 2026-07-20), so
+              # these must be real file copies living next to ecommon.sh
+              # in the same directory, which `install` (unlike `ln -s`)
+              # already gives us. nquire (efetch's actual HTTP layer,
+              # shelled out to via ecommon.sh) resolves its own sibling
+              # cacert.pem the same way.
+              install -m 755 ../efetch ../esearch ../esummary ../elink \
+                ../epost ../einfo ../nquire ../ecommon.sh "$out/bin"
+              install -m 644 ../cacert.pem "$out/bin"
               runHook postInstall
             '';
-            # wget is a buildInput only so it's pulled into the devShell
-            # below; the scripts shell out to it at runtime, not build time.
           };
 
           # --- T-Coffee and PASTA -----------------------------------------
@@ -655,6 +682,17 @@
               clustal-omega
               mafft # also provides linsi
               openjdk # needed by PASTA's bundled opal.jar merger at runtime
+              # nquire (entrez-direct's HTTP layer, used by efetch/esearch/
+              # etc. below) shells out to whichever curl/wget it finds on
+              # PATH at runtime, not one bundled with entrez-direct itself.
+              # Listed directly here (not as an entrez-direct buildInput -
+              # confirmed 2026-07-21 that doesn't propagate to a plain
+              # devShell listing) so this isolated, up-to-date curl is what
+              # nquire actually finds, instead of silently falling through
+              # to whatever `curl` is already on the system PATH outside
+              # Nix - e.g. a stock Ubuntu 22.04 curl from March 2022.
+              curl
+              wget
             ]) ++ [
               raxml-ng
               roguenarok
