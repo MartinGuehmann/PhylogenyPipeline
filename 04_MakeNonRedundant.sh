@@ -21,6 +21,7 @@ fi
 numTreads=$(nproc)
 sequences="$DIR/$gene/Sequences"
 sequencesToKeep="$DIR/$gene/MustKeepSequences"
+speciesForSeqReps="$DIR/$gene/SpeciesForSeqReps.csv"
 nrSequenceFile="$sequences/NonRedundantSequences.fasta"
 nrSequenceFile90="$sequences/NonRedundantSequences90.fasta"
 
@@ -35,6 +36,22 @@ seqFiles=$sequences/*.fasta
 seqkit rmdup -s -j $numTreads $seqFiles > $nrSequenceFile
 
 cd-hit -i $nrSequenceFile -o $nrSequenceFile90 -c 0.9 -M 0 -d 0 -T $numTreads
+
+# Replace cd-hit's own (longest-sequence-wins) representative for a cluster
+# with a higher-priority one by species, wherever a cluster happens to
+# contain a member matching a species in this gene's own priority list -
+# e.g. always preferring a well-annotated human/mouse/etc. sequence over
+# whichever one cd-hit's length-based sort happened to pick first. Falls
+# back to cd-hit's own choice for any cluster with no matching member, and
+# is a no-op entirely if this gene has no such list.
+if [ -f "$speciesForSeqReps" ]
+then
+	python3 "$DIR/PickSequenceRepresentatives.py" \
+		--input "$nrSequenceFile" \
+		--cdhit-output "$nrSequenceFile90" \
+		--clstr "$nrSequenceFile90.clstr" \
+		--species-list "$speciesForSeqReps"
+fi
 
 if [ -d $sequencesToKeep ]
 then
