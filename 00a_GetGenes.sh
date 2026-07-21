@@ -39,8 +39,21 @@ fi
 if [ $DB == $databaseName ]
 then
 	remoteOrNumThreads="-remote"
+	# blastp's own -remote path is broken behind a proxy from BLAST+
+	# 2.10.0 onward (see README's "Remote NCBI access" section) - prefer
+	# the pinned pre-dispatcher 2.9.0 build flake.nix's devShell puts on
+	# PATH as blastp_2_9_0 if it's there, otherwise fall back to
+	# whatever `blastp` already resolves to (e.g. a cluster module, or a
+	# plain install where this was never a problem to begin with).
+	if command -v blastp_2_9_0 >/dev/null 2>&1
+	then
+		blastpCmd="blastp_2_9_0"
+	else
+		blastpCmd="blastp"
+	fi
 else
 	remoteOrNumThreads="-num_threads $(nproc)"
+	blastpCmd="blastp"
 fi
 
 mkdir -p "$HitDir"
@@ -61,7 +74,7 @@ do
 		if [ ! -f "$outFile" ]
 		then
 			echo "Writing to $outFile" >&2
-			blastp -query "$seqFile" -db $DB -evalue $evalue -max_target_seqs $maxkeep $remoteOrNumThreads -out "$outFile" -outfmt "6 saccver stitle evalue"
+			"$blastpCmd" -query "$seqFile" -db $DB -evalue $evalue -max_target_seqs $maxkeep $remoteOrNumThreads -out "$outFile" -outfmt "6 saccver stitle evalue"
 			if [ $? -ne 0 ]
 			then
 				echo "blastp failed for $outFile" >&2

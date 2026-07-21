@@ -21,9 +21,10 @@ The pipeline requires to run:
 	- RogueNaRok-parallel (user path)
 	- TreeShrink (user path) with Python 2.7 (module load)
 
-Steps 0 and 3 query NCBI remotely (BLAST and efetch). If the cluster's
-compute nodes have no internet access, these two steps need to run
-somewhere that does, e.g. a login node, instead of via the scheduler.
+Steps 0 and 3 query NCBI remotely (BLAST and efetch). This needs a
+machine with a genuinely working round trip to NCBI - not just "a
+machine with internet access" via some proxy. See "Remote NCBI access"
+below for what that distinction means in practice and how to test it.
 
 Supported aligners are:
 
@@ -322,6 +323,71 @@ in Modules.cfg still shadows the Nix version of the same tool (e.g.
 and wins. Blanking the Modules.cfg key is the only way to guarantee the
 Nix version is used instead.
 
+## Remote NCBI access
+
+Steps 0 and 3 (the remote databases in `00_GetGenesFromAllDataBases.sh`,
+`efetch` in `03_ExtractSequences.sh`) need a genuinely working round
+trip to NCBI, not just "a machine with internet access." Confirmed on
+this cluster (Uni Jena, 2026-07-21):
+
+	- Compute nodes have no direct internet access at all - a direct,
+	  non-proxied `curl` gets an immediate connection-refused on IPv4
+	  and network-unreachable on IPv6. Everything has to go through the
+	  cluster's HTTP(S) proxy (`internet4nzm.rz.uni-jena.de:3128` here).
+	- Plain HTTPS through that proxy works fine - `curl`/`wget` need no
+	  special config beyond the `http_proxy`/`https_proxy` env vars the
+	  cluster already sets.
+	- `blastp`/`entrez-direct`'s NCBI C++ toolkit does *not* honor those
+	  generic `http_proxy`/`https_proxy` env vars, nor the
+	  `NCBI_CONFIG__CONN__*` env var override convention (tried, no
+	  effect). It only reads an actual `~/.ncbirc` file:
+	  	[CONN]
+	  	FIREWALL = TRUE
+	  	HTTP_PROXY_HOST = internet4nzm.rz.uni-jena.de
+	  	HTTP_PROXY_PORT = 3128
+	  Without `FIREWALL = TRUE`, the proxy host/port lines are silently
+	  ignored.
+	- Even with that file in place, `blastp -remote` (2.17.0, the current
+	  `blast` package) still doesn't work anywhere on this cluster -
+	  tried on both a compute node and the login node, identical result
+	  both times. `strace` shows the proxy `CONNECT` and a full TLS 1.3
+	  handshake to `www.ncbi.nlm.nih.gov` both succeeding, but the
+	  actual NCBI Blast4 RPC request never gets sent/answered - the
+	  connection just goes quiet for ~5s and then the peer closes it.
+	  Root cause: BLAST+ 2.10.0 introduced a network-service
+	  "dispatcher" (`Service/dispd.cgi`) for `-remote` that does not
+	  work behind an HTTP CONNECT-tunneled proxy - see
+	  [wurmlab/sequenceserver#458](https://github.com/wurmlab/sequenceserver/issues/458),
+	  which reports the same failure and found no working fix for any
+	  version >= 2.10.0. Since the transport underneath is proven
+	  working here, this isn't a config problem on our end.
+	- Fix: `flake.nix`'s devShell also provides `blastp_2_9_0`, a pinned
+	  prebuilt BLAST+ 2.9.0 (predates the dispatcher), confirmed working
+	  `-remote` through this cluster's proxy on 2026-07-21 with the
+	  same `~/.ncbirc` above. `00a_GetGenes.sh` (step 0's per-database
+	  worker) uses it automatically for remote databases if it's on
+	  PATH, falling back to plain `blastp` otherwise. It's used for
+	  nothing else - local searches and `makeblastdb` are unaffected
+	  (no network involved) and keep using the current `blast` package.
+	- `efetch`/`entrez-direct` (step 3) hits the same dispatcher
+	  mechanism and has *not* been confirmed fixable the same way - no
+	  working version/config combination found yet. Until it is, run
+	  step 3's `efetch` calls from a machine with its own direct,
+	  unshared internet connection instead (e.g. a laptop).
+
+**Required one-time setup on any cluster that only has proxied internet
+access:** create `~/.ncbirc` as shown above (with that cluster's own
+proxy host/port) before running steps 0 or 3 - it isn't created
+automatically by anything in this repo, since it lives outside the repo
+in `$HOME` and the proxy details are cluster-specific, the same reason
+`Scheduler/Account.sh` is a manual one-time edit rather than something
+the flake sets up.
+
+If this comes up on a different cluster, don't assume "the login node
+has internet" settles it - test an actual `blastp -remote` round trip
+(as above) before trusting steps 0/3 to run anywhere on that cluster at
+all.
+
 ## Moving to a new cluster
 
 Checklist for getting the pipeline running on a cluster it hasn't run on before:
@@ -361,7 +427,10 @@ Checklist for getting the pipeline running on a cluster it hasn't run on before:
 	  Prerequisites; they are not covered by module load. `nix develop`
 	  (see "Installing prerequisites with Nix" above) covers a subset of
 	  these.
-	- Make sure compute nodes have internet access for steps 0 and 3, or
-	  plan to run those steps outside the scheduler.
+	- Confirm steps 0 and 3 can actually complete a real round trip to
+	  NCBI somewhere on the new cluster (see "Remote NCBI access"
+	  above) - "has internet access" is not sufficient on its own to
+	  assume this works. Plan to run those steps entirely off-cluster
+	  if it doesn't.
 	- Provision storage for the ~210 GB Uniprot BLAST databases and the
 	  NCBI taxon database (see Databases above).

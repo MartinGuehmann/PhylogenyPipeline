@@ -591,12 +591,53 @@
           # ete3's own console script - can `import ete3`. This, not the
           # `ete3` package above directly, is what goes into the devShell.
           pythonWithEte3 = pkgs.python3.withPackages (ps: [ ete3 ]);
+
+          # NCBI's BLAST+ 2.10.0 introduced a network-service "dispatcher"
+          # (Service/dispd.cgi) for -remote queries that does not work
+          # through this cluster's HTTP CONNECT-tunneled proxy - confirmed
+          # 2026-07-21 against the current 2.17.0 `blast` package (below):
+          # the proxy CONNECT and a full TLS 1.3 handshake to
+          # www.ncbi.nlm.nih.gov both succeed, but the actual Blast4 RPC
+          # request is never sent/answered, on both a compute node and the
+          # login node. No working proxy configuration exists for this on
+          # any version >= 2.10.0 (matches
+          # https://github.com/wurmlab/sequenceserver/issues/458, which
+          # also reports the same dispatcher breaking behind a proxy).
+          # 2.9.0 predates the dispatcher and was confirmed working
+          # -remote through this cluster's proxy on the same date. This is
+          # for 00a_GetGenes.sh's remote branch only - local searches and
+          # `makeblastdb` are unaffected (no network involved) and keep
+          # using the main `blast` package in devShell.packages below.
+          # Only blastp is kept, and renamed to blastp_2_9_0, so it can
+          # sit on PATH alongside the main package's own blastp without
+          # colliding.
+          blast2_9 = pkgs.stdenv.mkDerivation {
+            pname = "blast-2.9.0-remote-only";
+            version = "2.9.0";
+            src = pkgs.fetchurl {
+              url = "https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.9.0/ncbi-blast-2.9.0+-x64-linux.tar.gz";
+              hash = "sha256-z/n2OIwEPyke1eCj6kugv6LJhObFCa0RpmxFD+VUWpw=";
+            };
+            # Dynamically linked against libpthread/libz/libbz2/libdl/
+            # libnsl/libm/libc/libgcc_s (confirmed via `file`/`readelf -d`),
+            # which resolve fine against a normal Linux distro's system
+            # libraries - not patched for NixOS-style store-only linking,
+            # same situation as clustalw/muscle3 above. Already confirmed
+            # to actually run on this cluster's login node directly.
+            dontBuild = true;
+            installPhase = ''
+              runHook preInstall
+              mkdir -p $out/bin
+              install -m755 bin/blastp $out/bin/blastp_2_9_0
+              runHook postInstall
+            '';
+          };
         in
         {
           packages = {
             inherit raxml-ng roguenarok famsa treeshrink magus entrez-direct
               t-coffee clustalw fasttree prank muscle3 muscle5 iqtree2 pasta
-              ete3 pythonWithEte3;
+              ete3 pythonWithEte3 blast2_9;
           };
           devShell = pkgs.mkShell {
             # Enter with `nix develop` (or `nix-portable nix develop` if
@@ -630,6 +671,7 @@
               iqtree2
               pasta
               pythonWithEte3
+              blast2_9
             ];
           };
         });
