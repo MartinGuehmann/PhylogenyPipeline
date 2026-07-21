@@ -71,7 +71,11 @@ do
 		outFileBase=$(basename "$seqFile" .fasta)
 		outFile="$HitDir$outFileBase.csv"
 
-		if [ ! -f "$outFile" ]
+		# Retry if there's nothing here yet, or what's here is an empty
+		# file without its ".ok" marker - i.e. indistinguishable from a
+		# still-in-progress or aborted attempt rather than a confirmed
+		# zero-hit result (see the marker's own comment below).
+		if [ ! -f "$outFile" ] || { [ ! -s "$outFile" ] && [ ! -f "$outFile.ok" ]; }
 		then
 			echo "Writing to $outFile" >&2
 			stderrFile=$(mktemp)
@@ -101,6 +105,18 @@ do
 				else
 					rm -f "$outFile"
 				fi
+			elif [ ! -s "$outFile" ]
+			then
+				# A confirmed successful search that genuinely found nothing
+				# looks identical on disk to an empty file left behind by an
+				# aborted/interrupted run - mark the former explicitly so the
+				# checks below don't mistake the latter for it and skip
+				# retrying a search that never actually completed. Kept as a
+				# separate file rather than writing into $outFile itself,
+				# since nothing downstream validates the CSV's column count
+				# and a marker line there would be silently misread as a
+				# real accession.
+				touch "$outFile.ok"
 			fi
 		fi
 	done
@@ -115,9 +131,11 @@ do
 		outFile="$HitDir$outFileBase.csv"
 
 		# A missing file means blastp either hasn't run yet this trial or
-		# failed and was removed above - an *empty but present* file is a
-		# confirmed, legitimate zero-hit result and is left alone.
-		if [ ! -f "$outFile" ]
+		# failed and was removed above. An empty-but-present file needs its
+		# ".ok" marker to count as a confirmed, legitimate zero-hit result -
+		# without one, it's indistinguishable from a still-in-progress or
+		# aborted attempt and needs retrying too.
+		if [ ! -f "$outFile" ] || { [ ! -s "$outFile" ] && [ ! -f "$outFile.ok" ]; }
 		then
 			needMoreTrials="true"
 		fi
@@ -143,7 +161,7 @@ do
 	outFileBase=$(basename "$seqFile" .fasta)
 	outFile="$HitDir$outFileBase.csv"
 
-	if [ ! -f "$outFile" ]
+	if [ ! -f "$outFile" ] || { [ ! -s "$outFile" ] && [ ! -f "$outFile.ok" ]; }
 	then
 		echo "Missing after $maxTrials trials: $outFile" >&2
 		missing="true"
