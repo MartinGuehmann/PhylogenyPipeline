@@ -74,8 +74,21 @@ do
 		if [ ! -f "$outFile" ]
 		then
 			echo "Writing to $outFile" >&2
-			"$blastpCmd" -query "$seqFile" -db $DB -evalue $evalue -max_target_seqs $maxkeep $remoteOrNumThreads -out "$outFile" -outfmt "6 saccver stitle evalue"
-			if [ $? -ne 0 ]
+			stderrFile=$(mktemp)
+			"$blastpCmd" -query "$seqFile" -db $DB -evalue $evalue -max_target_seqs $maxkeep $remoteOrNumThreads -out "$outFile" -outfmt "6 saccver stitle evalue" 2> "$stderrFile"
+			status=$?
+			cat "$stderrFile" >&2
+			# A remote search can come back as a non-zero exit code
+			# (connection/parse failure) or as exit 0 with a fatal "Error:"
+			# line on stderr (the server answered, but the answer was an
+			# error - e.g. NCBI's own CPU usage limit killing the search
+			# server-side) - either one means this attempt produced no
+			# usable output and needs to be retried, not exit code alone.
+			failed="false"
+			[ $status -ne 0 ] && failed="true"
+			grep -q "^Error:" "$stderrFile" && failed="true"
+			rm -f "$stderrFile"
+			if [ "$failed" == "true" ]
 			then
 				echo "blastp failed for $outFile" >&2
 				# Keep one non-empty failed attempt around for inspection
