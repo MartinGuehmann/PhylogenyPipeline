@@ -72,7 +72,13 @@ rm -f $sequenceFile
 IDs=($(sed -E "s/^ *[0-9]* //g" "$hits/$AllNCBI/SortedHitsByName.csv" | cut -f 1 | sort -u))
 
 numIDs=${#IDs[@]}
-range=8000 # With more we seem to get into trouble
+# 8000 was chosen after a larger batch previously ran into a bash/OS
+# command-line length limit (ARG_MAX, see `getconf ARG_MAX`) - the -id
+# argument below is one long comma-joined string, not passed via
+# stdin/a file, so raising this would need testing against that limit
+# specifically. Unrelated to the retry logic below, which is for
+# transient NCBI/network failures instead.
+range=8000
 i=0
 
 failed="false"
