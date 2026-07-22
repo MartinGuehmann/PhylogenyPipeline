@@ -292,6 +292,19 @@
               install -m 755 ../efetch ../esearch ../esummary ../elink \
                 ../epost ../einfo ../nquire ../ecommon.sh "$out/bin"
               install -m 644 ../cacert.pem "$out/bin"
+              # join-into-groups-of is another sibling script efetch calls
+              # unconditionally while chunking IDs into batches (regardless
+              # of -db/-format) - missing it wasn't caught by testing on
+              # Orion since a fetch small enough to be a single chunk never
+              # reaches that code path; surfaced 2026-07-22 by a real
+              # multi-batch run on the cluster ("efetch: line 1154:
+              # join-into-groups-of: command not found"). By contrast,
+              # pma2apa/pma2pme (efetch's other sibling-script references)
+              # are only reached for -db pubmed's APA/ASN citation formats,
+              # which this pipeline never requests (only ever
+              # `efetch -db sequences ... -format fasta`), so those are
+              # deliberately left out.
+              install -m 755 ../join-into-groups-of "$out/bin"
               runHook postInstall
             '';
           };
