@@ -25,7 +25,6 @@ declare -a LocalDataBases=(
 )
 
 declare -a RemoteDataBases=(
-	"nr"              # Non-redundant protein sequences
 	"refseq_protein"  # Reference proteins
 	# "landmark"        # Model Organisms, does not work
 	# "swissprot"       # UniProtKB/Swiss-Prot, just the confirmed sequences, redundant with the local, more up-to-date uniprot_sprot above, not worth the extra NCBI remote load
@@ -33,6 +32,7 @@ declare -a RemoteDataBases=(
 	# "pdb"             # Protein Data Bank Proteins, chimeras for christalization just screw up things
 	# "env_nr"          # Metagenomic proteins, most come back empty for opsins, so it is not worth
 	"tsa_nr"          # Transcriptome Shotgun Assembly proteins
+	"nr"              # Non-redundant protein sequences
 )
 
 unset _databasesDir
