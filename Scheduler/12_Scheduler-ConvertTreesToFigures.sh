@@ -13,6 +13,6 @@ then
 	exit 1
 fi
 
-date
+date >&2
 time "$DIR/../RunAll.sh" -g "$gene" -s "12" -i "$iteration" -a "$aligner" $suffix $extension $update $updateBig $inputDir $ignoreIfMasterFileDoesNotExist
-date
+date >&2

@@ -15,6 +15,6 @@ fi
 
 seqsToAlign=$(cut -d " " -f $("$DIR/Scheduler-GetArrayIndex.sh") $seqFiles)
 
-date
+date >&2
 time "$DIR/../RunAll.sh" -g "$gene" -s "14" -i "$iteration" -a "PASTA" -f "$seqsToAlign" $suffix $previousAligner $trimAl
-date
+date >&2

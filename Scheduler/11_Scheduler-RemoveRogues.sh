@@ -16,6 +16,6 @@ then
 	exit 1
 fi
 
-date
+date >&2
 time "$DIR/../RunAll.sh" -g "$gene" -s "11" -i "$iteration" -a "$aligner" $shuffleSeqs $suffix $previousAligner $restore
-date
+date >&2

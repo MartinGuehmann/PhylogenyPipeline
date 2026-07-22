@@ -20,6 +20,6 @@ then
 	exit 1
 fi
 
-date
+date >&2
 time "$DIR/../RunAll.sh" -g "$gene" -s "0"
-date
+date >&2
