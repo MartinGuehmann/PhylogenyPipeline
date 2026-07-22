@@ -101,18 +101,38 @@ baseShrunken="$rogueFreeTreesDir/$base.txt"
 consenseTree="$alignmentDir/$alignmentBase.contree"
 seqsOfInterestIDs="$seqsOfInterestDir/SequencesOfInterestIDs.txt"
 droppedFinal="$rogueFreeTreesDir/$base.dropped.fasta"
+speciesForSeqReps="$DIR/$gene/SpeciesForSeqReps.csv"
+protectedTaxa="$rogueFreeTreesDir/ProtectedTaxa.txt"
 
 # If we call this again we want to overwrite the output
 rm -f "$baseRogueNaRokDroppedCSV"
 rm -f "$baseRogueNaRokDropped"
 rm -f "$rogueFreeTreesDir/RogueNaRok_info.$base"
 rm -f "$rogueFreeTreesDir/RogueNaRok_info.$bbase"
+rm -f "$protectedTaxa"
 
-RogueNaRok-parallel -s 2 -i $inputTrees -n $base -w $rogueFreeTreesDir -T $numTreads
-RogueNaRok-parallel -s 2 -i $inputTrees -n $bbase -b -w $rogueFreeTreesDir -T $numTreads
+# Never let RogueNaRok/TreeShrink prune a taxon whose species is on this
+# gene's own priority list (the same list step 4/PickSequenceRepresentatives.py
+# uses to prefer a well-annotated representative during clustering) - e.g.
+# a human/mouse/etc. sequence should stay in the tree even if it looks
+# statistically unstable. Both tools take this the same way: a file of one
+# taxon (tree tip label/accession) per line via -x, so the same file and
+# flag work for all three calls below. No-op (no -x passed at all) if this
+# gene has no such list, same conditional pattern as step 4.
+protectedTaxaArg=""
+if [ -f "$speciesForSeqReps" ]
+then
+	python3 "$DIR/GetProtectedTaxa.py" \
+		--input "$seqsOfInterestDir/$base.fasta" \
+		--species-list "$speciesForSeqReps" > "$protectedTaxa"
+	protectedTaxaArg="-x $protectedTaxa"
+fi
+
+RogueNaRok-parallel -s 2 -i $inputTrees -n $base -w $rogueFreeTreesDir -T $numTreads $protectedTaxaArg
+RogueNaRok-parallel -s 2 -i $inputTrees -n $bbase -b -w $rogueFreeTreesDir -T $numTreads $protectedTaxaArg
 
 # Creates a .contree file in the target directory
-run_treeshrink.py -t "$consenseTree" -o "$rogueFreeTreesDir" -f -O "$base"
+run_treeshrink.py -t "$consenseTree" -o "$rogueFreeTreesDir" -f -O "$base" $protectedTaxaArg
 
 grep -o -f "$seqsOfInterestIDs" "$baseRogueNaRokDropped" > "$baseRogueNaRokDroppedCSV"
 grep -o -f "$seqsOfInterestIDs" "$bbaseRogueNaRokDropped" >> "$baseRogueNaRokDroppedCSV"
