@@ -7,13 +7,13 @@
 # first time a pipeline run happens to need them. Run this once after
 # cloning, and again whenever flake.nix changes.
 #
-# Several of flake.nix's derivations still have `hash = pkgs.lib.fakeHash;`
-# placeholders (see its own comments) because none of them have been
-# build-tested yet. The first run of this script is expected to hit those:
-# Nix refuses the build and prints the real hash of what it downloaded.
-# Paste that hash in place of fakeHash for the named derivation in
-# flake.nix, then re-run this script. Repeat per package until everything
-# below reports OK.
+# All of flake.nix's derivations have already been build-tested and their
+# `hash = pkgs.lib.fakeHash;` placeholders resolved to real hashes, so a
+# normal run of this script should just report OK for everything below.
+# If flake.nix is edited to add a new derivation or bump a pinned version,
+# though, Nix will refuse the build for that one and print the real hash
+# of what it downloaded - paste that hash in place of fakeHash for the
+# named derivation in flake.nix, then re-run this script.
 
 # Get the directory where this script is
 SOURCE="${BASH_SOURCE[0]}"
