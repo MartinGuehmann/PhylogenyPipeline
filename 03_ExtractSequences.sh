@@ -50,7 +50,7 @@ rm -f $sequenceNCBIFile
 
 rm -f $sequenceFileBase*".fasta"
 rm -f $sequenceNCBIFileBase*".fasta"
-rm -f "$sequences"/efetch_batch_*.fasta "$sequences"/efetch_batch_*.stderr
+rm -f "$sequences"/efetch_batch_*.fasta "$sequences"/efetch_batch_*.stderr "$sequences"/efetch_batch_*.requested
 
 # Extract the sequences from uniprot
 for DB_PATH in "${LocalDataBases[@]}"
@@ -86,63 +86,73 @@ failed="false"
 
 while [ $i -lt $numIDs ]
 do
-	part=${IDs[@]:$i:$range}
-	part=$(echo $part | tr ' ' ',')
+	# A whole batch's efetch call can come back "failed" (non-zero exit,
+	# "QUERY FAILURE" on stderr, etc.) while still having successfully
+	# fetched almost everything - efetch keeps working through its own
+	# internal sub-chunks even after one of them permanently fails, so a
+	# "failed" attempt usually still contains most of the batch's data.
+	# Rather than trusting efetch's own pass/fail signal for the whole
+	# request (unreliable - see below) and discarding the lot on any
+	# failure, each attempt below keeps whatever it actually returned and
+	# only retries the specific IDs still missing afterward - confirmed
+	# 2026-07-22 that a batch's "failure" is often really just one
+	# permanently-dead accession (NCBI's own backend explicitly saying
+	# "Failed to retrieve sequence" for what looks like a withdrawn/
+	# suppressed record) poisoning one ~50-ID internal sub-chunk, while
+	# the other ~7950 IDs in the same 8000-ID batch fetch fine. Retrying
+	# the entire batch wasted ~5 minutes per trial re-fetching already-
+	# good data, then discarded all 8000 IDs once trials ran out, instead
+	# of just the actually-bad ones.
+	remainingIDs=("${IDs[@]:$i:$range}")
 
-	# Write each batch to its own file rather than appending directly -
-	# efetch can fail partway through a response (e.g. the connection
-	# dying mid-transfer), and appending straight to $sequenceNCBIFile
-	# would leave a truncated record behind on the next retry instead of
-	# just overwriting the bad attempt. Named predictably in $sequences
-	# (not mktemp's random /tmp path) so a batch can actually be found and
-	# inspected while the job is still running, e.g. to check progress or
-	# see a failed attempt's raw output/stderr before the next retry
-	# overwrites it.
+	# Named predictably in $sequences (not mktemp's random /tmp path) so
+	# a batch can actually be found and inspected while the job is still
+	# running, e.g. to check progress or see a failed attempt's raw
+	# output/stderr before the next retry overwrites it.
 	batchFile="$sequences/efetch_batch_$i.fasta"
 	stderrFile="$sequences/efetch_batch_$i.stderr"
+	requestedFile="$sequences/efetch_batch_$i.requested"
+	goodFile="$sequences/efetch_batch_$i.good.fasta"
 	trials=0
 	maxTrials=5
-	success="false"
 
-	while [ $trials -lt $maxTrials ]
+	while [ $trials -lt $maxTrials ] && [ ${#remainingIDs[@]} -gt 0 ]
 	do
+		part=$(IFS=,; echo "${remainingIDs[*]}")
 		efetch -db sequences -format fasta -id $part > "$batchFile" 2> "$stderrFile"
 		cat "$stderrFile" >&2
-		# efetch exits 0 even when it fails, so the exit code alone can't
-		# be trusted (same issue as blastp -remote elsewhere in this
-		# pipeline). A data-level failure (e.g. an ID NCBI didn't
-		# recognize) prints "Error:" to stdout instead of any actual FASTA.
-		# For transport-level failures, nquire prints "ERROR: curl command
-		# failed" to stderr on *every* transient curl hiccup, even ones
-		# entrez-direct's own internal retry (ecommon.sh) then quietly
-		# recovers from - so grepping for that would flag almost every
-		# batch as failed. "QUERY FAILURE" is what ecommon.sh's retry loop
-		# prints instead, and only once, when all of its internal attempts
-		# are truly exhausted - confirmed 2026-07-22 via a real cluster run
-		# where one 8000-ID batch's internal sub-chunk hit exactly this
-		# after repeated empty results, dropping ~49 accessions from the
-		# output with no other signal (the previous check here,
-		# `grep -q "^ERROR:"`, never matches ecommon.sh's actual message,
-		# which has a leading space before "ERROR:").
-		if ! grep -q "QUERY FAILURE" "$stderrFile" && ! grep -q "^Error:" "$batchFile"
-		then
-			success="true"
-			break
-		fi
-		echo "efetch failed for IDs $i..$((i + range - 1)), trying $((maxTrials - trials - 1)) more time(s)" >&2
-		sleep 30 # Back off before hammering NCBI again - untuned starting value
-		((++trials))
-	done
-	rm -f "$stderrFile"
 
-	if [ "$success" == "true" ]
+		# Never trust efetch's exit code or stderr text as pass/fail for
+		# the whole request (it exits 0 even when it fails, and a
+		# data-level failure can print a literal "Error: ..." line to
+		# stdout instead of a record) and never blindly append its raw
+		# stdout either. seqkit grep -f keeps only genuine records for
+		# IDs actually asked for, so a stray error line or anything else
+		# is dropped instead of corrupting the real output file.
+		printf '%s\n' "${remainingIDs[@]}" > "$requestedFile"
+		seqkit grep -j "$numTreads" -f "$requestedFile" "$batchFile" > "$goodFile" 2>/dev/null
+		cat "$goodFile" >> $sequenceNCBIFile
+
+		# Whatever ID isn't among what was actually fetched this attempt
+		# is what still needs retrying - not the whole batch.
+		fetchedIDs=$(grep "^>" "$goodFile" | sed 's/^>//' | awk '{print $1}' | sort -u)
+		mapfile -t remainingIDs < <(comm -23 <(sort -u "$requestedFile") <(echo "$fetchedIDs"))
+
+		rm -f "$batchFile" "$stderrFile" "$requestedFile" "$goodFile"
+
+		if [ ${#remainingIDs[@]} -gt 0 ]
+		then
+			echo "efetch: ${#remainingIDs[@]} ID(s) still missing from batch $i..$((i + range - 1)), trying $((maxTrials - trials - 1)) more time(s)" >&2
+			sleep 30 # Back off before hammering NCBI again - untuned starting value
+			((++trials))
+		fi
+	done
+
+	if [ ${#remainingIDs[@]} -gt 0 ]
 	then
-		cat "$batchFile" >> $sequenceNCBIFile
-	else
-		echo "efetch permanently failed for IDs $i..$((i + range - 1)) after $maxTrials trials" >&2
+		echo "efetch permanently failed for ${#remainingIDs[@]} ID(s) in batch $i..$((i + range - 1)) after $maxTrials trials: ${remainingIDs[*]}" >&2
 		failed="true"
 	fi
-	rm -f "$batchFile"
 
 	let i+=range
 done
