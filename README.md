@@ -105,15 +105,16 @@ The shell also builds raxml-ng, RogueNaRok-parallel (plus its rnr-prune/
 rnr-lsi/rnr-tii/rnr-mast helpers), FAMSA, TreeShrink, and MAGUS straight
 from source (nixpkgs' own `raxml` package is the older, classic RAxML,
 not raxml-ng - do not substitute it), since none of those are packaged
-in nixpkgs either. These derivations are unverified - built from each
-project's documented build commands, not build-tested against a real Nix
-install - so the first `nix build .#<name>` (e.g. `nix build .#raxml-ng`)
-will likely need its `fakeHash` placeholder replaced with the real hash
-Nix reports, and possibly a small installPhase fix if a binary ends up
-somewhere other than guessed. Also note the flake's TreeShrink is
-v1.4.0, which needs Python 3.8+, not the Python 2.7 in the Prerequisites
-list above - check it still behaves the same before relying on it for a
-production run.
+in nixpkgs either. These have since been build-tested successfully
+(`./BuildNixDependencies.sh` builds every derivation in the flake and
+reports OK for all of them), so the `fakeHash` placeholders described in
+that script's own comments are already resolved to real hashes - a fresh
+`nix build .#<name>` shouldn't need that step repeated unless flake.nix
+changes again. A successful build only confirms each derivation compiles
+and installs, though, not that its binary behaves correctly at runtime:
+the flake's TreeShrink is v1.4.0, which needs Python 3.8+, not the
+Python 2.7 in the Prerequisites list above - check it still behaves the
+same before relying on it for a production run.
 
 entrez-direct (efetch, esearch, esummary, elink, epost, einfo) has no
 public source repo of its own - NCBI only distributes it via FTP - so
