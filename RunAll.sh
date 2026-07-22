@@ -197,51 +197,88 @@ case $step in
 	echo "0. Obtaining gene IDs from all databases." >&2
 	echo "   Searching for sequences in NCBI databases remotely, takes some time." >&2
 	echo "   Therefore, just skip if files in $DIR/$gene/Hits/ already exist." >&2
-	"$DIR/00_GetGenesFromAllDataBases.sh" "$gene"
+	if ! "$DIR/00_GetGenesFromAllDataBases.sh" "$gene"
+	then
+		echo "0. Failed to obtain gene IDs from all databases." >&2
+		exit 1
+	fi
 	echo "0. Gene IDs from all databases were obtained." >&2
 	;;
 1)
 	echo "1. Combine the gene IDs for each database into one file, remove duplicates." >&2
-	"$DIR/01_CombineHitsForEachDatabase.sh" "$gene"
+	if ! "$DIR/01_CombineHitsForEachDatabase.sh" "$gene"
+	then
+		echo "1. Failed to combine the gene IDs for each database." >&2
+		exit 1
+	fi
 	echo "1. Gene IDs for each database were combined into one file, duplicates were removed." >&2
 	;;
 2)
 	echo "2. Combine the gene IDs for all database into one file, remove duplicates." >&2
-	"$DIR/02_CombineHitsFromAllNCBIDatabases.sh" "$gene"
+	if ! "$DIR/02_CombineHitsFromAllNCBIDatabases.sh" "$gene"
+	then
+		echo "2. Failed to combine the gene IDs for all databases." >&2
+		exit 1
+	fi
 	echo "2. Gene IDs for all database were combined into one file, duplicates were removed." >&2
 	;;
 3)
 	echo "3. Extract sequences from the databases." >&2
-	"$DIR/03_ExtractSequences.sh" "$gene"
+	if ! "$DIR/03_ExtractSequences.sh" "$gene"
+	then
+		echo "3. Failed to extract sequences from the databases." >&2
+		exit 1
+	fi
 	echo "3. Sequences from the database were extracted." >&2
 	;;
 4)
 	echo "4. Make non redundant sequences." >&2
-	"$DIR/04_MakeNonRedundant.sh" "$gene"
+	if ! "$DIR/04_MakeNonRedundant.sh" "$gene"
+	then
+		echo "4. Failed to make non redundant sequences." >&2
+		exit 1
+	fi
 	echo "4. Non redundant sequences were made." >&2
 	;;
 5)
 	echo "5. Prepare sequences for CLANS." >&2
-	"$DIR/05_MakeClansFile.sh" "$gene"
+	if ! "$DIR/05_MakeClansFile.sh" "$gene"
+	then
+		echo "5. Failed to prepare sequences for CLANS." >&2
+		exit 1
+	fi
 	echo "5. Sequences have been prepared for CLANS." >&2
 	;;
 6)
 	echo "6. Cluster sequences with CLANS." >&2
-	"$DIR/06_ClusterWithClans.sh" "$gene"
+	if ! "$DIR/06_ClusterWithClans.sh" "$gene"
+	then
+		echo "6. Failed to cluster sequences with CLANS." >&2
+		exit 1
+	fi
 	echo "6. Sequences have been clustered with CLANS." >&2
 	;;
 7)
 	echo "7. Create newick tree from CLANS file with neighbor joining for pruning." >&2
-	"$DIR/07_MakeTreeForPruning.sh" "$gene"
+	if ! "$DIR/07_MakeTreeForPruning.sh" "$gene"
+	then
+		echo "7. Failed to create newick tree from CLANS file." >&2
+		exit 1
+	fi
 	echo "7. Newick tree from CLANS file with neighbor joining for pruning created." >&2
 	;;
 8)
 	echo "8. Extract sequences of interest." >&2
-	"$DIR/08_ExtractSequencesOfInterest.sh" "$gene"
+	if ! "$DIR/08_ExtractSequencesOfInterest.sh" "$gene"
+	then
+		echo "8. Failed to extract sequences of interest." >&2
+		exit 1
+	fi
 	echo "8. Sequences of interest extracted." >&2
 	;;
 9)
 	echo "9. Align sequences with $aligner." >&2
+	stepFailed="false"
 	if [ -z "$inputFile" ]
 	then
 		for fastaFile in "$SequencesOfInterestParts"+([0-9])".fasta"
@@ -249,61 +286,122 @@ case $step in
 			if [ -f "$fastaFile" ]
 			then
 				alignmentFile=$("$alignerFile" "$fastaFile" "$AlignmentDir")
+				alignStatus=$?
 				"$DIR/09a_PostProcessAlignment.sh" "$alignmentFile" "$trimAl"
+				postStatus=$?
+				if [ $alignStatus -ne 0 ] || [ $postStatus -ne 0 ]
+				then
+					echo "9. Failed to align $fastaFile with $aligner." >&2
+					stepFailed="true"
+				fi
 			fi
 		done
 	else
 		alignmentFile=$($alignerFile "$inputFile" "$AlignmentDir")
+		alignStatus=$?
 		"$DIR/09a_PostProcessAlignment.sh" "$alignmentFile" "$trimAl"
+		postStatus=$?
+		if [ $alignStatus -ne 0 ] || [ $postStatus -ne 0 ]
+		then
+			echo "9. Failed to align $inputFile with $aligner." >&2
+			stepFailed="true"
+		fi
+	fi
+	if [ "$stepFailed" == "true" ]
+	then
+		exit 1
 	fi
 	echo "9. Sequences aligned with $aligner." >&2
 	;;
 10)
 	echo "10. Build trees with IQ-Tree." >&2
+	stepFailed="false"
 	if [ -z "$inputFile" ]
 	then
 		for phyFile in "$AlignmentParts"*"$AlignmentLastBit"
 		do
 			if [ -f $phyFile ]
 			then
-				"$DIR/10_MakeTreeWithIQ-Tree.sh" "$phyFile"
+				if ! "$DIR/10_MakeTreeWithIQ-Tree.sh" "$phyFile"
+				then
+					echo "10. Failed to build tree for $phyFile with IQ-Tree." >&2
+					stepFailed="true"
+				fi
 			fi
 		done
 	else
-		"$DIR/10_MakeTreeWithIQ-Tree.sh" "$inputFile"
+		if ! "$DIR/10_MakeTreeWithIQ-Tree.sh" "$inputFile"
+		then
+			echo "10. Failed to build tree for $inputFile with IQ-Tree." >&2
+			stepFailed="true"
+		fi
+	fi
+	if [ "$stepFailed" == "true" ]
+	then
+		exit 1
 	fi
 	echo "10. Trees built with IQ-Tree." >&2
 	;;
 11)
 	echo "11. Remove rogue sequences with RogueNaRok and TreeShrink." >&2
-	"$DIR/11a_PrepareForRemovingRogues.sh" "$SequencesOfInterestDir"
+	stepFailed="false"
+	if ! "$DIR/11a_PrepareForRemovingRogues.sh" "$SequencesOfInterestDir"
+	then
+		echo "11. Failed to prepare for removing rogues." >&2
+		stepFailed="true"
+	fi
 	for ufbootFile in "$AlignmentParts"*"$UFBootPart"
 	do
 		if [ -f $ufbootFile ]
 		then
-			"$DIR/11_RemoveRogues.sh" -g "$gene" -f "$ufbootFile" -a "$aligner" -i "$iteration" $suffix $previousAligner
+			if ! "$DIR/11_RemoveRogues.sh" -g "$gene" -f "$ufbootFile" -a "$aligner" -i "$iteration" $suffix $previousAligner
+			then
+				echo "11. Failed to remove rogues for $ufbootFile." >&2
+				stepFailed="true"
+			fi
 		fi
 	done
 	if [ -f $AllSeqsUFBoot ]
 	then
-		"$DIR/11_RemoveRogues.sh" -g "$gene" -f $AllSeqsUFBoot -a "$aligner" -i "$iteration" $suffix $previousAligner
+		if ! "$DIR/11_RemoveRogues.sh" -g "$gene" -f $AllSeqsUFBoot -a "$aligner" -i "$iteration" $suffix $previousAligner
+		then
+			echo "11. Failed to remove rogues for $AllSeqsUFBoot." >&2
+			stepFailed="true"
+		fi
 		hasFullFile="--hasFullFile"
 	fi
-	"$DIR/11b_ExtractNonRogues.sh" -g "$gene" -a "$aligner" -i "$iteration" $shuffleSeqs $suffix $previousAligner $restore $hasFullFile
+	if ! "$DIR/11b_ExtractNonRogues.sh" -g "$gene" -a "$aligner" -i "$iteration" $shuffleSeqs $suffix $previousAligner $restore $hasFullFile
+	then
+		echo "11. Failed to extract non-rogue sequences." >&2
+		stepFailed="true"
+	fi
+	if [ "$stepFailed" == "true" ]
+	then
+		exit 1
+	fi
 	echo "11. Rogue sequences removed with RogueNaRok and TreeShrink." >&2
 	;;
 12)
 	echo "12. Visualise trees." >&2
-	"$DIR/12a_ConvertTreesToFiguresForAllClades.sh" -g "$gene" -i "$iteration" -a "$aligner" $baseIteration $masterAligner $inputDir $suffix $masterSuffix $extension $update $updateBig $ignoreIfMasterFileDoesNotExist
+	if ! "$DIR/12a_ConvertTreesToFiguresForAllClades.sh" -g "$gene" -i "$iteration" -a "$aligner" $baseIteration $masterAligner $inputDir $suffix $masterSuffix $extension $update $updateBig $ignoreIfMasterFileDoesNotExist
+	then
+		echo "12. Failed to visualise trees." >&2
+		exit 1
+	fi
 	echo "12. Trees visualized." >&2
 	;;
 13)
 	echo "13. Split sequences into chunks for subset extraction." >&2
-	"$DIR/13_SplitNonRedundantSequences.sh" -O "$SequenceChunksForPruningDir" -g "$gene"
+	if ! "$DIR/13_SplitNonRedundantSequences.sh" -O "$SequenceChunksForPruningDir" -g "$gene"
+	then
+		echo "13. Failed to split sequences into chunks." >&2
+		exit 1
+	fi
 	echo "13. Sequences split into chunks for subset extraction." >&2
 	;;
 14)
 	echo "14. Build trees with PASTA for pruning." >&2
+	stepFailed="false"
 	if [ -z "$inputFile" ]
 	then
 		for fastaFile in "$SeqencesForPruningParts"+([0-9])".fasta"
@@ -311,41 +409,81 @@ case $step in
 			if [ -f $fastaFile ]
 			then
 				alignmentFile=$("$DIR/09_AlignWithPASTA.sh" "$fastaFile" "$TreesForPruningFromPASTADir")
+				alignStatus=$?
 				"$DIR/09a_PostProcessAlignment.sh" "$alignmentFile" "$trimAl"
+				postStatus=$?
+				if [ $alignStatus -ne 0 ] || [ $postStatus -ne 0 ]
+				then
+					echo "14. Failed to build tree with PASTA for $fastaFile." >&2
+					stepFailed="true"
+				fi
 			fi
 		done
 	else
 		alignmentFile=$("$DIR/09_AlignWithPASTA.sh" "$inputFile" "$TreesForPruningFromPASTADir")
+		alignStatus=$?
 		"$DIR/09a_PostProcessAlignment.sh" "$alignmentFile" "$trimAl"
+		postStatus=$?
+		if [ $alignStatus -ne 0 ] || [ $postStatus -ne 0 ]
+		then
+			echo "14. Failed to build tree with PASTA for $inputFile." >&2
+			stepFailed="true"
+		fi
+	fi
+	if [ "$stepFailed" == "true" ]
+	then
+		exit 1
 	fi
 	echo "14. Trees built with PASTA for pruning." >&2
 	;;
 15)
 	echo "15. Build trees with IQ-Tree for pruning." >&2
+	stepFailed="false"
 	if [ -z "$inputFile" ]
 	then
 		for phyFile in "$AllPruningSeqs"*"$PruningLastBit"
 		do
 			if [ -f $phyFile ]
 			then
-				"$DIR/10_MakeTreeWithIQ-Tree.sh" "$phyFile"
+				if ! "$DIR/10_MakeTreeWithIQ-Tree.sh" "$phyFile"
+				then
+					echo "15. Failed to build tree for $phyFile with IQ-Tree." >&2
+					stepFailed="true"
+				fi
 			fi
 		done
 	else
-		"$DIR/10_MakeTreeWithIQ-Tree.sh" "$inputFile"
+		if ! "$DIR/10_MakeTreeWithIQ-Tree.sh" "$inputFile"
+		then
+			echo "15. Failed to build tree for $inputFile with IQ-Tree." >&2
+			stepFailed="true"
+		fi
+	fi
+	if [ "$stepFailed" == "true" ]
+	then
+		exit 1
 	fi
 	echo "15. Trees built with IQ-Tree for pruning." >&2
 	;;
 16)
 	echo "16. Extract sequences of interest." >&2
-	"$DIR/16_ExtractSequencesOfInterest.sh" -g "$gene" -d "$TreesForPruningFromPASTADir" -c $SequenceChunksForPruningDir $extension
+	if ! "$DIR/16_ExtractSequencesOfInterest.sh" -g "$gene" -d "$TreesForPruningFromPASTADir" -c $SequenceChunksForPruningDir $extension
+	then
+		echo "16. Failed to extract sequences of interest." >&2
+		exit 1
+	fi
 	echo "16. Sequences of interest extracted." >&2
 	;;
 17)
 	echo "17. Skip extract sequences of interest and just copy sequences." >&2
-	"$DIR/17_SkipExtraction.sh" -g "$gene" -d "$TreesForPruningFromPASTADir" -c $SequenceChunksForPruningDir $extension
+	if ! "$DIR/17_SkipExtraction.sh" -g "$gene" -d "$TreesForPruningFromPASTADir" -c $SequenceChunksForPruningDir $extension
+	then
+		echo "17. Failed to copy sequences directly." >&2
+		exit 1
+	fi
 	echo "17. Sequence copied directly." >&2
 	;;
 *)
-	echo "Step $i is not a valid step." >&2
+	echo "Step $step is not a valid step." >&2
+	exit 1
 esac
