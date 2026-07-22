@@ -118,6 +118,20 @@ do
 				# real accession.
 				touch "$outFile.ok"
 			fi
+
+			# Pace consecutive remote calls - confirmed 2026-07-22 that one
+			# bait sequence's blastp -remote stalling/failing can make NCBI's
+			# dispatcher immediately fail every following call in the same
+			# trial too ("Connection stream is in bad state"): a burst of
+			# ~10 back-to-back calls with zero delay between them went one
+			# timeout -> instant cascade of identical failures for the rest
+			# of that trial's remaining bait sequences. Untuned starting
+			# value; only applies to remote calls, not local -num_threads
+			# ones, which have no NCBI-side throttling to worry about.
+			if [ $DB == $databaseName ]
+			then
+				sleep 3
+			fi
 		fi
 	done
 
