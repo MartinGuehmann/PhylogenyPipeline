@@ -102,28 +102,48 @@ scripts actually call, not assumed from each tool's usual name:
   if you need to fall back to it.
 
 The shell also builds raxml-ng, RogueNaRok-parallel (plus its rnr-prune/
-rnr-lsi/rnr-tii/rnr-mast helpers), FAMSA, TreeShrink, MAGUS, and
-entrez-direct (efetch, esearch, etc.) straight from source (nixpkgs' own
-`raxml` package is the older, classic RAxML, not raxml-ng - do not
-substitute it), since none of those are packaged in nixpkgs either. These
-derivations are unverified - built from each project's documented build
-commands, not build-tested against a real Nix install - so the first
-`nix build .#<name>` (e.g. `nix build .#raxml-ng`) will likely need its
-`fakeHash` placeholder replaced with the real hash Nix reports, and
-possibly a small installPhase fix if a binary ends up somewhere other
-than guessed. Also note the flake's TreeShrink is v1.4.0, which needs
-Python 3.8+, not the Python 2.7 in the Prerequisites list above - check
-it still behaves the same before relying on it for a production run.
+rnr-lsi/rnr-tii/rnr-mast helpers), FAMSA, TreeShrink, and MAGUS straight
+from source (nixpkgs' own `raxml` package is the older, classic RAxML,
+not raxml-ng - do not substitute it), since none of those are packaged
+in nixpkgs either. These derivations are unverified - built from each
+project's documented build commands, not build-tested against a real Nix
+install - so the first `nix build .#<name>` (e.g. `nix build .#raxml-ng`)
+will likely need its `fakeHash` placeholder replaced with the real hash
+Nix reports, and possibly a small installPhase fix if a binary ends up
+somewhere other than guessed. Also note the flake's TreeShrink is
+v1.4.0, which needs Python 3.8+, not the Python 2.7 in the Prerequisites
+list above - check it still behaves the same before relying on it for a
+production run.
 
-entrez-direct has no public source repo of its own - NCBI only
-distributes it via FTP - so that derivation is instead modeled on
+entrez-direct (efetch, esearch, esummary, elink, epost, einfo) has no
+public source repo of its own - NCBI only distributes it via FTP - so
+that derivation is instead modeled on
 [bioconda's build recipe](https://github.com/bioconda/bioconda-recipes/tree/master/recipes/entrez-direct)
-and uses its pinned version and hash directly (no `fakeHash` there). Its
-own biggest risk: it builds the `xtract`/`rchive`/`transmute` helpers
-from bundled Go source at build time, and if EDirect's Go modules aren't
-vendored in the tarball, that `go build` will try to reach the network,
-which Nix's sandboxed build blocks - see the comment in flake.nix for
-the `pkgs.buildGoModule` fallback if that happens.
+and uses its pinned version and hash directly (no `fakeHash` there).
+Unlike the tools above, this one has been build-tested end to end
+(`nix build .#entrez-direct`, `efetch -version` reporting `25.3`, and a
+live NCBI fetch all confirmed working): `efetch`/`esearch`/`esummary`/
+`elink`/`epost`/`einfo` are plain shell scripts shipped at the EDirect
+tarball's root, separate from the `xtract`/`rchive`/`transmute` Go
+binaries this derivation builds from bundled Go source (`cmd/*.go`) - an
+earlier version of this flake only ever built the latter, so `efetch`
+was silently missing from the devShell entirely and every script calling
+it (`03_ExtractSequences.sh`) was actually depending on whatever `efetch`
+happened to be on the system outside Nix. The installPhase now installs
+the scripts and their real runtime dependencies (`ecommon.sh`, `nquire`,
+`cacert.pem`) as real file copies rather than symlinks, since each
+resolves a sibling file via `dirname "$0"` at runtime, and that does not
+follow symlinks. `nquire` (efetch's actual HTTP transport) shells out to
+whatever `curl`/`wget` it finds on `PATH` at runtime instead of bundling
+its own, so the devShell lists `curl`/`wget` directly in its `packages`
+- not as an entrez-direct `buildInput`, since `buildInputs`/
+`propagatedBuildInputs` only propagate to other derivations building
+against this one, not to a plain `nix develop`/`nix shell`'s PATH. The
+Go build itself still carries the same vendoring risk as the tools
+above: if EDirect's Go modules aren't vendored in the tarball, `go
+build` will try to reach the network, which Nix's sandboxed build
+blocks - see the comment in flake.nix for the `pkgs.buildGoModule`
+fallback if that happens.
 
 T-Coffee and PASTA are now also built, likewise modeled on their
 [bioconda](https://github.com/bioconda/bioconda-recipes) recipes rather
