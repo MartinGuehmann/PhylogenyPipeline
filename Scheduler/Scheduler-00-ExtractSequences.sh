@@ -172,7 +172,7 @@ fi
 
 if [ "$continue" == "--continue" ]
 then
-	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl, useFullDataset=$useFullDataset" -W "depend=afterok$holdJobs" \
+	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl, useFullDataset=$useFullDataset, localNr=$localNr" -W "depend=afterok$holdJobs" \
 	    "$DIR/Scheduler-01-PrepareSequences.sh"
 fi
 

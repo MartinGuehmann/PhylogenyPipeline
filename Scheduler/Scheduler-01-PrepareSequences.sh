@@ -80,6 +80,11 @@ do
             shift
             useFullDataset="--useFullDataset"
             ;;
+        --localNr)
+            ;&
+        -L)
+            localNr="--localNr"
+            ;;
         -*)
             ;&
         --*)
@@ -103,6 +108,7 @@ echo "shuffleSeqs:      $shuffleSeqs"      >&2
 echo "extension:        $extension"        >&2
 echo "trimAl:           $trimAl"           >&2
 echo "useFullDataset:   $useFullDataset"   >&2
+echo "localNr:          $localNr"          >&2
 echo "Note the script is copied to"        >&2
 echo "another place with another name"     >&2
 
@@ -129,7 +135,7 @@ echo $jobIDs
 holdJobs=$jobIDs
 jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "2" -d "$jobIDs")
 echo $jobIDs
-jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "3" -d "$jobIDs")
+jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "3" -d "$jobIDs" $localNr)
 echo $jobIDs
 jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "4" -d "$jobIDs")
 echo $jobIDs

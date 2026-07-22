@@ -229,7 +229,7 @@ case $step in
 	# Same database-build concern as step 0 above
 	resourceOverride=""
 	"$DIR/../ProteinDatabase/NeedsBuilding.sh" && resourceOverride="-R AskForWholeNode"
-	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" $resourceOverride -v "DIR=$DIR, gene=$gene" "$DIR/03_Scheduler-ExtractSequences.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" $resourceOverride -v "DIR=$DIR, gene=$gene, localNr=$localNr" "$DIR/03_Scheduler-ExtractSequences.sh")
 	;;
 4)
 	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene" "$DIR/04_Scheduler-MakeNonRedundant.sh")

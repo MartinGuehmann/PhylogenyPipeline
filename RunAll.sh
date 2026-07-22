@@ -229,7 +229,7 @@ case $step in
 	;;
 3)
 	echo "3. Extract sequences from the databases." >&2
-	if ! "$DIR/03_ExtractSequences.sh" "$gene"
+	if ! "$DIR/03_ExtractSequences.sh" "$gene" $localNr
 	then
 		echo "3. Failed to extract sequences from the databases." >&2
 		exit 1

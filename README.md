@@ -242,14 +242,25 @@ breadth of homology can make NCBI kill a broad-homology gene's remote
 search outright (`CPU usage limit exceeded`, SIGXCPU), no matter how the
 search itself is tuned. If that's a problem, and you have ~200GB+ to
 spare, pass `--localNr`/`-L` (`RunAll.sh`, `Scheduler-Call.sh`,
-`Scheduler-00-ExtractSequences.sh`, or set `localNr=true` directly for
-`Scheduler/00_Scheduler-GetGenesFromAllDataBases.sh`) to step 0 to search
-a local copy instead - this pipeline doesn't fetch or update that copy
-itself, though. Build one with NCBI's own `update_blastdb.pl` (also handy
-for later incremental updates) into
-`./PhylogenyPipeline/ProteinDatabase/nr/nr`. Without `--localNr`, or if
-no local copy is found there, `nr` stays remote exactly as before -
-`--localNr` only ever narrows what's searched remotely, never widens it.
+`Scheduler-00-ExtractSequences.sh`/`Scheduler-01-PrepareSequences.sh`, or
+set `localNr=true` directly for the two job scripts) to search a local
+copy instead - this pipeline doesn't fetch or update that copy itself,
+though. Build one with NCBI's own `update_blastdb.pl` (also handy for
+later incremental updates) into `./PhylogenyPipeline/ProteinDatabase/nr/nr`.
+Without `--localNr`, or if no local copy is found there, `nr` stays
+remote exactly as before - `--localNr` only ever narrows what's searched
+remotely, never widens it.
+
+`--localNr` needs to reach both step 0 (the search) and step 3 (the
+actual sequence extraction) - a gene's `nr` hits are otherwise still
+fetched remotely via `efetch` in step 3 regardless of how the search
+that found them ran, so the flag is threaded through
+`Scheduler-Call.sh`'s step 0 *and* step 3 cases (the latter reached via
+`Scheduler-01-PrepareSequences.sh`'s step 1→2→3→4 chain, not directly
+from step 0). Step 3 extracts `nr`'s hits with `blastdbcmd` instead of
+`efetch` when the local copy is there, falling back to `efetch` for any
+individual accession `blastdbcmd` can't find locally (e.g. one added to
+NCBI's real `nr` after this local copy was last updated).
 
 ## User Account Information
 

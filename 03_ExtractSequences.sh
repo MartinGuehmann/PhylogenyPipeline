@@ -10,6 +10,7 @@ done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 gene="$1"
+localNr="$2"
 
 if [ -z "$gene" ]
 then
@@ -51,6 +52,7 @@ rm -f $sequenceNCBIFile
 rm -f $sequenceFileBase*".fasta"
 rm -f $sequenceNCBIFileBase*".fasta"
 rm -f "$sequences"/efetch_batch_*.fasta "$sequences"/efetch_batch_*.stderr "$sequences"/efetch_batch_*.requested
+rm -f "$sequences"/nr_ids.txt "$sequences"/nr_local.fasta "$sequences"/nr_local.good.fasta
 
 # Extract the sequences from uniprot
 for DB_PATH in "${LocalDataBases[@]}"
@@ -72,6 +74,61 @@ rm -f $sequenceFile
 # Extract the sequences from NCBI
 IDs=($(sed -E "s/^ *[0-9]* //g" "$hits/$AllNCBI/SortedHitsByName.csv" | cut -f 1 | sort -u))
 
+failed="false"
+
+# nr's hits are included above and would normally be fetched remotely via
+# efetch below like every other NCBI-sourced hit. But if step 0 searched
+# a local nr copy (--localNr) and it's still there, its sequences are
+# already sitting right on disk - pull nr's IDs out of the efetch pool
+# and extract them directly with blastdbcmd instead, entirely avoiding
+# NCBI's efetch service (and its own separate flakiness - see the retry
+# hardening below) for however many of this gene's hits came from nr. If
+# the local copy isn't there anymore for whatever reason, this is a no-op
+# and those IDs simply stay in the efetch pool below as they would
+# without --localNr.
+localNrPath="$DIR/ProteinDatabase/nr/nr"
+if [ "$localNr" == "--localNr" ] && command -v blastdbcmd >/dev/null 2>&1 && blastdbcmd -db "$localNrPath" -info >/dev/null 2>&1
+then
+	nrHitsFile="$hits/nr/SortedHitsByName.csv"
+	if [ -f "$nrHitsFile" ]
+	then
+		nrIDs=($(sed -E "s/^ *[0-9]* //g" "$nrHitsFile" | cut -f 1 | sort -u))
+		if [ ${#nrIDs[@]} -gt 0 ]
+		then
+			nrIDsFile="$sequences/nr_ids.txt"
+			nrRawFile="$sequences/nr_local.fasta"
+			nrGoodFile="$sequences/nr_local.good.fasta"
+			printf '%s\n' "${nrIDs[@]}" > "$nrIDsFile"
+			blastdbcmd -db "$localNrPath" -entry_batch "$nrIDsFile" -outfmt "%f" > "$nrRawFile"
+
+			# Same reasoning as the efetch loop below: never trust
+			# blastdbcmd's exit code as pass/fail for the whole batch (a
+			# missing/suppressed entry is reported per-ID on stderr, not
+			# as a nonzero exit - blastdbcmd still exits 0 overall and
+			# just skips it) and never blindly append its raw output
+			# either. seqkit grep -f keeps only genuine records for IDs
+			# actually asked for.
+			seqkit grep -j "$numTreads" -f "$nrIDsFile" "$nrRawFile" > "$nrGoodFile" 2>/dev/null
+			cat "$nrGoodFile" >> $sequenceNCBIFile
+
+			# Anything blastdbcmd couldn't find locally (e.g. added to
+			# NCBI's real nr after this local copy was last updated)
+			# stays in $IDs below and gets the normal remote efetch
+			# treatment instead of being silently lost - only the IDs
+			# genuinely extracted here are removed from that pool.
+			fetchedNrIDs=$(grep "^>" "$nrGoodFile" | sed 's/^>//' | awk '{print $1}' | sort -u)
+			missingNrIDs=$(comm -23 <(sort -u "$nrIDsFile") <(echo "$fetchedNrIDs"))
+			if [ -n "$missingNrIDs" ]
+			then
+				echo "blastdbcmd could not find these nr ID(s) in the local copy, falling back to remote efetch for them: $(echo "$missingNrIDs" | tr '\n' ' ')" >&2
+			fi
+			mapfile -t IDs < <(comm -23 <(printf '%s\n' "${IDs[@]}" | sort -u) <(echo "$fetchedNrIDs"))
+
+			rm -f "$nrIDsFile" "$nrRawFile" "$nrGoodFile"
+		fi
+	fi
+fi
+
 numIDs=${#IDs[@]}
 # 8000 was chosen after a larger batch previously ran into a bash/OS
 # command-line length limit (ARG_MAX, see `getconf ARG_MAX`) - the -id
@@ -81,8 +138,6 @@ numIDs=${#IDs[@]}
 # transient NCBI/network failures instead.
 range=8000
 i=0
-
-failed="false"
 
 while [ $i -lt $numIDs ]
 do
