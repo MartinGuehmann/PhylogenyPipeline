@@ -50,6 +50,7 @@ rm -f $sequenceNCBIFile
 
 rm -f $sequenceFileBase*".fasta"
 rm -f $sequenceNCBIFileBase*".fasta"
+rm -f "$sequences"/efetch_batch_*.fasta "$sequences"/efetch_batch_*.stderr
 
 # Extract the sequences from uniprot
 for DB_PATH in "${LocalDataBases[@]}"
@@ -88,13 +89,17 @@ do
 	part=${IDs[@]:$i:$range}
 	part=$(echo $part | tr ' ' ',')
 
-	# Write each batch to its own temp file rather than appending directly
-	# - efetch can fail partway through a response (e.g. the connection
+	# Write each batch to its own file rather than appending directly -
+	# efetch can fail partway through a response (e.g. the connection
 	# dying mid-transfer), and appending straight to $sequenceNCBIFile
 	# would leave a truncated record behind on the next retry instead of
-	# just overwriting the bad attempt.
-	batchFile=$(mktemp)
-	stderrFile=$(mktemp)
+	# just overwriting the bad attempt. Named predictably in $sequences
+	# (not mktemp's random /tmp path) so a batch can actually be found and
+	# inspected while the job is still running, e.g. to check progress or
+	# see a failed attempt's raw output/stderr before the next retry
+	# overwrites it.
+	batchFile="$sequences/efetch_batch_$i.fasta"
+	stderrFile="$sequences/efetch_batch_$i.stderr"
 	trials=0
 	maxTrials=5
 	success="false"
