@@ -98,6 +98,11 @@ do
             shift
             previousAligner="-p $1"
             ;;
+        --localNr)
+            ;&
+        -L)
+            localNr="true"
+            ;;
         --trimAl)
             ;&
         -t)
@@ -208,7 +213,7 @@ case $step in
 	# need building - makeblastdb ignores its assigned CPU count
 	resourceOverride=""
 	"$DIR/../ProteinDatabase/NeedsBuilding.sh" && resourceOverride="-R AskForWholeNode"
-	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" $resourceOverride -v "DIR=$DIR, gene=$gene" "$DIR/00_Scheduler-GetGenesFromAllDataBases.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" $resourceOverride -v "DIR=$DIR, gene=$gene, localNr=$localNr" "$DIR/00_Scheduler-GetGenesFromAllDataBases.sh")
 	;;
 1)
 	# Same database-build concern as step 0 above

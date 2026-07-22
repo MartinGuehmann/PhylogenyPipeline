@@ -20,6 +20,12 @@ then
 	exit 1
 fi
 
+# $localNr is set via this job's --export (see Scheduler-Call.sh's step-0
+# case), only when the Scheduler-00-ExtractSequences.sh caller passed
+# --localNr - unset/empty here means the default, unchanged remote nr.
+localNrFlag=""
+[ "$localNr" == "true" ] && localNrFlag="--localNr"
+
 date >&2
-time "$DIR/../RunAll.sh" -g "$gene" -s "0"
+time "$DIR/../RunAll.sh" -g "$gene" -s "0" $localNrFlag
 date >&2

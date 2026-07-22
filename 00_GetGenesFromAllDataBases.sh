@@ -10,6 +10,7 @@ done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 gene="$1"
+localNr="$2"
 
 if [ -z "$gene" ]
 then
@@ -23,6 +24,38 @@ source "$DIR/Databases.sh"
 declare -a pids=()
 declare -a dbNames=()
 
+# nr is normally searched remotely (see Databases.sh) - NCBI's own CPU
+# quota can kill a broad-homology gene's remote search outright (SIGXCPU),
+# and the remote path is generally more fragile than a local one. If
+# --localNr was passed and a local copy exists, search that copy instead,
+# pulled out of RemoteDataBases below. No build/download step here unlike
+# the uniprot databases above: a local nr copy is 200+GB and expected to
+# be fetched and kept updated separately (e.g. via NCBI's own
+# update_blastdb.pl, run manually or as its own cron job), not managed by
+# this pipeline.
+localNrPath="$DIR/ProteinDatabase/nr/nr"
+declare -a remainingRemoteDataBases=()
+for DB in "${RemoteDataBases[@]}"
+do
+	if [ "$localNr" == "--localNr" ] && [ "$DB" == "nr" ]
+	then
+		# blastdbcmd (rather than guessing file extensions ourselves)
+		# correctly resolves a BLAST database regardless of BLAST+
+		# version/on-disk format, and regardless of whether nr is split
+		# into multiple volumes (it will be, at this size).
+		if command -v blastdbcmd >/dev/null 2>&1 && blastdbcmd -db "$localNrPath" -info >/dev/null 2>&1
+		then
+			LocalDataBases+=("$localNrPath")
+		else
+			echo "--localNr was given but no local nr BLAST database was found at $localNrPath - falling back to remote nr" >&2
+			remainingRemoteDataBases+=("$DB")
+		fi
+	else
+		remainingRemoteDataBases+=("$DB")
+	fi
+done
+RemoteDataBases=("${remainingRemoteDataBases[@]}")
+
 # Each local database is built and then searched as its own background
 # chain, independent of the other one - uniprot_sprot's search can start
 # the moment uniprot_sprot is built, without waiting on uniprot_trembl
@@ -34,7 +67,7 @@ for DB in "${LocalDataBases[@]}"
 do
 	dbName=$(basename $DB)
 	(
-		if "$DIR/ProteinDatabase/get_uniprot_database.sh" "$dbName"
+		if [ "$dbName" == "nr" ] || "$DIR/ProteinDatabase/get_uniprot_database.sh" "$dbName"
 		then
 			"$DIR/00a_GetGenes.sh" $gene $DB
 		else

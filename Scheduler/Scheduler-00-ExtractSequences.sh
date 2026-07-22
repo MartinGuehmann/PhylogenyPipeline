@@ -80,6 +80,11 @@ do
             shift
             useFullDataset="--useFullDataset"
             ;;
+        --localNr)
+            ;&
+        -L)
+            localNr="--localNr"
+            ;;
         -*)
             ;&
         --*)
@@ -103,6 +108,7 @@ echo "shuffleSeqs:      $shuffleSeqs"      >&2
 echo "extension:        $extension"        >&2
 echo "trimAl:           $trimAl"           >&2
 echo "useFullDataset:   $useFullDataset"   >&2
+echo "localNr:          $localNr"          >&2
 echo "Note the script is copied to"        >&2
 echo "another place with another name"     >&2
 
@@ -143,7 +149,7 @@ fi
 cd $DIR
 
 # Align all the sequences
-jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "0" --hold)
+jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "0" --hold $localNr)
 echo $jobIDs
 holdJobs=$jobIDs
 
@@ -161,7 +167,7 @@ else
 	restartDepend="afternotok$holdJobs"
 	holdJobsExport=""
 fi
-"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl$holdJobsExport" -W "depend=$restartDepend" \
+"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl, localNr=$localNr$holdJobsExport" -W "depend=$restartDepend" \
     "$DIR/Scheduler-00-ExtractSequences.sh"
 
 if [ "$continue" == "--continue" ]

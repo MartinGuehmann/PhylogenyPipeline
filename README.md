@@ -236,6 +236,21 @@ If you want to use newer versions you have to delete them. The databases are in 
 
 The phylogeny pipeline also downloads the taxon database from NCBI. If you want to use a newer version just delete it. The files are in ./PhylogenyPipeline/SpeciesDatabase/.
 
+`nr` is normally searched remotely (`Databases.sh`'s `RemoteDataBases`),
+like `refseq_protein`/`tsa_nr` - unlike them, though, `nr`'s sheer
+breadth of homology can make NCBI kill a broad-homology gene's remote
+search outright (`CPU usage limit exceeded`, SIGXCPU), no matter how the
+search itself is tuned. If that's a problem, and you have ~200GB+ to
+spare, pass `--localNr`/`-L` (`RunAll.sh`, `Scheduler-Call.sh`,
+`Scheduler-00-ExtractSequences.sh`, or set `localNr=true` directly for
+`Scheduler/00_Scheduler-GetGenesFromAllDataBases.sh`) to step 0 to search
+a local copy instead - this pipeline doesn't fetch or update that copy
+itself, though. Build one with NCBI's own `update_blastdb.pl` (also handy
+for later incremental updates) into
+`./PhylogenyPipeline/ProteinDatabase/nr/nr`. Without `--localNr`, or if
+no local copy is found there, `nr` stays remote exactly as before -
+`--localNr` only ever narrows what's searched remotely, never widens it.
+
 ## User Account Information
 
 If you need to supply account information, when you start a job then go to file ./Scheduler/Account.sh and follow the comments given there. Note this is only implemented for Slurm, since no PBS-Pro is available for testing.
