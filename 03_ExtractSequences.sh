@@ -105,11 +105,21 @@ do
 		cat "$stderrFile" >&2
 		# efetch exits 0 even when it fails, so the exit code alone can't
 		# be trusted (same issue as blastp -remote elsewhere in this
-		# pipeline). A transport-level failure (e.g. a dropped connection)
-		# prints "ERROR:" to stderr; a data-level failure (e.g. an ID NCBI
-		# didn't recognize) prints "Error:" to stdout instead of any
-		# actual FASTA - check both rather than $?.
-		if ! grep -q "^ERROR:" "$stderrFile" && ! grep -q "^Error:" "$batchFile"
+		# pipeline). A data-level failure (e.g. an ID NCBI didn't
+		# recognize) prints "Error:" to stdout instead of any actual FASTA.
+		# For transport-level failures, nquire prints "ERROR: curl command
+		# failed" to stderr on *every* transient curl hiccup, even ones
+		# entrez-direct's own internal retry (ecommon.sh) then quietly
+		# recovers from - so grepping for that would flag almost every
+		# batch as failed. "QUERY FAILURE" is what ecommon.sh's retry loop
+		# prints instead, and only once, when all of its internal attempts
+		# are truly exhausted - confirmed 2026-07-22 via a real cluster run
+		# where one 8000-ID batch's internal sub-chunk hit exactly this
+		# after repeated empty results, dropping ~49 accessions from the
+		# output with no other signal (the previous check here,
+		# `grep -q "^ERROR:"`, never matches ecommon.sh's actual message,
+		# which has a leading space before "ERROR:").
+		if ! grep -q "QUERY FAILURE" "$stderrFile" && ! grep -q "^Error:" "$batchFile"
 		then
 			success="true"
 			break
