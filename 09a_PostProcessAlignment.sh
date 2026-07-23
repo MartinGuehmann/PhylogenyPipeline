@@ -52,5 +52,10 @@ sed -i -e 's/__/_/g' -e 's/[][]//g' "$reducedAlignmentFile"
 
 if [ ! -z "$trimal" ]
 then
-	"$DIR/../trimal/source/trimal" -in "$reducedAlignmentFile" -out "$reducedAlignmentFile" -gt "$trimal"
+	# Was a vendored, repo-relative binary ($DIR/../trimal/source/trimal)
+	# until 2026-07-23 - same class of bug as the old FAMSA path, and same
+	# fix: flake.nix's devShell already provides trimal directly (see
+	# README's "Installing prerequisites with Nix"), so no vendored copy
+	# is needed at all.
+	trimal -in "$reducedAlignmentFile" -out "$reducedAlignmentFile" -gt "$trimal"
 fi
