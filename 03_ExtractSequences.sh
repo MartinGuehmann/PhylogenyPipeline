@@ -76,6 +76,58 @@ IDs=($(sed -E "s/^ *[0-9]* //g" "$hits/$AllNCBI/SortedHitsByName.csv" | cut -f 1
 
 failed="false"
 
+# efetch (and blastdbcmd, for local nr below) return records from NCBI's
+# composite "sequences"/"nr" databases whose FASTA header embeds the
+# accession inside a pipe-delimited defline instead of using it as the
+# bare first token - e.g. UniProt records as `sp|ACC|NAME ...` or
+# `tr|ACC|NAME ...`, PDB chains as `pdb|ID|CHAIN ...`, PRF records as
+# `prf||ACC ...`. Matching/collecting IDs by the header's first
+# whitespace-delimited token (what `seqkit grep -f`/plain awk would do)
+# never matches the bare accession actually requested, so a hit that
+# fetched just fine gets silently dropped and misreported as permanently
+# unfetchable. Confirmed 2026-07-23 against live NCBI responses - these
+# two helpers normalize a header back to the requested ID's form for
+# every shape seen in practice. IDs from a *local* BLAST search (the
+# uniprot extraction above) don't need this: without -parse_seqids,
+# makeblastdb/blastp already report the raw first token verbatim as the
+# hit ID, so the ID list and the local FASTA headers already agree.
+extractRequestedRecords() {
+	local fastaFile="$1"
+	local idFile="$2"
+	awk -v idFile="$idFile" '
+		BEGIN {
+			while ((getline id < idFile) > 0) wanted[id] = 1
+		}
+		function normalize(id,    a) {
+			if (id ~ /^pdb\|[^|]+\|[^ \t]+/) {
+				split(id, a, "|")
+				return a[2] "_" a[3]
+			}
+			if (id ~ /^prf\|\|/) {
+				sub(/^prf\|\|/, "", id)
+				return id
+			}
+			if (id ~ /^[a-z]+\|[^|]+\|/) {
+				split(id, a, "|")
+				return a[2]
+			}
+			return id
+		}
+		/^>/ {
+			header = substr($0, 2)
+			sub(/[ \t].*/, "", header)
+			keep = (normalize(header) in wanted)
+		}
+		keep { print }
+	' "$fastaFile"
+}
+
+getNormalizedIDs() {
+	grep "^>" "$1" | sed 's/^>//' \
+		| sed -E 's/^pdb\|([^|]+)\|(\S+)/\1_\2/; s/^prf\|\|(\S+)/\1/; s/^[a-z]+\|([^|]+)\|.*/\1/' \
+		| awk '{print $1}'
+}
+
 # nr's hits are included above and would normally be fetched remotely via
 # efetch below like every other NCBI-sourced hit. But if step 0 searched
 # a local nr copy (--localNr) and it's still there, its sequences are
@@ -106,9 +158,9 @@ then
 			# missing/suppressed entry is reported per-ID on stderr, not
 			# as a nonzero exit - blastdbcmd still exits 0 overall and
 			# just skips it) and never blindly append its raw output
-			# either. seqkit grep -f keeps only genuine records for IDs
-			# actually asked for.
-			seqkit grep -j "$numTreads" -f "$nrIDsFile" "$nrRawFile" > "$nrGoodFile" 2>/dev/null
+			# either. extractRequestedRecords keeps only genuine records
+			# for IDs actually asked for.
+			extractRequestedRecords "$nrRawFile" "$nrIDsFile" > "$nrGoodFile"
 			cat "$nrGoodFile" >> $sequenceNCBIFile
 
 			# Anything blastdbcmd couldn't find locally (e.g. added to
@@ -116,7 +168,7 @@ then
 			# stays in $IDs below and gets the normal remote efetch
 			# treatment instead of being silently lost - only the IDs
 			# genuinely extracted here are removed from that pool.
-			fetchedNrIDs=$(grep "^>" "$nrGoodFile" | sed 's/^>//' | awk '{print $1}' | sort -u)
+			fetchedNrIDs=$(getNormalizedIDs "$nrGoodFile" | sort -u)
 			missingNrIDs=$(comm -23 <(sort -u "$nrIDsFile") <(echo "$fetchedNrIDs"))
 			if [ -n "$missingNrIDs" ]
 			then
@@ -181,16 +233,16 @@ do
 		# the whole request (it exits 0 even when it fails, and a
 		# data-level failure can print a literal "Error: ..." line to
 		# stdout instead of a record) and never blindly append its raw
-		# stdout either. seqkit grep -f keeps only genuine records for
-		# IDs actually asked for, so a stray error line or anything else
+		# stdout either. extractRequestedRecords keeps only genuine records
+		# for IDs actually asked for, so a stray error line or anything else
 		# is dropped instead of corrupting the real output file.
 		printf '%s\n' "${remainingIDs[@]}" > "$requestedFile"
-		seqkit grep -j "$numTreads" -f "$requestedFile" "$batchFile" > "$goodFile" 2>/dev/null
+		extractRequestedRecords "$batchFile" "$requestedFile" > "$goodFile"
 		cat "$goodFile" >> $sequenceNCBIFile
 
 		# Whatever ID isn't among what was actually fetched this attempt
 		# is what still needs retrying - not the whole batch.
-		fetchedIDs=$(grep "^>" "$goodFile" | sed 's/^>//' | awk '{print $1}' | sort -u)
+		fetchedIDs=$(getNormalizedIDs "$goodFile" | sort -u)
 		mapfile -t remainingIDs < <(comm -23 <(sort -u "$requestedFile") <(echo "$fetchedIDs"))
 
 		rm -f "$batchFile" "$stderrFile" "$requestedFile" "$goodFile"
