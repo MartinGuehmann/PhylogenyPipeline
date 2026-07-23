@@ -8,11 +8,15 @@
 # does not fail the step over it - anything failing that ISN'T in this
 # list still fails the step normally.
 #
-# Only add an ID after personally confirming this exact failure mode.
+# 03_ExtractSequences.sh now appends to this file itself: once an ID
+# survives the full retry loop, it runs this same curl check (via
+# isConfirmedDead) and only auto-adds an ID here if NCBI's backend gives
+# that exact "Failed to retrieve sequence" response - never just because
+# retries ran out. Entries added by hand should hold to the same bar.
 # Retries exhausted after a bad network stretch is NOT the same thing -
-# adding those here would silently treat genuinely fetchable IDs as
-# permanent failures forever. When in doubt, leave it out; a real
-# failure still gets retried and reported the normal way.
+# treating that as permanent would silently treat genuinely fetchable
+# IDs as dead forever. When in doubt, leave it out; a real failure still
+# gets retried and reported the normal way.
 #
 # One accession per line. Blank lines and lines starting with # are
 # ignored.

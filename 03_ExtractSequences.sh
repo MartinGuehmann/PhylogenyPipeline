@@ -153,6 +153,32 @@ getNormalizedIDs() {
 		| awk '{print $1}'
 }
 
+# nquire (used internally by efetch) passes curl -f, which discards the
+# response body on any non-2xx HTTP status - so a genuinely withdrawn/
+# suppressed record's real reason ("Failed to retrieve sequence: <ID>",
+# NCBI's own backend wording, confirmed 2026-07-22/23) never surfaces
+# through the normal retry loop below; it just looks like the same
+# generic failure as a transient network hiccup. A raw curl bypassing -f
+# exposes it directly. Only ever called for the handful of IDs that
+# survive the full retry loop below, so a few extra requests here is
+# cheap; its own small retry budget guards against mistaking a
+# coincidental transient failure on this check itself for confirmation.
+isConfirmedDead() {
+	local id="$1"
+	local attempt
+	for ((attempt = 0; attempt < 3; attempt++))
+	do
+		if curl -s -X POST "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi" \
+			-d "db=sequences&id=$id&rettype=fasta&retmode=text&tool=edirect&email=$(whoami)%40$(hostname)" \
+			2>/dev/null | grep -q "Failed to retrieve sequence: $id"
+		then
+			return 0
+		fi
+		sleep 5
+	done
+	return 1
+}
+
 # nr's hits are included above and would normally be fetched remotely via
 # efetch below like every other NCBI-sourced hit. But if this gene's run
 # asked for a local nr copy (--localNr) and get_nr_database.sh above
@@ -302,8 +328,38 @@ do
 
 		if [ -n "$unexplainedRemaining" ]
 		then
-			echo "efetch permanently failed for unexpected ID(s) in batch $i..$((i + range - 1)) after $maxTrials trials: $(echo "$unexplainedRemaining" | tr '\n' ' ')" >&2
-			failed="true"
+			newlyConfirmedDead=()
+			stillUnexplained=()
+			while IFS= read -r id
+			do
+				[ -z "$id" ] && continue
+				if isConfirmedDead "$id"
+				then
+					newlyConfirmedDead+=("$id")
+				else
+					stillUnexplained+=("$id")
+				fi
+			done <<< "$unexplainedRemaining"
+
+			if [ ${#newlyConfirmedDead[@]} -gt 0 ]
+			then
+				echo "efetch permanently failed for newly-confirmed-dead ID(s) (auto-added to KnownDeadAccessions.txt, not treated as a failure) in batch $i..$((i + range - 1)) after $maxTrials trials: ${newlyConfirmedDead[*]}" >&2
+				(
+					flock -x 201
+					{
+						echo ""
+						echo "# Auto-confirmed dead $(date -I) ($gene, efetch's own \"Failed to retrieve sequence\" response)"
+						printf '%s\n' "${newlyConfirmedDead[@]}"
+					} >> "$knownDeadFile"
+				) 201>"$knownDeadFile.lock"
+				knownDeadIDs=$(printf '%s\n%s\n' "$knownDeadIDs" "${newlyConfirmedDead[*]}" | tr ' ' '\n' | sort -u)
+			fi
+
+			if [ ${#stillUnexplained[@]} -gt 0 ]
+			then
+				echo "efetch permanently failed for unexpected ID(s) in batch $i..$((i + range - 1)) after $maxTrials trials: ${stillUnexplained[*]}" >&2
+				failed="true"
+			fi
 		fi
 	fi
 
