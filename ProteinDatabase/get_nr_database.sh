@@ -26,6 +26,15 @@ cd "$DIR/$database"
 (
 flock -x 200
 
+# Exit code contract for callers: 0 = a usable local database is ready.
+# 1 = a genuinely broken environment (blastdbcmd itself missing) - this
+# would also break local uniprot searches and every blastp call in this
+# pipeline, so it's worth failing the whole run over, not just nr. 2 = nr
+# specifically couldn't be fetched/built (missing update_blastdb.pl, a
+# failed download, or a still-invalid result afterward) - unlike
+# blastdbcmd, a working remote nr search doesn't depend on any of this,
+# so callers should treat this as "fall back to remote nr for this run"
+# rather than failing outright.
 if ! command -v blastdbcmd >/dev/null 2>&1
 then
 	echo "blastdbcmd not found - cannot check for or use a local $database database" >&2
@@ -42,7 +51,7 @@ then
 	if ! command -v update_blastdb.pl >/dev/null 2>&1
 	then
 		echo "update_blastdb.pl not found - cannot download $database" >&2
-		exit 1
+		exit 2
 	fi
 
 	# update_blastdb.pl downloads NCBI's pre-formatted database volumes
@@ -52,13 +61,13 @@ then
 	if ! update_blastdb.pl --decompress "$database"
 	then
 		echo "update_blastdb.pl failed to fetch $database" >&2
-		exit 1
+		exit 2
 	fi
 
 	if ! blastdbcmd -db "$database" -info >/dev/null 2>&1
 	then
 		echo "$database was downloaded but is still not a valid BLAST database" >&2
-		exit 1
+		exit 2
 	fi
 fi
 ) 200>"$database.lock"

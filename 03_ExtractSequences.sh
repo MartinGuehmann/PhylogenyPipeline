@@ -30,10 +30,25 @@ fi
 # unlike the uniprot databases, it's opt-in given its size (see
 # get_nr_database.sh). Downloads/builds it once if it isn't there yet and
 # reuses it across runs after that, exactly like the uniprot databases.
-if [ "$localNr" == "--localNr" ] && ! "$DIR/ProteinDatabase/get_nr_database.sh"
+# See get_nr_database.sh's exit code contract: 2 means nr specifically
+# couldn't be fetched/built, which just falls back to the normal remote
+# efetch pool below for nr's hits instead of failing the whole step -
+# unlike a genuinely broken environment (1), which still does.
+attemptLocalNr="false"
+if [ "$localNr" == "--localNr" ]
 then
-	echo "Failed to get/build the local nr database" >&2
-	exit 1
+	"$DIR/ProteinDatabase/get_nr_database.sh"
+	nrStatus=$?
+	if [ $nrStatus -eq 0 ]
+	then
+		attemptLocalNr="true"
+	elif [ $nrStatus -eq 2 ]
+	then
+		echo "--localNr was given but the local nr database could not be fetched/built - falling back to remote efetch for nr hits" >&2
+	else
+		echo "Failed to get/build the local nr database" >&2
+		exit 1
+	fi
 fi
 
 source "$DIR/Databases.sh"
@@ -140,14 +155,14 @@ getNormalizedIDs() {
 
 # nr's hits are included above and would normally be fetched remotely via
 # efetch below like every other NCBI-sourced hit. But if this gene's run
-# asked for a local nr copy (--localNr), get_nr_database.sh above has
-# already made sure it's there - its sequences are already sitting right
-# on disk, so pull nr's IDs out of the efetch pool and extract them
-# directly with blastdbcmd instead, entirely avoiding NCBI's efetch
-# service (and its own separate flakiness - see the retry hardening
-# below) for however many of this gene's hits came from nr.
+# asked for a local nr copy (--localNr) and get_nr_database.sh above
+# confirmed it's there, its sequences are already sitting right on disk,
+# so pull nr's IDs out of the efetch pool and extract them directly with
+# blastdbcmd instead, entirely avoiding NCBI's efetch service (and its own
+# separate flakiness - see the retry hardening below) for however many of
+# this gene's hits came from nr.
 localNrPath="$DIR/ProteinDatabase/nr/nr"
-if [ "$localNr" == "--localNr" ]
+if [ "$attemptLocalNr" == "true" ]
 then
 	nrHitsFile="$hits/nr/SortedHitsByName.csv"
 	if [ -f "$nrHitsFile" ]

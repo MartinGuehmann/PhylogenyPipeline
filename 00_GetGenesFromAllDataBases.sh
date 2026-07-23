@@ -57,16 +57,36 @@ do
 	(
 		if [ "$dbName" == "nr" ]
 		then
-			getScript="$DIR/ProteinDatabase/get_nr_database.sh"
+			"$DIR/ProteinDatabase/get_nr_database.sh"
+			nrStatus=$?
+			if [ $nrStatus -eq 0 ]
+			then
+				"$DIR/00a_GetGenes.sh" $gene $DB
+			elif [ $nrStatus -eq 2 ]
+			then
+				# nr specifically couldn't be fetched/built (see
+				# get_nr_database.sh's exit code contract) - a working
+				# remote nr search doesn't depend on any of that, so fall
+				# back to it here instead of failing the whole run. This
+				# can rarely run concurrently with the sequential remote
+				# loop below (its own blastp -remote call, plus this
+				# one) - acceptable since it only happens on this
+				# failure path, unlike the deliberate one-at-a-time
+				# sequencing below.
+				echo "--localNr was given but the local nr database could not be fetched/built - falling back to remote nr for this run" >&2
+				"$DIR/00a_GetGenes.sh" $gene nr
+			else
+				echo "Failed to get/build nr" >&2
+				exit 1
+			fi
 		else
-			getScript="$DIR/ProteinDatabase/get_uniprot_database.sh"
-		fi
-		if "$getScript" "$dbName"
-		then
-			"$DIR/00a_GetGenes.sh" $gene $DB
-		else
-			echo "Failed to get/build $dbName" >&2
-			exit 1
+			if "$DIR/ProteinDatabase/get_uniprot_database.sh" "$dbName"
+			then
+				"$DIR/00a_GetGenes.sh" $gene $DB
+			else
+				echo "Failed to get/build $dbName" >&2
+				exit 1
+			fi
 		fi
 	) &
 	pids+=($!)
