@@ -1,0 +1,100 @@
+# Accessions confirmed to be permanently unfetchable from NCBI - not a
+# transient network/server issue. Confirmed by querying NCBI's
+# efetch.fcgi directly via curl (bypassing nquire's -f flag, which
+# suppresses the response body on non-2xx status): NCBI's own backend
+# explicitly returns "Failed to retrieve sequence: <ID>" for these
+# (withdrawn/suppressed/superseded records), not a timeout/connection
+# error. 03_ExtractSequences.sh treats a failure here as expected and
+# does not fail the step over it - anything failing that ISN'T in this
+# list still fails the step normally.
+#
+# Only add an ID after personally confirming this exact failure mode.
+# Retries exhausted after a bad network stretch is NOT the same thing -
+# adding those here would silently treat genuinely fetchable IDs as
+# permanent failures forever. When in doubt, leave it out; a real
+# failure still gets retried and reported the normal way.
+#
+# One accession per line. Blank lines and lines starting with # are
+# ignored.
+
+# TSA series confirmed dead 2026-07-22/23 (Mas1 run) - NCBI backend
+# explicitly reports "Failed to retrieve sequence" for each of these.
+GAC2890548.1
+GAC2892857.1
+GAC2893134.1
+GAC2893210.1
+GAC2893211.1
+GAC2893465.1
+GAC2894104.1
+GAC2895734.1
+GAC2896344.1
+GAC2897467.1
+GAC2897554.1
+GAC2898043.1
+GAC2900201.1
+GAC2900826.1
+GAC2901916.1
+GAC2901943.1
+GAC2902505.1
+GAC2902561.1
+GAC2902591.1
+GAC2904305.1
+GAC2904945.1
+GAC2906071.1
+GAC2906824.1
+GAC2908441.1
+GAC3112338.1
+GAC3115292.1
+GAC3116836.1
+GAC3116853.1
+GAC3121131.1
+GAC3122815.1
+GAC3126933.1
+GAC3128296.1
+GAC3130644.1
+GAC3131913.1
+GAC3132936.1
+GAC3134150.1
+GAC3134476.1
+GAC3137805.1
+GAC3137807.1
+GAC3140192.1
+GAC3141194.1
+GAC3142702.1
+GAC3145152.1
+GAC3148999.1
+GAC3149174.1
+GAC3149698.1
+GAC3149870.1
+GAC3151875.1
+GAC3152197.1
+GAC3152520.1
+GAC3165051.1
+GAC3169852.1
+GAC3170125.1
+GAC3171736.1
+GAC3171772.1
+GAC3172143.1
+GAC3172195.1
+GAC3175563.1
+GAC3175730.1
+GAC3176821.1
+GAC3176903.1
+GAC3177364.1
+GAC3177365.1
+GAC3177366.1
+GAC3177367.1
+GAC3177886.1
+GAC3178265.1
+GAC3179117.1
+GAC3179294.1
+GAC3179563.1
+GAC3180793.1
+GAC3181602.1
+GAC3183216.1
+GAC3183997.1
+GAC3183998.1
+GAC3183999.1
+GAC3184000.1
+GAC3184001.1
+GAC3184825.1

@@ -214,6 +214,17 @@ numIDs=${#IDs[@]}
 range=8000
 i=0
 
+# Some IDs (e.g. withdrawn/suppressed TSA records) are permanently gone
+# from NCBI, not just transiently unreachable - see
+# KnownDeadAccessions.txt for how an ID earns a place here. A batch still
+# failing on exactly these after retries is expected, not a run failure;
+# this pipeline is meant to run unattended via the Scheduler's afterok
+# chain, so treating an unfixable, already-confirmed case as a step
+# failure would just block step 4 forever for no reason. Anything NOT in
+# this list still fails the step normally.
+knownDeadFile="$DIR/KnownDeadAccessions.txt"
+knownDeadIDs=$(grep -v '^#' "$knownDeadFile" 2>/dev/null | grep -v '^[[:space:]]*$' | sort -u)
+
 while [ $i -lt $numIDs ]
 do
 	# A whole batch's efetch call can come back "failed" (non-zero exit,
@@ -280,8 +291,20 @@ do
 
 	if [ ${#remainingIDs[@]} -gt 0 ]
 	then
-		echo "efetch permanently failed for ${#remainingIDs[@]} ID(s) in batch $i..$((i + range - 1)) after $maxTrials trials: ${remainingIDs[*]}" >&2
-		failed="true"
+		sortedRemaining=$(printf '%s\n' "${remainingIDs[@]}" | sort -u)
+		deadRemaining=$(comm -12 <(echo "$sortedRemaining") <(echo "$knownDeadIDs"))
+		unexplainedRemaining=$(comm -23 <(echo "$sortedRemaining") <(echo "$knownDeadIDs"))
+
+		if [ -n "$deadRemaining" ]
+		then
+			echo "efetch permanently failed for known-dead ID(s) (see KnownDeadAccessions.txt, not treated as a failure) in batch $i..$((i + range - 1)) after $maxTrials trials: $(echo "$deadRemaining" | tr '\n' ' ')" >&2
+		fi
+
+		if [ -n "$unexplainedRemaining" ]
+		then
+			echo "efetch permanently failed for unexpected ID(s) in batch $i..$((i + range - 1)) after $maxTrials trials: $(echo "$unexplainedRemaining" | tr '\n' ' ')" >&2
+			failed="true"
+		fi
 	fi
 
 	let i+=range
