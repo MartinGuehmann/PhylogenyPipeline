@@ -248,7 +248,11 @@ i=0
 # chain, so treating an unfixable, already-confirmed case as a step
 # failure would just block step 4 forever for no reason. Anything NOT in
 # this list still fails the step normally.
-knownDeadFile="$DIR/KnownDeadAccessions.txt"
+#
+# Lives in the gene's own repo ($gene, not this pipeline's), since which
+# accessions are dead is a property of that gene's search results, not
+# of the pipeline itself - different genes' hit sets don't share it.
+knownDeadFile="$DIR/$gene/KnownDeadAccessions.txt"
 knownDeadIDs=$(grep -v '^#' "$knownDeadFile" 2>/dev/null | grep -v '^[[:space:]]*$' | sort -u)
 
 while [ $i -lt $numIDs ]
