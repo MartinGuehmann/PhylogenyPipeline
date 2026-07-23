@@ -47,7 +47,13 @@ fi
 mkdir -p $alignmentDir
 
 # Align the sequences with FAMSA
-famsa -fr -t $numTreads $inputSequences $outFile >&2 # Actually this does not put anything to stdout, but just to have it like the others
+# -fr (force refinement regardless of set size) was renamed to
+# -refine_mode on in FAMSA 2.x - confirmed 2026-07-23 via famsa -help on
+# the cluster: -fr doesn't exist in 2.5.2 at all (it errored trying to
+# open "-fr" as a file), and -refine_mode's own default ("auto") exactly
+# matches the old pre-fr default this flag was written to override
+# (refinement disabled for sets > 1000 seq.).
+famsa -refine_mode on -t $numTreads $inputSequences $outFile >&2 # Actually this does not put anything to stdout, but just to have it like the others
 
 # This must be the only stuff that goes to stdout here, since we use this as a return value
 echo "$outFile"
