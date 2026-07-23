@@ -18,4 +18,6 @@ alignmentToUse=$(cut -d " " -f $("$DIR/Scheduler-GetArrayIndex.sh") $alignmentFi
 
 date >&2
 time "$DIR/../RunAll.sh" -g "$gene" -s "15" -f "$alignmentToUse"
+status=$?
 date >&2
+exit $status

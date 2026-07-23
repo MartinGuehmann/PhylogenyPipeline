@@ -22,4 +22,6 @@ fi
 
 date >&2
 time "$DIR/../RunAll.sh" -g "$gene" -s "9" -i "$iteration" -a "VCMSA" -f "$seqsToAlign" $suffix $previousAligner $trimAl
+status=$?
 date >&2
+exit $status

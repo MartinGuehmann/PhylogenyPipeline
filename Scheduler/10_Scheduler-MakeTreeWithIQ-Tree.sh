@@ -21,4 +21,6 @@ fi
 
 date >&2
 time "$DIR/../RunAll.sh" -g "$gene" -s "10" -i "$iteration" -a "$aligner" -f "$alignmentToUse" $suffix $previousAligner
+status=$?
 date >&2
+exit $status

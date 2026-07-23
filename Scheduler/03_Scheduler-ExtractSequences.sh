@@ -38,4 +38,6 @@ localNrFlag=""
 
 date >&2
 time "$DIR/../RunAll.sh" -g "$gene" -s "3" $localNrFlag
+status=$?
 date >&2
+exit $status

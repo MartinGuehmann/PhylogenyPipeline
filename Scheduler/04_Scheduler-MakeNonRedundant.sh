@@ -16,4 +16,6 @@ fi
 
 date >&2
 time "$DIR/../RunAll.sh" -g "$gene" -s "4"
+status=$?
 date >&2
+exit $status

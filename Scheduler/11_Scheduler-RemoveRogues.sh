@@ -18,4 +18,6 @@ fi
 
 date >&2
 time "$DIR/../RunAll.sh" -g "$gene" -s "11" -i "$iteration" -a "$aligner" $shuffleSeqs $suffix $previousAligner $restore
+status=$?
 date >&2
+exit $status
