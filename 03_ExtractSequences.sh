@@ -179,6 +179,9 @@ then
 			rm -f "$nrIDsFile" "$nrRawFile" "$nrGoodFile"
 		fi
 	fi
+elif [ "$localNr" == "--localNr" ]
+then
+	echo "--localNr was given but no local nr BLAST database was found at $localNrPath - falling back to remote efetch for nr hits" >&2
 fi
 
 numIDs=${#IDs[@]}
