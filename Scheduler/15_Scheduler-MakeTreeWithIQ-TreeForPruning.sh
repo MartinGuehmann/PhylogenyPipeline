@@ -19,5 +19,6 @@ alignmentToUse=$(cut -d " " -f $("$DIR/Scheduler-GetArrayIndex.sh") $alignmentFi
 date >&2
 time "$DIR/../RunAll.sh" -g "$gene" -s "15" -f "$alignmentToUse"
 status=$?
+sstat -j "$SLURM_JOB_ID" --format=JobID,MaxRSS,AveCPU,MaxVMSize -n 2>&1 >&2
 date >&2
 exit $status

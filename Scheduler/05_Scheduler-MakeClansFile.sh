@@ -17,6 +17,7 @@ fi
 date >&2
 time "$DIR/../RunAll.sh" -g "$gene" -s "5"
 status=$?
+sstat -j "$SLURM_JOB_ID" --format=JobID,MaxRSS,AveCPU,MaxVMSize -n 2>&1 >&2
 date >&2
 exit $status
 
