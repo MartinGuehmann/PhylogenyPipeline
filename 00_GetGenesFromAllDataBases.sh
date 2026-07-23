@@ -27,29 +27,17 @@ declare -a dbNames=()
 # nr is normally searched remotely (see Databases.sh) - NCBI's own CPU
 # quota can kill a broad-homology gene's remote search outright (SIGXCPU),
 # and the remote path is generally more fragile than a local one. If
-# --localNr was passed and a local copy exists, search that copy instead,
-# pulled out of RemoteDataBases below. No build/download step here unlike
-# the uniprot databases above: a local nr copy is 200+GB and expected to
-# be fetched and kept updated separately (e.g. via NCBI's own
-# update_blastdb.pl, run manually or as its own cron job), not managed by
-# this pipeline.
+# --localNr was passed, search a local copy instead, pulled out of
+# RemoteDataBases below and treated just like the uniprot databases: the
+# build loop further down fetches it (via get_nr_database.sh) if it isn't
+# there yet, once, and reuses it across runs after that.
 localNrPath="$DIR/ProteinDatabase/nr/nr"
 declare -a remainingRemoteDataBases=()
 for DB in "${RemoteDataBases[@]}"
 do
 	if [ "$localNr" == "--localNr" ] && [ "$DB" == "nr" ]
 	then
-		# blastdbcmd (rather than guessing file extensions ourselves)
-		# correctly resolves a BLAST database regardless of BLAST+
-		# version/on-disk format, and regardless of whether nr is split
-		# into multiple volumes (it will be, at this size).
-		if command -v blastdbcmd >/dev/null 2>&1 && blastdbcmd -db "$localNrPath" -info >/dev/null 2>&1
-		then
-			LocalDataBases+=("$localNrPath")
-		else
-			echo "--localNr was given but no local nr BLAST database was found at $localNrPath - falling back to remote nr" >&2
-			remainingRemoteDataBases+=("$DB")
-		fi
+		LocalDataBases+=("$localNrPath")
 	else
 		remainingRemoteDataBases+=("$DB")
 	fi
@@ -67,7 +55,13 @@ for DB in "${LocalDataBases[@]}"
 do
 	dbName=$(basename $DB)
 	(
-		if [ "$dbName" == "nr" ] || "$DIR/ProteinDatabase/get_uniprot_database.sh" "$dbName"
+		if [ "$dbName" == "nr" ]
+		then
+			getScript="$DIR/ProteinDatabase/get_nr_database.sh"
+		else
+			getScript="$DIR/ProteinDatabase/get_uniprot_database.sh"
+		fi
+		if "$getScript" "$dbName"
 		then
 			"$DIR/00a_GetGenes.sh" $gene $DB
 		else
