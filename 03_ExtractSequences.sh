@@ -26,6 +26,16 @@ then
 	exit 1
 fi
 
+# Same idea for nr, but only if this gene's run actually asked for it -
+# unlike the uniprot databases, it's opt-in given its size (see
+# get_nr_database.sh). Downloads/builds it once if it isn't there yet and
+# reuses it across runs after that, exactly like the uniprot databases.
+if [ "$localNr" == "--localNr" ] && ! "$DIR/ProteinDatabase/get_nr_database.sh"
+then
+	echo "Failed to get/build the local nr database" >&2
+	exit 1
+fi
+
 source "$DIR/Databases.sh"
 
 AllNCBI="All"
@@ -129,17 +139,15 @@ getNormalizedIDs() {
 }
 
 # nr's hits are included above and would normally be fetched remotely via
-# efetch below like every other NCBI-sourced hit. But if step 0 searched
-# a local nr copy (--localNr) and it's still there, its sequences are
-# already sitting right on disk - pull nr's IDs out of the efetch pool
-# and extract them directly with blastdbcmd instead, entirely avoiding
-# NCBI's efetch service (and its own separate flakiness - see the retry
-# hardening below) for however many of this gene's hits came from nr. If
-# the local copy isn't there anymore for whatever reason, this is a no-op
-# and those IDs simply stay in the efetch pool below as they would
-# without --localNr.
+# efetch below like every other NCBI-sourced hit. But if this gene's run
+# asked for a local nr copy (--localNr), get_nr_database.sh above has
+# already made sure it's there - its sequences are already sitting right
+# on disk, so pull nr's IDs out of the efetch pool and extract them
+# directly with blastdbcmd instead, entirely avoiding NCBI's efetch
+# service (and its own separate flakiness - see the retry hardening
+# below) for however many of this gene's hits came from nr.
 localNrPath="$DIR/ProteinDatabase/nr/nr"
-if [ "$localNr" == "--localNr" ] && command -v blastdbcmd >/dev/null 2>&1 && blastdbcmd -db "$localNrPath" -info >/dev/null 2>&1
+if [ "$localNr" == "--localNr" ]
 then
 	nrHitsFile="$hits/nr/SortedHitsByName.csv"
 	if [ -f "$nrHitsFile" ]
@@ -179,9 +187,6 @@ then
 			rm -f "$nrIDsFile" "$nrRawFile" "$nrGoodFile"
 		fi
 	fi
-elif [ "$localNr" == "--localNr" ]
-then
-	echo "--localNr was given but no local nr BLAST database was found at $localNrPath - falling back to remote efetch for nr hits" >&2
 fi
 
 numIDs=${#IDs[@]}
