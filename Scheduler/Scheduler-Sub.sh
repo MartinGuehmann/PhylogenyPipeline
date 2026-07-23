@@ -218,8 +218,19 @@ then
 	fi
 
 	# %j is resolved by Slurm itself once the job is queued, so unlike the
-	# PBS branch above, the job ID can go first in the filename here.
-	logOptions="--output=$logDir/%j_$scriptName.out --error=$logDir/%j_$scriptName.err"
+	# PBS branch above, the job ID can go first in the filename here. For
+	# an array job (-J/--range set $range above), %j resolves per task to
+	# each task's own individually-allocated raw job ID - a different
+	# number than the "<ArrayJobID>_<ArrayTaskID>" form squeue/mqueue show
+	# for that same task (e.g. "8468559_1"), making the log impossible to
+	# find from the queue listing alone. %A_%a matches that display form
+	# exactly, so use it whenever this is an array submission.
+	if [ -n "$range" ]
+	then
+		logOptions="--output=$logDir/%A_%a_$scriptName.out --error=$logDir/%A_%a_$scriptName.err"
+	else
+		logOptions="--output=$logDir/%j_$scriptName.out --error=$logDir/%j_$scriptName.err"
+	fi
 
 	jobID=$(sbatch --kill-on-invalid-dep=yes $hold $account $depend $range $resources $logOptions $exportFlag"$export" $script)
 	echo ${jobID##* }
