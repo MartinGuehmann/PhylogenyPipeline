@@ -10,7 +10,7 @@ done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 gene="$1"
-localNr="$2"
+localDatabases="$2"
 
 if [ -z "$gene" ]
 then
@@ -26,30 +26,37 @@ then
 	exit 1
 fi
 
-# Same idea for nr, but only if this gene's run actually asked for it -
-# unlike the uniprot databases, it's opt-in given its size (see
-# get_nr_database.sh). Downloads/builds it once if it isn't there yet and
-# reuses it across runs after that, exactly like the uniprot databases.
-# See get_nr_database.sh's exit code contract: 2 means nr specifically
-# couldn't be fetched/built, which just falls back to the normal remote
-# efetch pool below for nr's hits instead of failing the whole step -
-# unlike a genuinely broken environment (1), which still does.
-attemptLocalNr="false"
-if [ "$localNr" == "--localNr" ]
-then
-	"$DIR/ProteinDatabase/get_nr_database.sh"
-	nrStatus=$?
-	if [ $nrStatus -eq 0 ]
+# Same idea for any NCBI database in $localDatabases (a colon-separated
+# list of Databases.sh's RemoteDataBases names, e.g. "nr:refseq_protein" -
+# colon-, not comma-separated, since this reaches this script via Slurm's
+# --export=Var1=Val1,Var2=Val2, which already uses comma to separate
+# different variables), but only for whichever ones this gene's run
+# actually asked for - unlike the uniprot databases, it's opt-in given
+# their size (see get_ncbi_blastdb.sh). Downloads/builds each once if it
+# isn't there yet and reuses it across runs after that, exactly like the
+# uniprot databases. See get_ncbi_blastdb.sh's exit code contract: 2
+# means that database specifically couldn't be fetched/built, which just
+# falls back to the normal remote efetch pool below for its hits instead
+# of failing the whole step - unlike a genuinely broken environment (1),
+# which still does.
+builtLocalDatabases=""
+IFS=':' read -ra requestedLocalDatabases <<< "$localDatabases"
+for db in "${requestedLocalDatabases[@]}"
+do
+	[ -z "$db" ] && continue
+	"$DIR/ProteinDatabase/get_ncbi_blastdb.sh" "$db"
+	dbStatus=$?
+	if [ $dbStatus -eq 0 ]
 	then
-		attemptLocalNr="true"
-	elif [ $nrStatus -eq 2 ]
+		builtLocalDatabases="${builtLocalDatabases:+$builtLocalDatabases:}$db"
+	elif [ $dbStatus -eq 2 ]
 	then
-		echo "--localNr was given but the local nr database could not be fetched/built - falling back to remote efetch for nr hits" >&2
+		echo "$db was opted into localDatabases but could not be fetched/built locally - falling back to remote efetch for its hits" >&2
 	else
-		echo "Failed to get/build the local nr database" >&2
+		echo "Failed to get/build the local $db database" >&2
 		exit 1
 	fi
-fi
+done
 
 source "$DIR/Databases.sh"
 
@@ -77,7 +84,7 @@ rm -f $sequenceNCBIFile
 rm -f $sequenceFileBase*".fasta"
 rm -f $sequenceNCBIFileBase*".fasta"
 rm -f "$sequences"/efetch_batch_*.fasta "$sequences"/efetch_batch_*.stderr "$sequences"/efetch_batch_*.requested
-rm -f "$sequences"/nr_ids.txt "$sequences"/nr_local.fasta "$sequences"/nr_local.good.fasta
+rm -f "$sequences"/*.local_ids.txt "$sequences"/*.local.fasta "$sequences"/*.local.good.fasta
 rm -f "$sequences"/*.raw.fasta
 
 # efetch (and blastdbcmd, both for local nr and - since
@@ -202,28 +209,29 @@ isConfirmedDead() {
 	return 1
 }
 
-# nr's hits are included above and would normally be fetched remotely via
-# efetch below like every other NCBI-sourced hit. But if this gene's run
-# asked for a local nr copy (--localNr) and get_nr_database.sh above
-# confirmed it's there, its sequences are already sitting right on disk,
-# so pull nr's IDs out of the efetch pool and extract them directly with
-# blastdbcmd instead, entirely avoiding NCBI's efetch service (and its own
-# separate flakiness - see the retry hardening below) for however many of
-# this gene's hits came from nr.
-localNrPath="$DIR/ProteinDatabase/nr/nr"
-if [ "$attemptLocalNr" == "true" ]
-then
-	nrHitsFile="$hits/nr/SortedHitsByName.csv"
-	if [ -f "$nrHitsFile" ]
+# Any database in $builtLocalDatabases above has its hits included in
+# $IDs and would normally be fetched remotely via efetch below like every
+# other NCBI-sourced hit. But its sequences are already sitting right on
+# disk, so pull its IDs out of the efetch pool and extract them directly
+# with blastdbcmd instead, entirely avoiding NCBI's efetch service (and
+# its own separate flakiness - see the retry hardening below) for however
+# many of this gene's hits came from it.
+IFS=':' read -ra confirmedLocalDatabases <<< "$builtLocalDatabases"
+for db in "${confirmedLocalDatabases[@]}"
+do
+	[ -z "$db" ] && continue
+	dbPath="$DIR/ProteinDatabase/$db/$db"
+	dbHitsFile="$hits/$db/SortedHitsByName.csv"
+	if [ -f "$dbHitsFile" ]
 	then
-		nrIDs=($(sed -E "s/^ *[0-9]* //g" "$nrHitsFile" | cut -f 1 | sort -u))
-		if [ ${#nrIDs[@]} -gt 0 ]
+		dbIDs=($(sed -E "s/^ *[0-9]* //g" "$dbHitsFile" | cut -f 1 | sort -u))
+		if [ ${#dbIDs[@]} -gt 0 ]
 		then
-			nrIDsFile="$sequences/nr_ids.txt"
-			nrRawFile="$sequences/nr_local.fasta"
-			nrGoodFile="$sequences/nr_local.good.fasta"
-			printf '%s\n' "${nrIDs[@]}" > "$nrIDsFile"
-			blastdbcmd -db "$localNrPath" -entry_batch "$nrIDsFile" -outfmt "%f" > "$nrRawFile"
+			dbIDsFile="$sequences/$db.local_ids.txt"
+			dbRawFile="$sequences/$db.local.fasta"
+			dbGoodFile="$sequences/$db.local.good.fasta"
+			printf '%s\n' "${dbIDs[@]}" > "$dbIDsFile"
+			blastdbcmd -db "$dbPath" -entry_batch "$dbIDsFile" -outfmt "%f" > "$dbRawFile"
 
 			# Same reasoning as the efetch loop below: never trust
 			# blastdbcmd's exit code as pass/fail for the whole batch (a
@@ -232,26 +240,26 @@ then
 			# just skips it) and never blindly append its raw output
 			# either. extractRequestedRecords keeps only genuine records
 			# for IDs actually asked for.
-			extractRequestedRecords "$nrRawFile" "$nrIDsFile" > "$nrGoodFile"
-			cat "$nrGoodFile" >> $sequenceNCBIFile
+			extractRequestedRecords "$dbRawFile" "$dbIDsFile" > "$dbGoodFile"
+			cat "$dbGoodFile" >> $sequenceNCBIFile
 
 			# Anything blastdbcmd couldn't find locally (e.g. added to
-			# NCBI's real nr after this local copy was last updated)
-			# stays in $IDs below and gets the normal remote efetch
-			# treatment instead of being silently lost - only the IDs
-			# genuinely extracted here are removed from that pool.
-			fetchedNrIDs=$(getNormalizedIDs "$nrGoodFile" | sort -u)
-			missingNrIDs=$(comm -23 <(sort -u "$nrIDsFile") <(echo "$fetchedNrIDs"))
-			if [ -n "$missingNrIDs" ]
+			# NCBI's real database after this local copy was last
+			# updated) stays in $IDs below and gets the normal remote
+			# efetch treatment instead of being silently lost - only the
+			# IDs genuinely extracted here are removed from that pool.
+			fetchedDbIDs=$(getNormalizedIDs "$dbGoodFile" | sort -u)
+			missingDbIDs=$(comm -23 <(sort -u "$dbIDsFile") <(echo "$fetchedDbIDs"))
+			if [ -n "$missingDbIDs" ]
 			then
-				echo "blastdbcmd could not find these nr ID(s) in the local copy, falling back to remote efetch for them: $(echo "$missingNrIDs" | tr '\n' ' ')" >&2
+				echo "blastdbcmd could not find these $db ID(s) in the local copy, falling back to remote efetch for them: $(echo "$missingDbIDs" | tr '\n' ' ')" >&2
 			fi
-			mapfile -t IDs < <(comm -23 <(printf '%s\n' "${IDs[@]}" | sort -u) <(echo "$fetchedNrIDs"))
+			mapfile -t IDs < <(comm -23 <(printf '%s\n' "${IDs[@]}" | sort -u) <(echo "$fetchedDbIDs"))
 
-			rm -f "$nrIDsFile" "$nrRawFile" "$nrGoodFile"
+			rm -f "$dbIDsFile" "$dbRawFile" "$dbGoodFile"
 		fi
 	fi
-fi
+done
 
 numIDs=${#IDs[@]}
 # 8000 was chosen after a larger batch previously ran into a bash/OS

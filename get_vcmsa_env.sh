@@ -13,7 +13,7 @@ envName="vcmsa_env"
 repoURL="https://github.com/clairemcwhite/vcmsa.git"
 
 # Only one process at a time may check/create this environment - same
-# reasoning as get_nr_database.sh's/get_uniprot_database.sh's lock (two
+# reasoning as get_ncbi_blastdb.sh's/get_uniprot_database.sh's lock (two
 # gene pipelines both needing vcmsa_env before either has created it yet
 # must not both run conda create into it at once). A second process just
 # blocks on the lock until the first is done, then finds the environment

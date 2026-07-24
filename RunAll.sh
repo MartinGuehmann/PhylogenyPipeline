@@ -93,10 +93,11 @@ do
             shift
             previousAligner="-p $1"
             ;;
-        --localNr)
+        --localDatabases)
             ;&
         -L)
-            localNr="--localNr"
+            shift
+            localDatabases="$1"
             ;;
         --trimAl)
             ;&
@@ -202,7 +203,7 @@ case $step in
 	echo "0. Obtaining gene IDs from all databases." >&2
 	echo "   Searching for sequences in NCBI databases remotely, takes some time." >&2
 	echo "   Therefore, just skip if files in $DIR/$gene/Hits/ already exist." >&2
-	if ! "$DIR/00_GetGenesFromAllDataBases.sh" "$gene" $localNr
+	if ! "$DIR/00_GetGenesFromAllDataBases.sh" "$gene" "$localDatabases"
 	then
 		echo "0. Failed to obtain gene IDs from all databases." >&2
 		exit 1
@@ -229,7 +230,7 @@ case $step in
 	;;
 3)
 	echo "3. Extract sequences from the databases." >&2
-	if ! "$DIR/03_ExtractSequences.sh" "$gene" $localNr
+	if ! "$DIR/03_ExtractSequences.sh" "$gene" "$localDatabases"
 	then
 		echo "3. Failed to extract sequences from the databases." >&2
 		exit 1

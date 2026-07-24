@@ -20,20 +20,16 @@ then
 	exit 1
 fi
 
-# $localNr is set via this job's --export (see Scheduler-Call.sh's step-0
-# case), only when the Scheduler-00-ExtractSequences.sh caller passed
-# --localNr - unset/empty here means the default, unchanged remote nr.
-# Scheduler-Call.sh deliberately hands this over as the fixed string
-# "true", not the "--localNr" flag string itself (bash has no actual
-# boolean type, so this is just a literal both ends agree on) - translate
-# it back into the flag form here, since everything downstream of this
-# job (RunAll.sh/00_GetGenesFromAllDataBases.sh) is CLI-argument-driven
-# again, not environment-variable-driven.
-localNrFlag=""
-[ "$localNr" == "true" ] && localNrFlag="--localNr"
-
+# $localDatabases is set via this job's --export (see Scheduler-Call.sh's
+# step-0 case) - a colon-separated list of Databases.sh's RemoteDataBases
+# names (e.g. "nr:refseq_protein") already combined there from whichever
+# --local* flags the Scheduler-00-ExtractSequences.sh caller passed;
+# unset/empty here means the default, all-remote behavior. Already in its
+# final form, so just forwarded on as-is - unlike the old single-database
+# $localNr "true"/flag translation this replaced, there's no per-database
+# boilerplate to repeat here.
 date >&2
-time "$DIR/../RunAll.sh" -g "$gene" -s "0" $localNrFlag
+time "$DIR/../RunAll.sh" -g "$gene" -s "0" --localDatabases "$localDatabases"
 status=$?
 sstat -j "$SLURM_JOB_ID" --format=JobID,MaxRSS,AveCPU,MaxVMSize -n 2>&1 >&2
 date >&2
