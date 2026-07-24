@@ -78,31 +78,11 @@ rm -f $sequenceFileBase*".fasta"
 rm -f $sequenceNCBIFileBase*".fasta"
 rm -f "$sequences"/efetch_batch_*.fasta "$sequences"/efetch_batch_*.stderr "$sequences"/efetch_batch_*.requested
 rm -f "$sequences"/nr_ids.txt "$sequences"/nr_local.fasta "$sequences"/nr_local.good.fasta
+rm -f "$sequences"/*.raw.fasta
 
-# Extract the sequences from uniprot
-for DB_PATH in "${LocalDataBases[@]}"
-do
-	DB=$(basename $DB_PATH)
-
-	sed -E "s/^ *[0-9]* //g" "$hits/$DB/SortedHitsByName.csv" | cut -f 1 | sort -u >> $tmpIDs
-
-	seqkit grep -j $numTreads -f $tmpIDs -t protein "$DB_PATH.fasta" >> $sequenceFile
-
-	rm -f $tmpIDs
-done
-
-# Split the sequence file into handy chuncks if we want to store it on github
-# The maximum file size is 100 MB, but we should stay below of that.
-seqkit split2 -j $numTreads -s $splitSeqNum -O $sequences $sequenceFile
-rm -f $sequenceFile
-
-# Extract the sequences from NCBI
-IDs=($(sed -E "s/^ *[0-9]* //g" "$hits/$AllNCBI/SortedHitsByName.csv" | cut -f 1 | sort -u))
-
-failed="false"
-
-# efetch (and blastdbcmd, for local nr below) return records from NCBI's
-# composite "sequences"/"nr" databases whose FASTA header embeds the
+# efetch (and blastdbcmd, both for local nr and - since
+# get_uniprot_database.sh started using -parse_seqids - for the local
+# uniprot extraction below) return records whose FASTA header embeds the
 # accession inside a pipe-delimited defline instead of using it as the
 # bare first token - e.g. UniProt records as `sp|ACC|NAME ...` or
 # `tr|ACC|NAME ...`, PDB chains as `pdb|ID|CHAIN ...`, PRF records as
@@ -112,10 +92,11 @@ failed="false"
 # fetched just fine gets silently dropped and misreported as permanently
 # unfetchable. Confirmed 2026-07-23 against live NCBI responses - these
 # two helpers normalize a header back to the requested ID's form for
-# every shape seen in practice. IDs from a *local* BLAST search (the
-# uniprot extraction above) don't need this: without -parse_seqids,
-# makeblastdb/blastp already report the raw first token verbatim as the
-# hit ID, so the ID list and the local FASTA headers already agree.
+# every shape seen in practice. With -parse_seqids, blastp/blastdbcmd
+# against the local uniprot databases already report/expect the bare
+# accession (confirmed 2026-07-24), so normalize() below is a no-op for
+# them in practice - but calling it anyway costs nothing and keeps both
+# extraction paths going through the same safety net.
 extractRequestedRecords() {
 	local fastaFile="$1"
 	local idFile="$2"
@@ -152,6 +133,48 @@ getNormalizedIDs() {
 		| sed -E 's/^pdb\|([^|]+)\|(\S+)/\1_\2/; s/^prf\|\|(\S+)/\1/; s/^[a-z]+\|([^|]+)\|.*/\1/' \
 		| awk '{print $1}'
 }
+
+# Extract the sequences from uniprot
+for DB_PATH in "${LocalDataBases[@]}"
+do
+	DB=$(basename $DB_PATH)
+
+	sed -E "s/^ *[0-9]* //g" "$hits/$DB/SortedHitsByName.csv" | cut -f 1 | sort -u >> $tmpIDs
+
+	# blastdbcmd instead of seqkit grep -f ... "$DB_PATH.fasta": with
+	# get_uniprot_database.sh's makeblastdb now using -parse_seqids,
+	# sequences can be pulled straight out of the BLAST database by
+	# accession, the same way local nr already works below - no need to
+	# keep the multi-GB downloaded .fasta file around just for this.
+	dbRawFile="$sequences/$DB.raw.fasta"
+	blastdbcmd -db "$DB_PATH" -entry_batch "$tmpIDs" -outfmt "%f" > "$dbRawFile"
+
+	# Same reasoning as the nr extraction below: never trust blastdbcmd's
+	# exit code as pass/fail for the whole batch, and never blindly
+	# append its raw output either.
+	extractRequestedRecords "$dbRawFile" "$tmpIDs" >> $sequenceFile
+
+	# Unlike nr below, there's no remote fallback for a uniprot hit -
+	# blastdbcmd not finding one here (e.g. withdrawn/merged since this
+	# local copy was last updated) just means it's missing from this run.
+	missingIDs=$(comm -23 <(sort -u "$tmpIDs") <(getNormalizedIDs "$dbRawFile" | sort -u))
+	if [ -n "$missingIDs" ]
+	then
+		echo "blastdbcmd could not find these $DB ID(s) in the local copy: $(echo "$missingIDs" | tr '\n' ' ')" >&2
+	fi
+
+	rm -f $tmpIDs "$dbRawFile"
+done
+
+# Split the sequence file into handy chuncks if we want to store it on github
+# The maximum file size is 100 MB, but we should stay below of that.
+seqkit split2 -j $numTreads -s $splitSeqNum -O $sequences $sequenceFile
+rm -f $sequenceFile
+
+# Extract the sequences from NCBI
+IDs=($(sed -E "s/^ *[0-9]* //g" "$hits/$AllNCBI/SortedHitsByName.csv" | cut -f 1 | sort -u))
+
+failed="false"
 
 # nquire (used internally by efetch) passes curl -f, which discards the
 # response body on any non-2xx HTTP status - so a genuinely withdrawn/
