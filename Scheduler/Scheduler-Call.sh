@@ -105,10 +105,12 @@ do
             # that speaks getopt-style CLI flags. From here on this value
             # only ever travels via Slurm's --export (see the -v string in
             # the step-0/3 cases below), landing as a plain environment
-            # variable in a job script that just tests it (see
+            # variable in a job script that just does a literal string
+            # comparison against it (see
             # 00_Scheduler-GetGenesFromAllDataBases.sh/
-            # 03_Scheduler-ExtractSequences.sh), so a plain boolean-style
-            # value is the natural fit there, not a re-usable flag string.
+            # 03_Scheduler-ExtractSequences.sh) - bash has no actual
+            # boolean type, so "true" here is just a fixed string both
+            # ends agree on, not a re-usable CLI flag string.
             localNr="true"
             ;;
         --trimAl)

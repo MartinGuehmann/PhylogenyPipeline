@@ -23,11 +23,12 @@ fi
 # $localNr is set via this job's --export (see Scheduler-Call.sh's step-0
 # case), only when the Scheduler-00-ExtractSequences.sh caller passed
 # --localNr - unset/empty here means the default, unchanged remote nr.
-# Scheduler-Call.sh deliberately hands this over as the plain boolean
-# "true", not the "--localNr" flag string itself - translate it back into
-# the flag form here, since everything downstream of this job
-# (RunAll.sh/00_GetGenesFromAllDataBases.sh) is CLI-argument-driven again,
-# not environment-variable-driven.
+# Scheduler-Call.sh deliberately hands this over as the fixed string
+# "true", not the "--localNr" flag string itself (bash has no actual
+# boolean type, so this is just a literal both ends agree on) - translate
+# it back into the flag form here, since everything downstream of this
+# job (RunAll.sh/00_GetGenesFromAllDataBases.sh) is CLI-argument-driven
+# again, not environment-variable-driven.
 localNrFlag=""
 [ "$localNr" == "true" ] && localNrFlag="--localNr"
 
