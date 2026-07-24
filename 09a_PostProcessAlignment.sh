@@ -57,5 +57,22 @@ then
 	# fix: flake.nix's devShell already provides trimal directly (see
 	# README's "Installing prerequisites with Nix"), so no vendored copy
 	# is needed at all.
-	trimal -in "$reducedAlignmentFile" -out "$reducedAlignmentFile" -gt "$trimal"
+	#
+	# -in/-out used to both point at $reducedAlignmentFile directly - that
+	# had worked with whatever trimAl build used to be vendored here, but
+	# segfaults with nixpkgs' trimal (1.5.1) on real alignments (confirmed
+	# 2026-07-24 on the cluster). Write to a temp file in the same
+	# directory and move it over the original instead, so trimAl never
+	# reads and writes the same file at once, regardless of why that
+	# stopped being safe.
+	trimalTempFile=$(mktemp "$reducedAlignmentFile.XXXXXX")
+	trimal -in "$reducedAlignmentFile" -out "$trimalTempFile" -gt "$trimal"
+	trimalStatus=$?
+	if [ $trimalStatus -eq 0 ]
+	then
+		mv "$trimalTempFile" "$reducedAlignmentFile"
+	else
+		rm -f "$trimalTempFile"
+		exit $trimalStatus
+	fi
 fi
