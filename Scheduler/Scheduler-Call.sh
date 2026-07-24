@@ -101,6 +101,14 @@ do
         --localNr)
             ;&
         -L)
+            # Deliberately "true", not "--localNr" - this is the last hop
+            # that speaks getopt-style CLI flags. From here on this value
+            # only ever travels via Slurm's --export (see the -v string in
+            # the step-0/3 cases below), landing as a plain environment
+            # variable in a job script that just tests it (see
+            # 00_Scheduler-GetGenesFromAllDataBases.sh/
+            # 03_Scheduler-ExtractSequences.sh), so a plain boolean-style
+            # value is the natural fit there, not a re-usable flag string.
             localNr="true"
             ;;
         --trimAl)
