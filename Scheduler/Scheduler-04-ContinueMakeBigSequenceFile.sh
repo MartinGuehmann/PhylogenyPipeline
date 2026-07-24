@@ -77,7 +77,11 @@ do
         --useFullDataset)
             ;&
         -q)
-            shift
+            # No value follows this flag - the shift here (copied from a
+            # value-taking case like -t/-e above) would silently swallow
+            # whatever CLI argument came next before it could ever reach
+            # this case statement (see Scheduler-00-ExtractSequences.sh's
+            # identical bug, where this actually bit --localNr).
             useFullDataset="--useFullDataset"
             ;;
         -*)

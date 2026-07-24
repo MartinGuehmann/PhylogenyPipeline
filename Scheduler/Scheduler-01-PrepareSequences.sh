@@ -77,7 +77,11 @@ do
         --useFullDataset)
             ;&
         -q)
-            shift
+            # No value follows this flag - the shift here (copied from a
+            # value-taking case like -t/-e above) used to silently swallow
+            # whatever came next on the command line (e.g. --localNr, when
+            # placed right after $useFullDataset - see 01_StartProcessing.sh)
+            # before it could ever reach this case statement.
             useFullDataset="--useFullDataset"
             ;;
         --localNr)
