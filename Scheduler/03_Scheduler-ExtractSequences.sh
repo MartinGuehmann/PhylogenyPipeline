@@ -33,6 +33,12 @@ fi
 # case), only when the original Scheduler-00-ExtractSequences.sh caller
 # passed --localNr - unset/empty here means the default, unchanged remote
 # nr.
+# Scheduler-Call.sh deliberately hands this over as the fixed string
+# "true", not the "--localNr" flag string itself (bash has no actual
+# boolean type, so this is just a literal both ends agree on) - translate
+# it back into the flag form here, since everything downstream of this
+# job (RunAll.sh/03_ExtractSequences.sh) is CLI-argument-driven again,
+# not environment-variable-driven.
 localNrFlag=""
 [ "$localNr" == "true" ] && localNrFlag="--localNr"
 
