@@ -672,6 +672,50 @@
               runHook postInstall
             '';
           };
+
+          # nixpkgs' own trimal is 1.5.1, which has a real segfault bug:
+          # on large, very gappy real alignments (confirmed 2026-07-26
+          # against Mas1 cluster logs - ~929 taxa, ~20000 columns, >90%
+          # gaps), `trimal -gt ...` reliably crashes right after a burst
+          # of "Removing sequence 'X' composed only by gaps" warnings.
+          # That symptom matches a known, already-fixed upstream bug:
+          # https://github.com/inab/trimal/issues/125 (reporter: 1.5.0
+          # was fine, 1.5.1 regressed), fixed by
+          # https://github.com/inab/trimal/pull/126 ("Fix access to NULL
+          # array", merged as 9f2cc4568f61f8407a7a282ce73b9fe0740c52aa,
+          # 2026-06-09). That fix isn't in any tagged release yet - a
+          # v1.5.2 tag was pushed and then reverted upstream "until
+          # built assets fixed". So: override just the `src` of
+          # nixpkgs' own trimal derivation to build from that fixed
+          # commit instead of the broken v1.5.1 tag - same build recipe
+          # (plain `make` in the repo's source/ subdirectory, no cmake),
+          # just newer/fixed source.
+          #
+          # CHECK BEFORE REMOVING: the assert right below fails the
+          # build loudly once nixpkgs' own `pkgs.trimal.version` reaches
+          # 1.5.2 or higher - that's the signal a proper tagged release
+          # with this fix (or a later one) exists upstream. When that
+          # happens, delete this whole override and use plain `trimal`
+          # from `pkgs` in the devShell package list below again.
+          trimal =
+            assert pkgs.lib.versionOlder pkgs.trimal.version "1.5.2" ||
+              throw ''
+                nixpkgs' trimal is now ${pkgs.trimal.version} (>= 1.5.2) - a
+                tagged release likely exists with the segfault fix this
+                override was built for (github.com/inab/trimal/pull/126).
+                Remove the `trimal = pkgs.trimal.overrideAttrs (...)`
+                override in flake.nix and go back to plain `trimal` from
+                nixpkgs.
+              '';
+            pkgs.trimal.overrideAttrs (old: {
+              version = "unstable-2026-06-09";
+              src = pkgs.fetchFromGitHub {
+                owner = "inab";
+                repo = "trimal";
+                rev = "9f2cc4568f61f8407a7a282ce73b9fe0740c52aa";
+                hash = "sha256-kh4wSqNgkzfYhG5dfXHAf1aZUBfTkoH3vxMxaLI1gLg=";
+              };
+            });
         in
         {
           packages = {
