@@ -33,9 +33,41 @@ numTreads=$(nproc)
 
 ###########################################################
 # Remove empty columns from alignment
-raxml-ng --msa "$alignmentFile" --threads $numTreads --model LG+G --check >&2
-
 reducedAlignmentFile="$alignmentFile.raxml.reduced.phy"
+
+# raxml-ng's own --check occasionally rejects an alignment it was just
+# handed with "ERROR: The sequence ... has an unknown (N) character",
+# even though the exact same, untouched file is clean and passes fine
+# on a later, standalone re-check - confirmed 2026-07-27 across five
+# different aligners on real Mas1 output, with the same handful of
+# parts failing identically across independently-scheduled cluster
+# jobs. Root cause unconfirmed (ruled out so far: corrupted bytes in
+# the file, alignment file size, a specific bad compute node). Retry
+# once before giving up. A failed run can still leave behind a
+# reduced.phy that would otherwise read as "already exists" to the
+# check below without actually being valid, so always clear it (and
+# the log) first, on both the initial attempt and the retry.
+for attempt in 1 2
+do
+	rm -f "$reducedAlignmentFile" "$alignmentFile.raxml.log"
+	raxml-ng --msa "$alignmentFile" --threads $numTreads --model LG+G --check >&2
+	checkStatus=$?
+	if [ $checkStatus -eq 0 ]
+	then
+		break
+	fi
+	if [ $attempt -eq 1 ]
+	then
+		echo "$alignmentFile: raxml-ng --check failed (exit $checkStatus) - retrying once" >&2
+		sleep 5
+	fi
+done
+
+if [ $checkStatus -ne 0 ]
+then
+	echo "$alignmentFile: raxml-ng --check failed twice in a row (exit $checkStatus) - giving up" >&2
+	exit $checkStatus
+fi
 
 # If there is nothing to remove for raxml-ng it will not
 # create a phylip file and we have to do it ourselves.
