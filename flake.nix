@@ -506,6 +506,34 @@
             hash = "sha256-VCOQIx2Yh59BX+H5MFJ0QHUDAQPmNOdXrtnH8+E9WNM=";
           };
 
+          # PASTA's own bundled `hmmeralign` wrapper
+          # (resources/scripts/hmmeralign in its source repo, pinned to
+          # the same tag as the `pasta` derivation below) - not shipped
+          # by nixpkgs' hmmer (which only has the raw hmmbuild/hmmalign
+          # binaries) nor by sate-tools-linux (checked both), and not
+          # installed by `buildPythonApplication` below either, since
+          # that only installs the actual Python package, not this
+          # repo-relative resources/ script. PASTA's own code
+          # (pasta/tools.py, HMMERAlignAligner) calls it as a plain
+          # 4-arg CLI (backbone file, query file, output file,
+          # datatype): it builds an HMM profile from the backbone
+          # alignment and aligns the remaining sequences against it -
+          # PASTA's own divide-and-conquer strategy for splitting large
+          # inputs into a directly-aligned "backbone" plus everything
+          # else added via this profile, so it fires on any real-sized
+          # dataset, not just an edge case (confirmed 2026-07-27: this
+          # was the reason every single alignment part failed with
+          # "'.../hmmeralign' not found" on a real Mas1 run). The script
+          # expects hmmbuild/hmmalign right next to itself
+          # (os.path.dirname of its own path), which pastaToolsDir
+          # already provides via pkgs.hmmer below - confirmed working
+          # end to end locally against nixpkgs' hmmer 3.4 with a
+          # synthetic backbone+query alignment before adding this.
+          hmmeralignScript = pkgs.fetchurl {
+            url = "https://raw.githubusercontent.com/smirarab/pasta/v${pasta.version}/resources/scripts/hmmeralign";
+            hash = "sha256-mzKjfkU/Sd6rhml/g/2yH/smVM9BP7YoYfQqgrC0oyE=";
+          };
+
           # Merged directory of PASTA's external tools, handed to it via
           # PASTA_TOOLS_RUNDIR (see the `pasta` derivation below). This is
           # the single riskiest guess in this whole flake: PASTA's own
@@ -533,6 +561,36 @@
             postBuild = ''
               ln -sf ${pkgs.raxml}/bin/raxmlHPC $out/bin/raxml
               cp ${opalJar} $out/bin/opal.jar
+            '';
+          };
+
+          # PASTA_TOOLS_RUNDIR needs hmmeralign (see hmmeralignScript
+          # above) but PASTA_TOOLS_DEVDIR (still pointed at plain
+          # pastaToolsDir below) must NOT get it: setup.py's own build
+          # step unconditionally deploys PASTA's own bundled
+          # resources/scripts/hmmeralign into its installed package's
+          # internal bin/ first, then separately symlinks every file
+          # from $PASTA_TOOLS_DEVDIR into that same internal bin/ - a
+          # second, externally-supplied file also named "hmmeralign"
+          # there collides with the symlink already created from its own
+          # bundled copy and aborts the build ("Symbolic link ... already
+          # exists, but points to different source"), confirmed
+          # 2026-07-27. Layering hmmeralign onto its own directory, used
+          # only for the runtime var, keeps the two build-time and
+          # run-time lookups from ever seeing the same directory listing.
+          pastaRunDir = pkgs.symlinkJoin {
+            name = "pasta-run-dir";
+            paths = [ pastaToolsDir ];
+            postBuild = ''
+              install -m755 ${hmmeralignScript} $out/bin/hmmeralign
+              # fetchurl's output isn't executable and its shebang
+              # ("#!/usr/bin/env python", a Python 2 script that also
+              # runs fine under 3 - the one Python-2-only construct it
+              # has, isinstance(stderr,file), is on a dead code path
+              # given how it's actually invoked) would depend on PATH
+              # lookup at runtime; point it straight at the same
+              # interpreter this flake's own PASTA package uses.
+              sed -i "1s|.*|#!${py.python.interpreter}|" $out/bin/hmmeralign
             '';
           };
 
@@ -578,7 +636,7 @@
             # build-time lookup too, without needing to patch
             # pasta/__init__.py the way bioconda's own recipe does.
             env.PASTA_TOOLS_DEVDIR = "${pastaToolsDir}/bin";
-            makeWrapperArgs = [ "--set" "PASTA_TOOLS_RUNDIR" "${pastaToolsDir}/bin" ];
+            makeWrapperArgs = [ "--set" "PASTA_TOOLS_RUNDIR" "${pastaRunDir}/bin" ];
             # Provides run_pasta.py on PATH.
           };
 
