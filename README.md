@@ -245,31 +245,44 @@ If you want to use newer versions you have to delete them. The databases are in 
 
 The phylogeny pipeline also downloads the taxon database from NCBI. If you want to use a newer version just delete it. The files are in ./PhylogenyPipeline/SpeciesDatabase/.
 
-`nr` is normally searched remotely (`Databases.sh`'s `RemoteDataBases`),
-like `refseq_protein`/`tsa_nr` - unlike them, though, `nr`'s sheer
-breadth of homology can make NCBI kill a broad-homology gene's remote
-search outright (`CPU usage limit exceeded`, SIGXCPU), no matter how the
-search itself is tuned. If that's a problem, and you have ~200GB+ to
-spare, pass `--localNr`/`-L` (`RunAll.sh`, `Scheduler-Call.sh`,
-`Scheduler-00-ExtractSequences.sh`/`Scheduler-01-PrepareSequences.sh`, or
-set `localNr=true` directly for the two job scripts) to search a local
-copy instead - this pipeline doesn't fetch or update that copy itself,
-though. Build one with NCBI's own `update_blastdb.pl` (also handy for
-later incremental updates) into `./PhylogenyPipeline/ProteinDatabase/nr/nr`.
-Without `--localNr`, or if no local copy is found there, `nr` stays
-remote exactly as before - `--localNr` only ever narrows what's searched
-remotely, never widens it.
+`nr`, `refseq_protein`, and `tsa_nr` are normally searched remotely
+(`Databases.sh`'s `RemoteDataBases`) - `nr`'s sheer breadth of homology in
+particular can make NCBI kill a broad-homology gene's remote search
+outright (`CPU usage limit exceeded`, SIGXCPU), no matter how the search
+itself is tuned. If that's a problem, pass `--localNr`/`-L`,
+`--localRefseqProtein`/`-R`, and/or `--localTsaNr`/`-T` (`RunAll.sh`,
+`Scheduler-Call.sh`, `Scheduler-00-ExtractSequences.sh`/
+`Scheduler-01-PrepareSequences.sh`) to search a local copy of whichever
+one(s) you name instead - independently settable, so you can opt into
+just `tsa_nr` (~6GB) without also committing to `nr`'s ~730GB, for
+example. Each is fetched/built automatically the first time it's needed,
+via NCBI's own `update_blastdb.pl` (`ProteinDatabase/get_ncbi_blastdb.sh`)
+- pre-formatted volumes, not a separate FASTA + `makeblastdb` step like
+the uniprot databases above - and reused across runs after that, into
+`./PhylogenyPipeline/ProteinDatabase/<name>/<name>` (e.g. `nr/nr`,
+`refseq_protein/refseq_protein`). Without the corresponding flag, or if a
+database that was opted in couldn't be fetched/built, it stays remote
+exactly as before - these flags only ever narrow what's searched
+remotely, never widen it.
 
-`--localNr` needs to reach both step 0 (the search) and step 3 (the
-actual sequence extraction) - a gene's `nr` hits are otherwise still
-fetched remotely via `efetch` in step 3 regardless of how the search
-that found them ran, so the flag is threaded through
-`Scheduler-Call.sh`'s step 0 *and* step 3 cases (the latter reached via
-`Scheduler-01-PrepareSequences.sh`'s step 1→2→3→4 chain, not directly
-from step 0). Step 3 extracts `nr`'s hits with `blastdbcmd` instead of
-`efetch` when the local copy is there, falling back to `efetch` for any
+The three flags combine into one `localDatabases` variable (a
+colon-separated list of `Databases.sh`'s `RemoteDataBases` names, e.g.
+`nr:refseq_protein` - colon-, not comma-separated, since this reaches the
+job scripts via Slurm's `--export=Var1=Val1,Var2=Val2`, which already
+uses comma to separate different variables, the same reason `$holdJobs`
+is colon-joined too) at `Scheduler-Call.sh`, which is what actually
+reaches the two job scripts (set it directly there, e.g.
+`localDatabases=nr`, if calling them without going through
+`Scheduler-Call.sh`). It needs to reach both step 0 (the search) and step
+3 (the actual sequence extraction) - a gene's hits from one of these
+databases are otherwise still fetched remotely via `efetch` in step 3
+regardless of how the search that found them ran, so it's threaded
+through `Scheduler-Call.sh`'s step 0 *and* step 3 cases (the latter
+reached via `Scheduler-01-PrepareSequences.sh`'s step 1→2→3→4 chain, not
+directly from step 0). Step 3 extracts a locally-opted-in database's hits
+with `blastdbcmd` instead of `efetch`, falling back to `efetch` for any
 individual accession `blastdbcmd` can't find locally (e.g. one added to
-NCBI's real `nr` after this local copy was last updated).
+NCBI's real database after this local copy was last updated).
 
 ## User Account Information
 

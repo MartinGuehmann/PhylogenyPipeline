@@ -89,6 +89,16 @@ do
         -L)
             localNr="--localNr"
             ;;
+        --localRefseqProtein)
+            ;&
+        -R)
+            localRefseqProtein="--localRefseqProtein"
+            ;;
+        --localTsaNr)
+            ;&
+        -T)
+            localTsaNr="--localTsaNr"
+            ;;
         -*)
             ;&
         --*)
@@ -113,6 +123,8 @@ echo "extension:        $extension"        >&2
 echo "trimAl:           $trimAl"           >&2
 echo "useFullDataset:   $useFullDataset"   >&2
 echo "localNr:          $localNr"          >&2
+echo "localRefseqProtein: $localRefseqProtein" >&2
+echo "localTsaNr:       $localTsaNr"       >&2
 echo "Note the script is copied to"        >&2
 echo "another place with another name"     >&2
 
@@ -153,7 +165,7 @@ fi
 cd $DIR
 
 # Align all the sequences
-jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "0" --hold $localNr)
+jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "0" --hold $localNr $localRefseqProtein $localTsaNr)
 echo $jobIDs
 holdJobs=$jobIDs
 
@@ -171,12 +183,12 @@ else
 	restartDepend="afternotok$holdJobs"
 	holdJobsExport=""
 fi
-"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl, localNr=$localNr$holdJobsExport" -W "depend=$restartDepend" \
+"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl, localNr=$localNr, localRefseqProtein=$localRefseqProtein, localTsaNr=$localTsaNr$holdJobsExport" -W "depend=$restartDepend" \
     "$DIR/Scheduler-00-ExtractSequences.sh"
 
 if [ "$continue" == "--continue" ]
 then
-	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl, useFullDataset=$useFullDataset, localNr=$localNr" -W "depend=afterok$holdJobs" \
+	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl, useFullDataset=$useFullDataset, localNr=$localNr, localRefseqProtein=$localRefseqProtein, localTsaNr=$localTsaNr" -W "depend=afterok$holdJobs" \
 	    "$DIR/Scheduler-01-PrepareSequences.sh"
 fi
 

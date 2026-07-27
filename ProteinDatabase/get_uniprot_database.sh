@@ -54,9 +54,20 @@ then
 	fi
 fi
 
-if [[ ! -f "$database.pdb" ]]
+
+# -parse_seqids lets blastdbcmd retrieve sequences by accession afterward
+# (03_ExtractSequences.sh's uniprot extraction, mirroring how local nr
+# already works via NCBI's own pre-parsed volumes) - without it,
+# blastdbcmd refuses any -entry/-entry_batch lookup outright ("DB
+# contains no accession info"), confirmed 2026-07-24. A database built
+# before this flag was added has no way to tell that apart from one built
+# with it just by the presence of $database.pdb, so key the rebuild check
+# off a marker file instead, touched only right after a build that did
+# include -parse_seqids.
+if [[ ! -f "$database.pdb" ]] || [[ ! -f "$database.parseseqids" ]]
 then
-	makeblastdb -in "$database.fasta" -out "$database" -dbtype prot
+	makeblastdb -in "$database.fasta" -out "$database" -dbtype prot -parse_seqids
+	touch "$database.parseseqids"
 fi
 ) 200>"$database.lock"
 status=$?

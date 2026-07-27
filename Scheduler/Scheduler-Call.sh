@@ -110,8 +110,21 @@ do
             # 00_Scheduler-GetGenesFromAllDataBases.sh/
             # 03_Scheduler-ExtractSequences.sh) - bash has no actual
             # boolean type, so "true" here is just a fixed string both
-            # ends agree on, not a re-usable CLI flag string.
+            # ends agree on, not a re-usable CLI flag string. Combined
+            # with the other two --local* flags below into a single
+            # localDatabases list further down, instead of exporting three
+            # separate booleans through Slurm.
             localNr="true"
+            ;;
+        --localRefseqProtein)
+            ;&
+        -R)
+            localRefseqProtein="true"
+            ;;
+        --localTsaNr)
+            ;&
+        -T)
+            localTsaNr="true"
             ;;
         --trimAl)
             ;&
@@ -182,6 +195,22 @@ then
 	aligner=$("$DIR/../GetDefaultAligner.sh")
 fi
 
+# Combine the separate --local* flags above into one colon-separated list
+# (matching Databases.sh's RemoteDataBases names) - keeps the three flags
+# independently settable at the CLI/Config.sh level while only exporting
+# a single env var through Slurm (see the -v strings in the step-0/3
+# cases below), instead of tripling the "true"-to-flag translation
+# boilerplate in the job scripts that consume it. Colon-, not
+# comma-separated: Slurm's --export=Var1=Val1,Var2=Val2 already uses
+# comma to separate different variables, so a comma-joined value here
+# would risk being misparsed as more than one variable - colon is the
+# same separator $holdJobs (also passed through --export, see
+# Scheduler-00-ExtractSequences.sh) already uses for exactly this reason.
+localDatabases=""
+[ "$localNr" == "true" ] && localDatabases="${localDatabases:+$localDatabases:}nr"
+[ "$localRefseqProtein" == "true" ] && localDatabases="${localDatabases:+$localDatabases:}refseq_protein"
+[ "$localTsaNr" == "true" ] && localDatabases="${localDatabases:+$localDatabases:}tsa_nr"
+
 alignFileStart="$DIR/09_Scheduler-AlignWith"
 bashExtension="sh"
 alignerFile="$alignFileStart$aligner.$bashExtension"
@@ -228,7 +257,7 @@ case $step in
 	# need building - makeblastdb ignores its assigned CPU count
 	resourceOverride=""
 	"$DIR/../ProteinDatabase/NeedsBuilding.sh" && resourceOverride="-R AskForWholeNode"
-	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" $resourceOverride -v "DIR=$DIR, gene=$gene, localNr=$localNr" "$DIR/00_Scheduler-GetGenesFromAllDataBases.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" $resourceOverride -v "DIR=$DIR, gene=$gene, localDatabases=$localDatabases" "$DIR/00_Scheduler-GetGenesFromAllDataBases.sh")
 	;;
 1)
 	# Same database-build concern as step 0 above
@@ -244,7 +273,7 @@ case $step in
 	# Same database-build concern as step 0 above
 	resourceOverride=""
 	"$DIR/../ProteinDatabase/NeedsBuilding.sh" && resourceOverride="-R AskForWholeNode"
-	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" $resourceOverride -v "DIR=$DIR, gene=$gene, localNr=$localNr" "$DIR/03_Scheduler-ExtractSequences.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" $resourceOverride -v "DIR=$DIR, gene=$gene, localDatabases=$localDatabases" "$DIR/03_Scheduler-ExtractSequences.sh")
 	;;
 4)
 	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene, overwrite=$overwrite" "$DIR/04_Scheduler-MakeNonRedundant.sh")
