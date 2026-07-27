@@ -69,6 +69,38 @@ then
 	exit $checkStatus
 fi
 
+# raxml-ng's own native reduced-phylip writer (used below whenever
+# there actually was something to reduce - duplicate sequences or
+# gap-only columns) strips each sequence's name down to just its ID,
+# discarding the rest of the FASTA description. Downstream steps (tree
+# figures, clade labeling) want the full description on the tree tips,
+# not just the bare accession - so rebuild an ID -> sanitized-full-name
+# mapping from the original $alignmentFile here, and apply it below to
+# whatever reduced.phy ends up on disk, whether raxml-ng wrote it
+# itself or the fallback further down has to build it from scratch.
+#
+# Phylip is whitespace-delimited with no quoting, so a description kept
+# verbatim would make its own internal spaces indistinguishable from
+# the name/sequence boundary - confirmed 2026-07-24 against a real Mas1
+# chunk where a description containing a literal digit ("...sequence 1
+# [Mastomys coucha]") made trimAl reject the file outright ("unknown
+# (1) character"); descriptions without digits would have corrupted
+# the alignment silently instead. Sanitize first instead of just
+# dropping the description to dodge the problem: convert every
+# character disallowed in a Phylip/Newick name (raxml-ng's own error
+# text for this lists space, ; : , ( ) ') to a single underscore,
+# collapsing repeats, before it's ever written to either file.
+nameMap=$(mktemp)
+trap 'rm -f "$nameMap"' EXIT
+seqkit fx2tab -j $numTreads "$alignmentFile" | awk -F'\t' '{
+	id = $1
+	sub(/ .*/, "", id)
+	name = $1
+	gsub(/[][ ;:,()\047\042]/, "_", name)
+	gsub(/_+/, "_", name)
+	print id, name
+}' > "$nameMap"
+
 # If there is nothing to remove for raxml-ng it will not
 # create a phylip file and we have to do it ourselves.
 if [ ! -f "$reducedAlignmentFile" ]
@@ -76,18 +108,17 @@ then
 	seqNum=$(grep -c '>' "$alignmentFile")
 	seqLength=$(seqkit head -j $numTreads -n 1 "$alignmentFile" | seqkit seq -j $numTreads -s | tr -d '\n' | wc -m)
 	echo "$seqNum $seqLength" > "$reducedAlignmentFile"
-	# --only-id: without it, fx2tab's name column is the full FASTA header
-	# (accession + description), and the sed below then turns the tab
-	# between it and the sequence into a plain space - in phylip's
-	# whitespace-delimited format that makes the description indistinguishable
-	# from sequence data. Confirmed 2026-07-24 against a real Mas1 chunk
-	# where a description containing a literal digit ("...sequence 1
-	# [Mastomys coucha]") made trimAl reject the file outright ("unknown (1)
-	# character"); descriptions without digits would have corrupted the
-	# alignment silently instead. raxml-ng's own native reduced-phylip
-	# writer already strips the description down to just the ID - this
-	# fallback needs to match that.
-	seqkit fx2tab -j $numTreads --only-id "$alignmentFile" | sed -e "s/	$//" -e "s/	/ /g" >> "$reducedAlignmentFile"
+	seqkit fx2tab -j $numTreads --only-id "$alignmentFile" | awk -F'\t' -v mapFile="$nameMap" '
+		BEGIN { while ((getline line < mapFile) > 0) { split(line, p, " "); map[p[1]] = p[2] } }
+		{ name = ($1 in map) ? map[$1] : $1; print name, $2 }
+	' >> "$reducedAlignmentFile"
+else
+	awk -v mapFile="$nameMap" '
+		BEGIN { while ((getline line < mapFile) > 0) { split(line, p, " "); map[p[1]] = p[2] } }
+		NR==1 { print; next }
+		{ if ($1 in map) $1 = map[$1]; print }
+	' "$reducedAlignmentFile" > "$reducedAlignmentFile.tmp"
+	mv "$reducedAlignmentFile.tmp" "$reducedAlignmentFile"
 fi
 
 # Remove double underscores and brackets from extended sequence IDs
