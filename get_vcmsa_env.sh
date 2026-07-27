@@ -38,6 +38,17 @@ then
 	exit 0
 fi
 
+# The check above only tells us this env isn't usable - it may still
+# exist as a stale/partial leftover (e.g. an earlier attempt got killed
+# before the pip-install-failure cleanup further down could run, or
+# before this script existed at all). `conda create` refuses to write
+# into an already-existing prefix regardless of whether it's actually
+# usable ("CondaValueError: prefix already exists"), confirmed
+# 2026-07-27 blocking every one of a 26-task array identically. Clear
+# out anything left at this name first, so create always starts fresh.
+# A no-op if nothing is there yet.
+conda env remove -y -n "$envName" >/dev/null 2>&1
+
 # vcMSA doesn't publish its conda environment spec on PyPI, only in its
 # own repo - clone just to get environment.txt, then install the actual
 # vcmsa package from PyPI as normal. Per vcMSA's own install
