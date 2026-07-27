@@ -228,6 +228,15 @@ worked example, including which subdirectories are hand-curated inputs
 versus pipeline-generated output, or start a new one from
 [GeneFamilyTemplate](https://github.com/MartinGuehmann/GeneFamilyTemplate).
 
+One subdirectory has its own `README.md`, since its contents need more
+than a one-line explanation: `SequencesOfInterest/`, where the
+rogue-removal loop (step 11) keeps each round's working sequence set.
+That sub-readme covers the `RogueIter_N/` directory layout and,
+notably, why a round's output has *three* files per part
+(`part_NNN.fasta`, `part_NNN.dropped.fasta`, `part_NNN.old.fasta`) with
+no continuity between the plain one and the other two once shuffling
+is on.
+
 ## Databases
 
 The phylogeny pipeline downloads the uniprot protein databases sprot and trembl in fasta format and builds from them blast databases, which requires about 210 GB as of August 2021.
