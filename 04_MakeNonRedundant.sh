@@ -10,6 +10,7 @@ done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 gene="$1"
+overwrite="$2"
 
 if [ -z "$gene" ]
 then
@@ -24,6 +25,20 @@ sequencesToKeep="$DIR/$gene/MustKeepSequences"
 speciesForSeqReps="$DIR/$gene/SpeciesForSeqReps.csv"
 nrSequenceFile="$sequences/NonRedundantSequences.fasta"
 nrSequenceFile90="$sequences/NonRedundantSequences90.fasta"
+
+# Rebuilding this from scratch reshuffles which sequence cd-hit picks as
+# each cluster's representative (its clustering isn't guaranteed
+# reproducible run to run, confirmed 2026-07-26), so anything already
+# built downstream from the current $nrSequenceFile90 (alignments,
+# trees, rogue-removal output) silently stops matching it once this
+# reruns - confirmed 2026-07-26 to be exactly what an accidental
+# 04_RestartProcessing.sh rerun did to a Mas1 round that had already
+# been aligned. Skip instead of clobbering unless explicitly told to.
+if [ "$overwrite" != "--overwrite" ] && [ -s "$nrSequenceFile90" ]
+then
+	echo "$nrSequenceFile90 already exists - skipping (pass --overwrite to force rebuilding it)." >&2
+	exit 0
+fi
 
 # Remove $nrSequenceFile if it already exists created from a previous run,
 # without complaining if it does not exist.

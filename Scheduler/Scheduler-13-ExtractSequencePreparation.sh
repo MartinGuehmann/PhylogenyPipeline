@@ -84,6 +84,11 @@ do
             # identical bug, where this actually bit --localNr).
             useFullDataset="--useFullDataset"
             ;;
+        --overwrite)
+            ;&
+        -o)
+            overwrite="--overwrite"
+            ;;
         -*)
             ;&
         --*)
@@ -107,6 +112,7 @@ echo "shuffleSeqs:      $shuffleSeqs"      >&2
 echo "extension:        $extension"        >&2
 echo "trimAl:           $trimAl"           >&2
 echo "useFullDataset:   $useFullDataset"   >&2
+echo "overwrite:        $overwrite"        >&2
 echo "Note the script is copied to"        >&2
 echo "another place with another name"     >&2
 
@@ -124,14 +130,14 @@ cd $DIR
 
 if [ -z "$useFullDataset" ]
 then
-	jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "13" --hold)
+	jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "13" --hold $overwrite)
 	echo $jobIDs
 	holdJobs=$jobIDs
 
 	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl" -W "depend=afterok$jobIDs" \
 	    "$DIR/Scheduler-14-ExtractSequencesOfInterestWithPASTA.sh"
 else
-	jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "17" --hold)
+	jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "17" --hold $overwrite)
 	echo $jobIDs
 	holdJobs=$jobIDs
 

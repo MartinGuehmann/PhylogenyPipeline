@@ -145,6 +145,11 @@ do
             shift
             inputDir="-f $1"
             ;;
+        --overwrite)
+            ;&
+        -o)
+            overwrite="--overwrite"
+            ;;
         -*)
             ;&
         --*)
@@ -242,7 +247,7 @@ case $step in
 	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" $resourceOverride -v "DIR=$DIR, gene=$gene, localNr=$localNr" "$DIR/03_Scheduler-ExtractSequences.sh")
 	;;
 4)
-	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene" "$DIR/04_Scheduler-MakeNonRedundant.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene, overwrite=$overwrite" "$DIR/04_Scheduler-MakeNonRedundant.sh")
 	;;
 5)
 	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene" "$DIR/05_Scheduler-MakeClansFile.sh")
@@ -294,7 +299,7 @@ case $step in
 	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, suffix=$suffix, extension=$extension, update=$update, updateBig=$updateBig, inputDir=$inputDir, ignoreIfMasterFileDoesNotExist=$ignoreIfMasterFileDoesNotExist" "$DIR/12_Scheduler-ConvertTreesToFigures.sh")
 	;;
 13)
-	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene" "$DIR/13_Scheduler-SplitNonRedundantSequences.sh")
+	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene, overwrite=$overwrite" "$DIR/13_Scheduler-SplitNonRedundantSequences.sh")
 	;;
 14)
 	echo "$SequenceChunksForPruningDir/"*".part_"+([0-9])".fasta" > $seqFiles
@@ -310,7 +315,7 @@ case $step in
 	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene, extension=$extension" "$DIR/16_Scheduler-ExtractSequencesOfInterest.sh")
 	;;
 17)
-	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene" "$DIR/17_Scheduler-SkipSequenceExtraction.sh")
+	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene, overwrite=$overwrite" "$DIR/17_Scheduler-SkipSequenceExtraction.sh")
 	;;
 
 *)

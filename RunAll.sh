@@ -129,6 +129,11 @@ do
         -M)
             ignoreIfMasterFileDoesNotExist="-X"
             ;;
+        --overwrite)
+            ;&
+        -o)
+            overwrite="--overwrite"
+            ;;
         -*)
             ;&
         --*)
@@ -238,7 +243,7 @@ case $step in
 	;;
 4)
 	echo "4. Make non redundant sequences." >&2
-	if ! "$DIR/04_MakeNonRedundant.sh" "$gene"
+	if ! "$DIR/04_MakeNonRedundant.sh" "$gene" $overwrite
 	then
 		echo "4. Failed to make non redundant sequences." >&2
 		exit 1
@@ -397,7 +402,7 @@ case $step in
 	;;
 13)
 	echo "13. Split sequences into chunks for subset extraction." >&2
-	if ! "$DIR/13_SplitNonRedundantSequences.sh" -O "$SequenceChunksForPruningDir" -g "$gene"
+	if ! "$DIR/13_SplitNonRedundantSequences.sh" -O "$SequenceChunksForPruningDir" -g "$gene" $overwrite
 	then
 		echo "13. Failed to split sequences into chunks." >&2
 		exit 1
@@ -481,7 +486,7 @@ case $step in
 	;;
 17)
 	echo "17. Skip extract sequences of interest and just copy sequences." >&2
-	if ! "$DIR/17_SkipExtraction.sh" -g "$gene" -d "$TreesForPruningFromPASTADir" -c $SequenceChunksForPruningDir $extension
+	if ! "$DIR/17_SkipExtraction.sh" -g "$gene" -d "$TreesForPruningFromPASTADir" -c $SequenceChunksForPruningDir $extension $overwrite
 	then
 		echo "17. Failed to copy sequences directly." >&2
 		exit 1

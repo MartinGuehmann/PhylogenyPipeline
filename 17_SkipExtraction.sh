@@ -35,6 +35,11 @@ do
             shift
             gene="$1"
             ;;
+        --overwrite)
+            ;&
+        -o)
+            overwrite="--overwrite"
+            ;;
         -*)
             ;&
         --*)
@@ -60,6 +65,20 @@ SequencesOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene")
 mkdir -p $SequencesOfInterestDir
 
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
+
+# This is the exact overwrite this whole flag was added for: this
+# reshuffles and re-splits from scratch, so a rerun (e.g. an accidental
+# 04_RestartProcessing.sh) silently reassigns which sequences land in
+# which part file even off identical NonRedundantSequences90.fasta -
+# breaking anything already aligned/tree-built from the current split,
+# confirmed 2026-07-26 on a real Mas1 round. Skip instead of clobbering
+# unless explicitly told to.
+existingParts=("$SequencesOfInterestDir"/*"Shuffled.part_"*".fasta")
+if [ "$overwrite" != "--overwrite" ] && { [ -s "$SequencesOfInterest" ] || [ -e "${existingParts[0]}" ]; }
+then
+	echo "$SequencesOfInterestDir already has sequences of interest - skipping (pass --overwrite to force rebuilding them)." >&2
+	exit 0
+fi
 
 # Get the file of all the reduced set of non redundant sequences to extract the sequences of interest from
 sequences="$DIR/$gene/Sequences"

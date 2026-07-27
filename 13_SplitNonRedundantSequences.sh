@@ -36,6 +36,11 @@ do
             shift
             seqsPerChunk="$1"
             ;;
+        --overwrite)
+            ;&
+        -o)
+            overwrite="--overwrite"
+            ;;
         -*)
             ;&
         --*)
@@ -63,6 +68,19 @@ then
 fi
 
 mkdir -p $outputDir
+
+# Same reshuffle-reproducibility hazard as 04_MakeNonRedundant.sh:
+# SplitSequencesRandomly.sh below re-shuffles and re-splits from
+# scratch, so a rerun can silently reassign which sequences land in
+# which part file even off identical input - breaking anything already
+# built from the current split (e.g. PASTA trees for pruning). Skip
+# instead of clobbering unless explicitly told to.
+existingParts=("$outputDir"/*".part_"*".fasta")
+if [ "$overwrite" != "--overwrite" ] && [ -e "${existingParts[0]}" ]
+then
+	echo "$outputDir already has split sequence files - skipping (pass --overwrite to force rebuilding them)." >&2
+	exit 0
+fi
 
 NonRedundandSequences90="$DIR/$gene/Sequences/NonRedundantSequences90.fasta"
 BaitDir="$DIR/$gene/BaitSequences/"
