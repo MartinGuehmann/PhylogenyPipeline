@@ -312,7 +312,7 @@ case $step in
 	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, alignmentFiles=$alignmentFiles" "$DIR/15_Scheduler-MakeTreeWithIQ-TreeForPruning.sh")
 	;;
 16)
-	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene, extension=$extension" "$DIR/16_Scheduler-ExtractSequencesOfInterest.sh")
+	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene, extension=$extension, overwrite=$overwrite" "$DIR/16_Scheduler-ExtractSequencesOfInterest.sh")
 	;;
 17)
 	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene, overwrite=$overwrite" "$DIR/17_Scheduler-SkipSequenceExtraction.sh")

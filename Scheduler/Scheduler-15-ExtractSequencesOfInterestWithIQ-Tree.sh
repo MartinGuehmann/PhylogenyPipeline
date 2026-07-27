@@ -74,6 +74,11 @@ do
             shift
             trimAl="-t $1"
             ;;
+        --overwrite)
+            ;&
+        -o)
+            overwrite="--overwrite"
+            ;;
         -*)
             ;&
         --*)
@@ -96,6 +101,7 @@ echo "bigNumRoundsLeft: $bigNumRoundsLeft" >&2
 echo "shuffleSeqs:      $shuffleSeqs"      >&2
 echo "extension:        $extension"        >&2
 echo "trimAl:           $trimAl"           >&2
+echo "overwrite:        $overwrite"        >&2
 echo "Note the script is copied to"        >&2
 echo "another place with another name"     >&2
 
@@ -114,7 +120,7 @@ cd $DIR
 jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "15" --hold)
 holdJobs=$jobIDs
 echo $jobIDs
-jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "16" -d "$jobIDs" $extension)
+jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "16" -d "$jobIDs" $extension $overwrite)
 echo $jobIDs
 
 if [ "$continue" == "--continue" ]

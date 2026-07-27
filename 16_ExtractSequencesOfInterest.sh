@@ -88,6 +88,11 @@ do
             shift
             threshold="$1"
             ;;
+        --overwrite)
+            ;&
+        -o)
+            overwrite="--overwrite"
+            ;;
         -*)
             ;&
         --*)
@@ -121,6 +126,21 @@ treeLabels="$SequencesOfInterestDir/LabelsOfInterest.txt"
 rm -f $treeLabels
 
 SequencesOfInterest="$SequencesOfInterestDir/SequencesOfInterest.fasta"
+
+# Re-extracting below reshuffles and re-splits SequencesOfInterest from
+# scratch (seqkit shuffle isn't guaranteed reproducible run to run), so
+# a rerun can silently reassign which sequences land in which part file
+# even off identical input - breaking anything already aligned/
+# tree-built from the current split, same hazard as 17_SkipExtraction.sh
+# (confirmed 2026-07-26 on a real Mas1 round). Skip instead of
+# clobbering unless explicitly told to - but only for the real
+# extraction below, not --justCount, which never writes these files.
+existingParts=("$SequencesOfInterestDir"/*"Shuffled.part_"*".fasta")
+if [ -z "$justCount" ] && [ "$overwrite" != "--overwrite" ] && { [ -s "$SequencesOfInterest" ] || [ -e "${existingParts[0]}" ]; }
+then
+	echo "$SequencesOfInterestDir already has sequences of interest - skipping (pass --overwrite to force rebuilding them)." >&2
+	exit 0
+fi
 
 SequencesOfGeneDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -p "$(basename $gene)")
 mkdir -p $SequencesOfGeneDir

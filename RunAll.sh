@@ -477,7 +477,7 @@ case $step in
 	;;
 16)
 	echo "16. Extract sequences of interest." >&2
-	if ! "$DIR/16_ExtractSequencesOfInterest.sh" -g "$gene" -d "$TreesForPruningFromPASTADir" -c $SequenceChunksForPruningDir $extension
+	if ! "$DIR/16_ExtractSequencesOfInterest.sh" -g "$gene" -d "$TreesForPruningFromPASTADir" -c $SequenceChunksForPruningDir $extension $overwrite
 	then
 		echo "16. Failed to extract sequences of interest." >&2
 		exit 1
