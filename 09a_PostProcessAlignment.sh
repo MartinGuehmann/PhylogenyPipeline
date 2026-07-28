@@ -89,7 +89,13 @@ fi
 # dropping the description to dodge the problem: convert every
 # character disallowed in a Phylip/Newick name (raxml-ng's own error
 # text for this lists space, ; : , ( ) ') to a single underscore,
-# collapsing repeats, before it's ever written to either file.
+# collapsing repeats, before it's ever written to either file. Most
+# NCBI/UniProt descriptions end with a bracketed species name (e.g.
+# "[Mastomys coucha]"), so without also trimming a leading/trailing
+# underscore this would leave one on nearly every name (confirmed
+# 2026-07-28: ~87% of a real Mas1 alignment's names) - trim exactly one
+# from each end, not more, since gsub above already collapsed interior
+# runs to a single underscore.
 nameMap=$(mktemp)
 trap 'rm -f "$nameMap"' EXIT
 seqkit fx2tab -j $numTreads "$alignmentFile" | awk -F'\t' '{
@@ -98,6 +104,8 @@ seqkit fx2tab -j $numTreads "$alignmentFile" | awk -F'\t' '{
 	name = $1
 	gsub(/[][ ;:,()\047\042]/, "_", name)
 	gsub(/_+/, "_", name)
+	sub(/^_/, "", name)
+	sub(/_$/, "", name)
 	print id, name
 }' > "$nameMap"
 
