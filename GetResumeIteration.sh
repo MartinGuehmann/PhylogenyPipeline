@@ -106,4 +106,11 @@ do
 done
 
 # Every round up to maxIteration is already done - nothing to resume,
-# print nothing
+# print nothing. Exit 0 deliberately (not just falling off the end,
+# whose status would be whatever the last [ -s ... ] test happened to
+# return) so callers can tell "ran fine, genuinely nothing to do" apart
+# from "failed to even run" (e.g. exit 126, permission denied) by
+# checking $? instead of just empty output alone - confirmed 2026-07-28
+# a permission-denied GetResumeIteration.sh call and empty output are
+# otherwise indistinguishable to a caller that only checks the output.
+exit 0

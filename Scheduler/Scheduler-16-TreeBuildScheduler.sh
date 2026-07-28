@@ -146,6 +146,20 @@ previousAligner=""
 # is already finished. This still can't tell "never started" apart from
 # "actively running right now" - that's a separate problem, deliberately
 # not addressed here.
+#
+# GetResumeIteration.sh exits 0 whether it found an incomplete round or
+# not - only its own genuine failures (missing gene, wrong permissions,
+# etc.) exit non-zero. A real permission-denied call and a legitimate
+# "everything's done" both print nothing, so $? has to be checked
+# explicitly - confirmed 2026-07-28: a newly-added script losing its
+# executable bit (this repo has core.fileMode=false, so a plain chmod +x
+# before committing isn't enough - see this same commit for the fix)
+# made every single call fail silently, and every submission point below
+# read that as "already done" and skipped, including MAGUS's regular
+# loop, which very much still had a stuck round waiting on it. hadError
+# tracks whether that happened so this script exits non-zero instead of
+# reporting a clean, misleading success.
+hadError=""
 
 # Make an iteration for all available aligners, except for the main aligner
 for alignerScript in "$DIR/09_Scheduler-AlignWith"*".sh"*
@@ -156,7 +170,12 @@ do
 		if [[ $usedAligner != $aligner ]]
 		then
 			resumeIteration=$("$DIR/../GetResumeIteration.sh" -g "$gene" -a "$usedAligner" -m 0)
-			if [ -n "$resumeIteration" ]
+			resumeStatus=$?
+			if [ $resumeStatus -ne 0 ]
+			then
+				echo "GetResumeIteration.sh failed (exit $resumeStatus) for $usedAligner - not submitting" >&2
+				hadError="true"
+			elif [ -n "$resumeIteration" ]
 			then
 				"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$usedAligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
 				    "$DIR/Scheduler-09-RogueOptAlign.sh"
@@ -172,7 +191,12 @@ suffix="-x BigTree0"
 # Make the big tree with the main aligner
 allSeqs="--allSeqs"
 resumeIteration=$("$DIR/../GetResumeIteration.sh" -g "$gene" -a "$aligner" -x "BigTree0" -m 0)
-if [ -n "$resumeIteration" ]
+resumeStatus=$?
+if [ $resumeStatus -ne 0 ]
+then
+	echo "GetResumeIteration.sh failed (exit $resumeStatus) for $aligner.BigTree0 - not submitting" >&2
+	hadError="true"
+elif [ -n "$resumeIteration" ]
 then
 	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
 	    "$DIR/Scheduler-09-RogueOptAlign.sh"
@@ -217,7 +241,12 @@ previousAligner=""
 # are already done, instead of always restarting at iteration 0 with the
 # full original count.
 resumeIteration=$("$DIR/../GetResumeIteration.sh" -g "$gene" -a "$aligner" -m "$numRoundsLeft")
-if [ -n "$resumeIteration" ]
+resumeStatus=$?
+if [ $resumeStatus -ne 0 ]
+then
+	echo "GetResumeIteration.sh failed (exit $resumeStatus) for $aligner's regular loop - not submitting" >&2
+	hadError="true"
+elif [ -n "$resumeIteration" ]
 then
 	remainingRounds=$((numRoundsLeft - resumeIteration))
 	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$remainingRounds, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" \
@@ -239,10 +268,21 @@ fi
 
 # Make an iteration for the main aligner, with switched pruning settings
 resumeIteration=$("$DIR/../GetResumeIteration.sh" -g "$gene" -a "$aligner" -x "${suffix#-x }" -m 0)
-if [ -n "$resumeIteration" ]
+resumeStatus=$?
+if [ $resumeStatus -ne 0 ]
+then
+	echo "GetResumeIteration.sh failed (exit $resumeStatus) for $aligner.${suffix#-x } - not submitting" >&2
+	hadError="true"
+elif [ -n "$resumeIteration" ]
 then
 	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
 	    "$DIR/Scheduler-09-RogueOptAlign.sh"
 else
 	echo "$aligner.${suffix#-x } already has a completed round - skipping" >&2
+fi
+
+if [ -n "$hadError" ]
+then
+	echo "One or more GetResumeIteration.sh calls failed - see above" >&2
+	exit 1
 fi
