@@ -126,12 +126,26 @@ fi
 # so that the standard and error output files go to the directory of this script
 cd $DIR
 
-iteration="0"
 numRoundsLeftZero="0"
 allSeqs=""
 suffix=""
 extension="-e treefile"
 previousAligner=""
+
+# Every submission below used to always restart at iteration 0 with the
+# full round count, regardless of how far a previous run had actually
+# gotten - wasting already-completed rounds and, worse, risking a fresh
+# submission colliding with a round that's still genuinely in progress
+# on the cluster (confirmed 2026-07-28 on Mas1: a restart would have
+# resubmitted MAGUS's BigTree0 and regular loop from scratch while both
+# were still actively running). GetResumeIteration.sh checks for
+# 11b_ExtractNonRogues.sh's Statistics.txt (the last file a round's
+# whole chain writes) to tell "not yet done" apart from "done", so each
+# submission point below now resumes at the first incomplete round
+# instead, and is skipped entirely once every round it's responsible for
+# is already finished. This still can't tell "never started" apart from
+# "actively running right now" - that's a separate problem, deliberately
+# not addressed here.
 
 # Make an iteration for all available aligners, except for the main aligner
 for alignerScript in "$DIR/09_Scheduler-AlignWith"*".sh"*
@@ -141,8 +155,14 @@ do
 		usedAligner=${BASH_REMATCH[1]}
 		if [[ $usedAligner != $aligner ]]
 		then
-			"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$usedAligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
-			    "$DIR/Scheduler-09-RogueOptAlign.sh"
+			resumeIteration=$("$DIR/../GetResumeIteration.sh" -g "$gene" -a "$usedAligner" -m 0)
+			if [ -n "$resumeIteration" ]
+			then
+				"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$usedAligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+				    "$DIR/Scheduler-09-RogueOptAlign.sh"
+			else
+				echo "$usedAligner already has a completed round - skipping" >&2
+			fi
 		fi
 	fi
 done
@@ -151,8 +171,14 @@ oldSuffix=$suffix
 suffix="-x BigTree0"
 # Make the big tree with the main aligner
 allSeqs="--allSeqs"
-"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
-    "$DIR/Scheduler-09-RogueOptAlign.sh"
+resumeIteration=$("$DIR/../GetResumeIteration.sh" -g "$gene" -a "$aligner" -x "BigTree0" -m 0)
+if [ -n "$resumeIteration" ]
+then
+	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+	    "$DIR/Scheduler-09-RogueOptAlign.sh"
+else
+	echo "$aligner.BigTree0 already has a completed round - skipping" >&2
+fi
 suffix=$oldSuffix
 
 ### Add check whether Opsins/SequencesOfInterest/Opsins/RogueIter_0
@@ -163,13 +189,18 @@ then
 	suffix="-x $(basename $gene).BigTree0"
 	previousAligner="-p $gene"
 	# Make a big tree with the main aligner and without outgroup
-	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+	# Not covered by the resume-check above: GetSequencesOfInterestDirectory.sh
+	# resolves the path from previousAligner alone once it's set, ignoring
+	# aligner/suffix entirely, and this branch isn't exercised by any
+	# locally-testable gene - left as an unconditional restart rather than
+	# risk an unverified resume check here.
+	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=0, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
 	    "$DIR/Scheduler-09-RogueOptAlign.sh"
 
 	allSeqs=""
 	suffix="-x $(basename $gene)"
 	# Make also small trees with the main aligner and without outgroup
-	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=0, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
 	    "$DIR/Scheduler-09-RogueOptAlign.sh"
 else
 	echo "No reduced dataset in $geneOnlyDataSet" >&2
@@ -180,9 +211,20 @@ allSeqs=""
 suffix=""
 previousAligner=""
 
-# Make 20 iterations with the main aligner, make a big tree after 10 iterations
-"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" \
-    "$DIR/Scheduler-09-RogueOptAlign.sh"
+# Make up to $numRoundsLeft iterations with the main aligner, make a big
+# tree after $bigTreeIteration iterations - resume at the first
+# incomplete round, with numRoundsLeft reduced by however many rounds
+# are already done, instead of always restarting at iteration 0 with the
+# full original count.
+resumeIteration=$("$DIR/../GetResumeIteration.sh" -g "$gene" -a "$aligner" -m "$numRoundsLeft")
+if [ -n "$resumeIteration" ]
+then
+	remainingRounds=$((numRoundsLeft - resumeIteration))
+	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$remainingRounds, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" \
+	    "$DIR/Scheduler-09-RogueOptAlign.sh"
+else
+	echo "$aligner's regular loop already completed all $numRoundsLeft rounds - skipping" >&2
+fi
 
 if [ -z "$trimAl" ]
 then
@@ -196,5 +238,11 @@ else
 fi
 
 # Make an iteration for the main aligner, with switched pruning settings
-"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
-    "$DIR/Scheduler-09-RogueOptAlign.sh"
+resumeIteration=$("$DIR/../GetResumeIteration.sh" -g "$gene" -a "$aligner" -x "${suffix#-x }" -m 0)
+if [ -n "$resumeIteration" ]
+then
+	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+	    "$DIR/Scheduler-09-RogueOptAlign.sh"
+else
+	echo "$aligner.${suffix#-x } already has a completed round - skipping" >&2
+fi
