@@ -84,8 +84,23 @@ fi
 sequences="$DIR/$gene/Sequences"
 nrSequenceFile90="$sequences/NonRedundantSequences90.fasta"
 
+# If the destination already has byte-identical content to the source
+# (e.g. a --overwrite rerun where NonRedundantSequences90.fasta itself
+# hasn't actually changed), stop here entirely rather than just skipping
+# the copy: SplitSequencesRandomly.sh below reshuffles with a fresh
+# random order every time it runs, and reshuffling silently breaks
+# anything already aligned/tree-built from the current split (see the
+# --overwrite comment above) even when nothing about the source data
+# actually changed. Content being unchanged means this round's existing
+# split is still correct as-is, so there's nothing to redo.
+if cmp -s "$nrSequenceFile90" "$SequencesOfInterest"
+then
+	echo "$SequencesOfInterest already matches $nrSequenceFile90 - nothing to do." >&2
+	exit 0
+fi
+
 # Skip the extraction and just copy the sequences
-cp $nrSequenceFile90 $SequencesOfInterest
+cp "$nrSequenceFile90" "$SequencesOfInterest"
 
 # Randomly shuffle the sequences of interests and split them into chunks of
 # about 900 sequences, this is not exactly set, since the actual number of sequences
