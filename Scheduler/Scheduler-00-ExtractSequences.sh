@@ -15,6 +15,7 @@ then
 	DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 fi
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
+source "$DIR/AbortIfJobIDsEmpty.sh"
 
 # Idiomatic parameter and option handling in sh
 # Adapted from https://superuser.com/questions/186272/check-if-any-of-the-parameters-to-a-bash-script-match-a-string
@@ -166,6 +167,7 @@ cd $DIR
 
 # Align all the sequences
 jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "0" --hold $localNr $localRefseqProtein $localTsaNr)
+abortIfJobIDsEmpty "$jobIDs" "step 0"
 echo $jobIDs
 holdJobs=$jobIDs
 

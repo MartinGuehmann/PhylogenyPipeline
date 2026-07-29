@@ -12,6 +12,7 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
+source "$DIR/AbortIfJobIDsEmpty.sh"
 
 # Idiomatic parameter and option handling in sh
 # Adapted from https://superuser.com/questions/186272/check-if-any-of-the-parameters-to-a-bash-script-match-a-string
@@ -88,6 +89,7 @@ do
 		for iterDir in "$alignerDir/"*
 		do
 			jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "12" -i "$iteration" -a "$aligner" -f "$iterDir" $extension -u)
+			abortIfJobIDsEmpty "$jobIDs" "step 12 for $iterDir"
 		done
 	fi
 done

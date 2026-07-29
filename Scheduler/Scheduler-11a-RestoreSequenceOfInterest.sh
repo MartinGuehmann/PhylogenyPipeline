@@ -12,6 +12,7 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
+source "$DIR/AbortIfJobIDsEmpty.sh"
 
 # Idiomatic parameter and option handling in sh
 # Adapted from https://superuser.com/questions/186272/check-if-any-of-the-parameters-to-a-bash-script-match-a-string
@@ -102,7 +103,9 @@ fi
 jobIDs=""
 for ((i=$iteration;i<=endIteration;i++))
 do
-	jobIDs+=$($DIR/Scheduler-Call.sh             -g "$gene" -s "11" -i "$i" -a "$aligner" $allSeqs -d "$jobIDs" $shuffleSeqs $suffix $previousAligner --restore)
+	newJobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "11" -i "$i" -a "$aligner" $allSeqs -d "$jobIDs" $shuffleSeqs $suffix $previousAligner --restore)
+	abortIfJobIDsEmpty "$newJobIDs" "step 11 iteration $i"
+	jobIDs+=$newJobIDs
 done
 
 # Start held jobs

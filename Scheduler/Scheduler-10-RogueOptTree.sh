@@ -15,6 +15,7 @@ then
 	DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 fi
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
+source "$DIR/AbortIfJobIDsEmpty.sh"
 
 # Idiomatic parameter and option handling in sh
 # Adapted from https://superuser.com/questions/186272/check-if-any-of-the-parameters-to-a-bash-script-match-a-string
@@ -162,9 +163,11 @@ fi
 cd $DIR
 
 jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "10" -i "$iteration" -a "$aligner" $allSeqs --hold $suffix $previousAligner)
+abortIfJobIDsEmpty "$jobIDs" "step 10"
 echo $jobIDs
 holdJobs=$jobIDs
 jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "11" -i "$iteration" -a "$aligner" $allSeqs -d "$jobIDs" $shuffleSeqs $suffix $previousAligner)
+abortIfJobIDsEmpty "$jobIDs" "step 11"
 echo $jobIDs
 
 "$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration, previousAligner=$previousAligner" -W "depend=afterok$holdJobs$jobIDs" \
@@ -173,6 +176,7 @@ echo $jobIDs
 if [[ "$allSeqs" == "--allSeqs" && $numRoundsLeft == "0" ]]
 then
 	jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "12" -i "$iteration" -a "$aligner" -d "$holdJobs" $suffix $extension -U)
+	abortIfJobIDsEmpty "$jobIDs" "step 12 (allSeqs)"
 	echo $jobIDs
 
 	# Some scheduling problem is here
@@ -181,6 +185,7 @@ then
 else
 	# Depends only on the jobs from step 10
 	jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "12" -i "$iteration" -a "$aligner" -d "$holdJobs" $suffix $extension -u -M)
+	abortIfJobIDsEmpty "$jobIDs" "step 12"
 	echo $jobIDs
 fi
 
