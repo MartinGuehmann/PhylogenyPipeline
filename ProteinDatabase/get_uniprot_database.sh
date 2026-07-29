@@ -28,7 +28,18 @@ cd "$DIR/$database"
 (
 flock -x 200
 
-if [[ ! -f "$database.fasta" ]]
+# $database.fasta existing isn't enough on its own: gunzip writes its
+# output directly to that name and only deletes the source .gz on
+# success, so a job killed mid-decompression (walltime, scancel, node
+# failure) leaves a truncated-but-present .fasta file behind. Without a
+# separate completion marker, the next run would see that truncated file
+# "already there," skip straight past this whole block, and feed the
+# partial FASTA straight into makeblastdb below with no error at all -
+# confirmed 2026-07-29 as a real gap while auditing this lock section,
+# not yet observed in an actual failure. $database.fasta.ok is only
+# touched right after gunzip actually succeeds, same idiom as
+# $database.parseseqids below for makeblastdb's own completion.
+if [[ ! -f "$database.fasta" ]] || [[ ! -f "$database.fasta.ok" ]]
 then
 	if ! gzip -t "$database.fasta.gz" 2>/dev/null
 	then
@@ -47,11 +58,16 @@ then
 			fi
 		fi
 	fi
-	if ! gunzip "$database.fasta.gz"
+	# -f: the .gz check above can pass (a complete, valid download) while
+	# $database.fasta itself is still the truncated leftover of a
+	# previously interrupted gunzip - force overwriting it rather than
+	# gunzip refusing/skipping because the destination already exists.
+	if ! gunzip -f "$database.fasta.gz"
 	then
 		echo "gunzip failed on $database.fasta.gz" >&2
 		exit 1
 	fi
+	touch "$database.fasta.ok"
 fi
 
 
