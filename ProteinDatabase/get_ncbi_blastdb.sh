@@ -58,7 +58,15 @@ fi
 # unlike the uniprot databases, these are meant to be downloaded and
 # built once and then reused across runs, not checked against NCBI for
 # updates every time.
-if ! blastdbcmd -db "$database" -info >/dev/null 2>&1
+#
+# -info alone isn't enough, though: it catches a wholly missing volume
+# but not a truncated one still present on disk (confirmed 2026-07-29 -
+# deleting one volume's files made -info fail as expected, but merely
+# truncating one volume's .psq mid-file did not). $database.ok is only
+# touched right after a fetch actually succeeds and passes -info, so a
+# job killed mid-download (walltime, scancel, node failure) is always
+# caught here on the next run regardless of what -info alone would say.
+if ! blastdbcmd -db "$database" -info >/dev/null 2>&1 || [ ! -f "$database.ok" ]
 then
 	if ! command -v update_blastdb.pl >/dev/null 2>&1
 	then
@@ -66,11 +74,29 @@ then
 		exit 2
 	fi
 
+	# $database.ok missing alongside some files already present means a
+	# previous attempt was interrupted partway. update_blastdb.pl's own
+	# --force is documented as "force download even if there is an
+	# archive already on local directory," implying its default is to
+	# skip re-fetching an archive it finds already sitting there by name
+	# rather than verify it - which would let a truncated volume from an
+	# interrupted transfer persist forever untouched. There's also no
+	# per-volume "verify what's there, only refetch what's bad" option
+	# exposed by this tool, and real nr download timestamps (2026-07-29)
+	# show volumes being fetched concurrently out of numeric order, so
+	# there's no reliable way to identify just "the one volume in flight
+	# when the job died" either. Wiping this database's own files (never
+	# the lock file - that's a different, always-current mechanism) and
+	# forcing a full fresh redownload is the only way to guarantee a
+	# clean result - measured at ~5 hours for nr's ~170 volumes, so
+	# expensive, but this is a rare recovery path, not the common case.
+	find . -maxdepth 1 -name "$database.*" ! -name "$database.lock" -delete
+
 	# update_blastdb.pl downloads NCBI's pre-formatted database volumes
 	# directly (not a FASTA file), so there's no separate makeblastdb
 	# step here unlike the uniprot databases above. It does its own
 	# per-volume checksum verification and retries internally.
-	if ! update_blastdb.pl --decompress "$database"
+	if ! update_blastdb.pl --decompress --force "$database"
 	then
 		echo "update_blastdb.pl failed to fetch $database" >&2
 		exit 2
@@ -81,6 +107,8 @@ then
 		echo "$database was downloaded but is still not a valid BLAST database" >&2
 		exit 2
 	fi
+
+	touch "$database.ok"
 fi
 ) 200>"$database.lock"
 status=$?
