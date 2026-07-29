@@ -141,6 +141,65 @@ getNormalizedIDs() {
 		| awk '{print $1}'
 }
 
+# blastdbcmd has no multithreading flag of its own (-entry_batch is a
+# single, serial index lookup, unlike -num_threads on blastp/blastn) -
+# the only way to actually parallelize it is running several blastdbcmd
+# processes at once, each against its own slice of the ID list, then
+# concatenating their output back together (order doesn't matter, both
+# call sites below just filter the combined output by ID afterward).
+# minIDsPerChunk keeps a small ID list from being split into near-empty
+# chunks that would spend more time forking processes than doing lookups
+# - untuned starting value, same spirit as $range's ARG_MAX-driven choice
+# below.
+minIDsPerChunk=1000
+runBlastdbcmdParallel() {
+	local db="$1"
+	local idFile="$2"
+	local outFile="$3"
+
+	local numIDsHere
+	numIDsHere=$(wc -l < "$idFile")
+
+	local numChunks=$(( (numIDsHere + minIDsPerChunk - 1) / minIDsPerChunk ))
+	[ "$numChunks" -lt 1 ] && numChunks=1
+	[ "$numChunks" -gt "$numTreads" ] && numChunks=$numTreads
+
+	if [ "$numChunks" -le 1 ]
+	then
+		blastdbcmd -db "$db" -entry_batch "$idFile" -outfmt "%f" > "$outFile"
+		return
+	fi
+
+	local chunkPrefix="$idFile.chunk."
+	rm -f "$chunkPrefix"*
+	split -n "l/$numChunks" "$idFile" "$chunkPrefix"
+
+	local pids=()
+	local chunkOutFiles=()
+	local chunkFile
+	for chunkFile in "$chunkPrefix"*
+	do
+		local chunkOut="$chunkFile.fasta"
+		blastdbcmd -db "$db" -entry_batch "$chunkFile" -outfmt "%f" > "$chunkOut" &
+		pids+=($!)
+		chunkOutFiles+=("$chunkOut")
+	done
+
+	local pid
+	for pid in "${pids[@]}"
+	do
+		wait "$pid"
+	done
+
+	# Same "never trust blastdbcmd's exit code" reasoning as the call
+	# sites below applies per-chunk too - just concatenate whatever each
+	# chunk actually produced and let the existing post-hoc ID
+	# reconciliation (comm against the requested ID list) catch anything
+	# missing, exactly as it already does for a single non-parallel call.
+	cat "${chunkOutFiles[@]}" > "$outFile"
+	rm -f "$chunkPrefix"*
+}
+
 # Extract the sequences from uniprot
 for DB_PATH in "${LocalDataBases[@]}"
 do
@@ -154,7 +213,7 @@ do
 	# accession, the same way local nr already works below - no need to
 	# keep the multi-GB downloaded .fasta file around just for this.
 	dbRawFile="$sequences/$DB.raw.fasta"
-	blastdbcmd -db "$DB_PATH" -entry_batch "$tmpIDs" -outfmt "%f" > "$dbRawFile"
+	runBlastdbcmdParallel "$DB_PATH" "$tmpIDs" "$dbRawFile"
 
 	# Same reasoning as the nr extraction below: never trust blastdbcmd's
 	# exit code as pass/fail for the whole batch, and never blindly
@@ -231,7 +290,7 @@ do
 			dbRawFile="$sequences/$db.local.fasta"
 			dbGoodFile="$sequences/$db.local.good.fasta"
 			printf '%s\n' "${dbIDs[@]}" > "$dbIDsFile"
-			blastdbcmd -db "$dbPath" -entry_batch "$dbIDsFile" -outfmt "%f" > "$dbRawFile"
+			runBlastdbcmdParallel "$dbPath" "$dbIDsFile" "$dbRawFile"
 
 			# Same reasoning as the efetch loop below: never trust
 			# blastdbcmd's exit code as pass/fail for the whole batch (a
