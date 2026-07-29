@@ -72,6 +72,21 @@ use [nix-portable](https://github.com/DavHau/nix-portable) instead of the
 regular installer; it runs Nix entirely out of your home directory via a
 user namespace/bubblewrap trick, e.g. `nix-portable nix develop`.
 
+If Nix (or nix-portable) is on PATH, run `./BuildNixDependencies.sh` once
+after cloning, and again whenever flake.nix changes, before submitting
+any jobs - not just to pre-build everything, but because it's the only
+thing that actually protects the built environment from
+`nix-collect-garbage`. It roots every derivation it builds under
+`.nix-gcroots/`; without that, store paths are only *realized*, not
+*rooted*, and the next garbage collection (yours, another user's, or a
+cron job, on a shared store) can remove one out from under an
+already-built derivation that references it - confirmed 2026-07-29, when
+a `raxml` symlink baked into PASTA's tool directory went dangling this
+way and failed an entire 26-task array. `Scheduler/Scheduler-Call.sh`
+checks these roots exist and aren't broken before submitting any job, and
+refuses to submit (with a pointer back to this script) if they're
+missing or stale.
+
 The devShell's binary *names* were audited against what the pipeline
 scripts actually call, not assumed from each tool's usual name:
 

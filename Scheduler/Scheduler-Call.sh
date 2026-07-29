@@ -14,6 +14,14 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 shopt -s extglob
 
+# Every step below submits at least one Slurm job that will itself enter
+# flake.nix's Nix devShell (see Enter-NixDevShell.sh) - checking the
+# devShell's dependencies are actually still there *before* submitting is
+# a lot cheaper than an array job discovering a garbage-collected store
+# path on a compute node (see CheckNixDependenciesBuilt.sh's own comments
+# for the incident this is guarding against).
+source "$DIR/../CheckNixDependenciesBuilt.sh"
+
 # These would not need to be defined guards if called via "$DIR/Scheduler-Sub.sh"
 iteration="0"
 hold=""

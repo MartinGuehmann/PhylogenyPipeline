@@ -14,6 +14,19 @@
 # though, Nix will refuse the build for that one and print the real hash
 # of what it downloaded - paste that hash in place of fakeHash for the
 # named derivation in flake.nix, then re-run this script.
+#
+# Every build below is rooted under .nix-gcroots/ (via --out-link) instead
+# of just realized (--no-link, the previous behavior) - a store path that
+# is merely realized but never rooted is fair game for the next
+# `nix-collect-garbage`, by this user or anyone else sharing the same
+# store, and array jobs a day later can then find a symlink baked into an
+# already-built derivation (e.g. PASTA's tool directory pointing at
+# raxmlHPC) pointing at nothing. Confirmed 2026-07-29 on Mas1: an entire
+# 26-task PASTA array failed this way, and the user had assumed
+# submitting the job would itself take care of building/keeping the
+# environment - Scheduler-Call.sh's CheckNixDependenciesBuilt.sh call now
+# checks these roots exist and aren't broken before submitting anything,
+# specifically to catch this earlier and cheaper than a failed array job.
 
 # Get the directory where this script is
 SOURCE="${BASH_SOURCE[0]}"
@@ -25,6 +38,12 @@ done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 cd "$DIR"
+
+# Where every build's GC root goes - one symlink per package plus one for
+# the devShell, see the comment block above for why these need to exist
+# at all instead of just building with --no-link.
+gcRootDir="$DIR/.nix-gcroots"
+mkdir -p "$gcRootDir"
 
 # A multi-user Nix install isn't on PATH until its profile scripts are
 # sourced - harmless to source these if they don't apply here, since each
@@ -82,16 +101,23 @@ do
 	# without it Nix has been observed serving a stale cached evaluation
 	# of an unchanged-looking .drv path even after a real fix landed in
 	# flake.nix - confirmed on 2026-07-17, cost real time to track down.
-	if ! $nixCmd build ".#$pkg" --no-link -L --refresh
+	# --out-link roots the result under .nix-gcroots/ instead of just
+	# realizing it (see the comment block at the top of this file).
+	if ! $nixCmd build ".#$pkg" --out-link "$gcRootDir/$pkg" -L --refresh
 	then
 		failed+=("$pkg")
 	fi
 done
 
-# Also realizes the plain nixpkgs tools (seqkit, blast, mafft, etc.) that
-# the devShell pulls in directly and aren't their own named package above.
+# Also realizes (and, via --out-link, roots) the plain nixpkgs tools
+# (seqkit, blast, mafft, etc.) that the devShell pulls in directly and
+# aren't their own named package above. `nix build` on the devShell
+# derivation itself forces every one of its packages/buildInputs to be
+# built first, same as `nix develop --command true` used to, but leaves a
+# GC root behind instead of not rooting anything.
 echo "=== Building devShell ===" >&2
-if ! $nixCmd develop --refresh --command true
+system=$($nixCmd eval --impure --raw --expr builtins.currentSystem)
+if ! $nixCmd build ".#devShells.$system.default" --out-link "$gcRootDir/devShell" -L --refresh
 then
 	failed+=("devShell")
 fi
