@@ -559,7 +559,21 @@
               prank
             ];
             postBuild = ''
-              ln -sf ${pkgs.raxml}/bin/raxmlHPC $out/bin/raxml
+              # nixpkgs' `raxml` (classic RAxML 8.2.13) only installs
+              # raxmlHPC-PTHREADS-SSE3 on this nixpkgs-unstable revision -
+              # no plain raxmlHPC - confirmed 2026-07-29 (`ls
+              # ${pkgs.raxml}/bin/` on the cluster). This symlink used to
+              # point at the plain name, which never resolved; that went
+              # unnoticed until fc6da52 fixed a *different* PASTA_TOOLS_
+              # RUNDIR problem (hmmeralign) that PASTA hit first, only
+              # then exposing this one underneath. PTHREADS binaries
+              # normally need an explicit -T <threads> argument to run at
+              # all - if PASTA's own raxml invocation doesn't pass one
+              # (it's written expecting the plain serial binary), that
+              # would surface as a new, different runtime error; not
+              # confirmed either way yet, since PASTA never got this far
+              # before.
+              ln -sf ${pkgs.raxml}/bin/raxmlHPC-PTHREADS-SSE3 $out/bin/raxml
               cp ${opalJar} $out/bin/opal.jar
             '';
           };
