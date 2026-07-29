@@ -77,13 +77,24 @@ mkdir -p $sequences
 
 splitSeqNum=40000
 
-rm -f $tmpIDs
-rm -f $sequenceFile
-rm -f $sequenceNCBIFile
-
-rm -f $sequenceFileBase*".fasta"
-rm -f $sequenceNCBIFileBase*".fasta"
-rm -f "$sequences"/efetch_batch_*.fasta "$sequences"/efetch_batch_*.stderr "$sequences"/efetch_batch_*.requested
+# This step can run for hours (the efetch loop below, one NCBI round
+# trip at a time), and used to unconditionally wipe and redo everything
+# from scratch on every invocation - fine for a step that fails outright,
+# since Slurm's afterok dependency chain just never runs the next step,
+# but wasteful for a job that gets killed by walltime/scancel/node
+# failure partway through and gets resubmitted, as happened on a real
+# ACEs run 2026-07-29 (2.5 hours in when checked). Resuming below assumes
+# this gene's Hits/ haven't changed since whatever attempt is being
+# resumed from - if they have (e.g. step 0 was manually rerun for this
+# gene), delete $sequences (or at least UniprotExtraction.ok,
+# NCBIExtraction.ok, and efetch_batch_*.done) to force a full redo.
+#
+# What follows here is only genuinely transient per-attempt scratch, safe
+# to clear unconditionally regardless of whether we're resuming - none of
+# it represents finished, accumulated work, just leftovers from whatever
+# database/batch was being processed when a previous attempt (if any) was
+# interrupted.
+rm -f "$sequences"/efetch_batch_*.fasta "$sequences"/efetch_batch_*.stderr "$sequences"/efetch_batch_*.requested "$sequences"/efetch_batch_*.good.fasta
 rm -f "$sequences"/*.local_ids.txt "$sequences"/*.local.fasta "$sequences"/*.local.good.fasta
 rm -f "$sequences"/*.raw.fasta
 
@@ -200,42 +211,56 @@ runBlastdbcmdParallel() {
 	rm -f "$chunkPrefix"*
 }
 
-# Extract the sequences from uniprot
-for DB_PATH in "${LocalDataBases[@]}"
-do
-	DB=$(basename $DB_PATH)
+# Extract the sequences from uniprot - skipped entirely once already
+# done (see the resume comment above), since a job resuming into the
+# much slower efetch phase below shouldn't have to redo this first.
+uniprotDoneMarker="$sequences/UniprotExtraction.ok"
+if [ ! -f "$uniprotDoneMarker" ]
+then
+	rm -f $tmpIDs
+	rm -f $sequenceFile
+	rm -f "$sequenceFileBase.part_"*".fasta"
 
-	sed -E "s/^ *[0-9]* //g" "$hits/$DB/SortedHitsByName.csv" | cut -f 1 | sort -u >> $tmpIDs
+	for DB_PATH in "${LocalDataBases[@]}"
+	do
+		DB=$(basename $DB_PATH)
 
-	# blastdbcmd instead of seqkit grep -f ... "$DB_PATH.fasta": with
-	# get_uniprot_database.sh's makeblastdb now using -parse_seqids,
-	# sequences can be pulled straight out of the BLAST database by
-	# accession, the same way local nr already works below - no need to
-	# keep the multi-GB downloaded .fasta file around just for this.
-	dbRawFile="$sequences/$DB.raw.fasta"
-	runBlastdbcmdParallel "$DB_PATH" "$tmpIDs" "$dbRawFile"
+		sed -E "s/^ *[0-9]* //g" "$hits/$DB/SortedHitsByName.csv" | cut -f 1 | sort -u >> $tmpIDs
 
-	# Same reasoning as the nr extraction below: never trust blastdbcmd's
-	# exit code as pass/fail for the whole batch, and never blindly
-	# append its raw output either.
-	extractRequestedRecords "$dbRawFile" "$tmpIDs" >> $sequenceFile
+		# blastdbcmd instead of seqkit grep -f ... "$DB_PATH.fasta": with
+		# get_uniprot_database.sh's makeblastdb now using -parse_seqids,
+		# sequences can be pulled straight out of the BLAST database by
+		# accession, the same way local nr already works below - no need to
+		# keep the multi-GB downloaded .fasta file around just for this.
+		dbRawFile="$sequences/$DB.raw.fasta"
+		runBlastdbcmdParallel "$DB_PATH" "$tmpIDs" "$dbRawFile"
 
-	# Unlike nr below, there's no remote fallback for a uniprot hit -
-	# blastdbcmd not finding one here (e.g. withdrawn/merged since this
-	# local copy was last updated) just means it's missing from this run.
-	missingIDs=$(comm -23 <(sort -u "$tmpIDs") <(getNormalizedIDs "$dbRawFile" | sort -u))
-	if [ -n "$missingIDs" ]
-	then
-		echo "blastdbcmd could not find these $DB ID(s) in the local copy: $(echo "$missingIDs" | tr '\n' ' ')" >&2
-	fi
+		# Same reasoning as the nr extraction below: never trust blastdbcmd's
+		# exit code as pass/fail for the whole batch, and never blindly
+		# append its raw output either.
+		extractRequestedRecords "$dbRawFile" "$tmpIDs" >> $sequenceFile
 
-	rm -f $tmpIDs "$dbRawFile"
-done
+		# Unlike nr below, there's no remote fallback for a uniprot hit -
+		# blastdbcmd not finding one here (e.g. withdrawn/merged since this
+		# local copy was last updated) just means it's missing from this run.
+		missingIDs=$(comm -23 <(sort -u "$tmpIDs") <(getNormalizedIDs "$dbRawFile" | sort -u))
+		if [ -n "$missingIDs" ]
+		then
+			echo "blastdbcmd could not find these $DB ID(s) in the local copy: $(echo "$missingIDs" | tr '\n' ' ')" >&2
+		fi
 
-# Split the sequence file into handy chuncks if we want to store it on github
-# The maximum file size is 100 MB, but we should stay below of that.
-seqkit split2 -j $numTreads -s $splitSeqNum -O $sequences $sequenceFile
-rm -f $sequenceFile
+		rm -f $tmpIDs "$dbRawFile"
+	done
+
+	# Split the sequence file into handy chuncks if we want to store it on github
+	# The maximum file size is 100 MB, but we should stay below of that.
+	seqkit split2 -j $numTreads -s $splitSeqNum -O $sequences $sequenceFile
+	rm -f $sequenceFile
+
+	touch "$uniprotDoneMarker"
+else
+	echo "$uniprotDoneMarker already exists - uniprot extraction already done, skipping" >&2
+fi
 
 # Extract the sequences from NCBI
 IDs=($(sed -E "s/^ *[0-9]* //g" "$hits/$AllNCBI/SortedHitsByName.csv" | cut -f 1 | sort -u))
@@ -364,6 +389,25 @@ do
 	# the entire batch wasted ~5 minutes per trial re-fetching already-
 	# good data, then discarded all 8000 IDs once trials ran out, instead
 	# of just the actually-bad ones.
+	# A batch already fully resolved by a previous (possibly interrupted)
+	# attempt gets skipped outright, not just retried faster - its results
+	# are already sitting in $sequenceNCBIFile from that earlier run (no
+	# longer wiped at the top of this script, see the resume comment
+	# above). Only touched once every ID in the batch is genuinely
+	# accounted for (fetched, or a confirmed/known-dead accession) -
+	# batchFullyResolved is reset every iteration and only ever flipped to
+	# "false" further below, when some ID is neither, so a batch with a
+	# real unexplained failure deliberately stays unmarked and gets a
+	# fresh set of retries on the next attempt instead of being skipped
+	# forever.
+	batchDoneMarker="$sequences/efetch_batch_$i.done"
+	if [ -f "$batchDoneMarker" ]
+	then
+		let i+=range
+		continue
+	fi
+	batchFullyResolved="true"
+
 	remainingIDs=("${IDs[@]:$i:$range}")
 
 	# Named predictably in $sequences (not mktemp's random /tmp path) so
@@ -453,8 +497,14 @@ do
 			then
 				echo "efetch permanently failed for unexpected ID(s) in batch $i..$((i + range - 1)) after $maxTrials trials: ${stillUnexplained[*]}" >&2
 				failed="true"
+				batchFullyResolved="false"
 			fi
 		fi
+	fi
+
+	if [ "$batchFullyResolved" == "true" ]
+	then
+		touch "$batchDoneMarker"
 	fi
 
 	let i+=range
@@ -466,7 +516,34 @@ then
 	exit 1
 fi
 
-# Split the sequence file into handy chuncks if we want to store it on github
-# The maximum file size is 100 MB, but we should stay below of that.
-seqkit split2 -j $numTreads -s $splitSeqNum -O $sequences $sequenceNCBIFile
-rm -f $sequenceNCBIFile
+# Skipped if a previous attempt already finished this too - needed since
+# a fully-resumed run (every batch above already marked done) never
+# appends anything new to $sequenceNCBIFile, and a prior successful run
+# already removed it right after this same split, so it wouldn't even
+# exist to split again.
+ncbiExtractionDoneMarker="$sequences/NCBIExtraction.ok"
+if [ ! -f "$ncbiExtractionDoneMarker" ]
+then
+	# Only the split *.part_*.fasta output, never a bare
+	# "$sequenceNCBIFileBase*.fasta" glob - that would also match
+	# $sequenceNCBIFile itself ($sequenceNCBIFileBase with no infix at
+	# all still satisfies a middle "*"), deleting the very file about to
+	# be split right before splitting it - confirmed 2026-07-29 while
+	# testing this resume logic end to end.
+	rm -f "$sequenceNCBIFileBase.part_"*".fasta"
+
+	# A gene with zero NCBI-sourced hits (numIDs=0 above, so the while
+	# loop never runs) never creates $sequenceNCBIFile at all - pre-existing
+	# behavior, not introduced by the resume logic here, but worth guarding
+	# against now that this block is conditional anyway rather than letting
+	# seqkit error on a file that was never going to exist.
+	if [ -s "$sequenceNCBIFile" ]
+	then
+		# Split the sequence file into handy chuncks if we want to store it on github
+		# The maximum file size is 100 MB, but we should stay below of that.
+		seqkit split2 -j $numTreads -s $splitSeqNum -O $sequences $sequenceNCBIFile
+		rm -f $sequenceNCBIFile
+	fi
+
+	touch "$ncbiExtractionDoneMarker"
+fi
