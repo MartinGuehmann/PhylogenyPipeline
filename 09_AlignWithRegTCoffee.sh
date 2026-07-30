@@ -49,7 +49,15 @@ fi
 mkdir -p $alignmentDir
 
 # Align the sequences with regressive t-coffee
-MAX_N_PID_4_TCOFFEE=520000 t_coffee -reg -seq $inputSequences -nseq 100 -tree mbed -method mafftlinsi_msa -outfile $outFile -outtree $outTree -thread 0  >&2 # In case this puts something to stdout
+#
+# T-Coffee refuses to fork a subprocess once its PID exceeds
+# MAX_N_PID_4_TCOFFEE, hardcoded here until 2026-07-30 as 520000 - on
+# this cluster real PIDs already run into the millions, so every call
+# aborted immediately with "MAX_N_PID exceded", leaving an empty
+# outFile. Read the node's actual ceiling instead of guessing another
+# fixed number that could just as well be exceeded again later.
+maxNPid=$(cat /proc/sys/kernel/pid_max)
+MAX_N_PID_4_TCOFFEE=$maxNPid t_coffee -reg -seq $inputSequences -nseq 100 -tree mbed -method mafftlinsi_msa -outfile $outFile -outtree $outTree -thread 0  >&2 # In case this puts something to stdout
 
 ###########################################################
 # Restore sequence names, so that we have some idea of what we are looking when we are looking at the tree
