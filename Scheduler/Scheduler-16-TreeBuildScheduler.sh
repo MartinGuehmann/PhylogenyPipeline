@@ -119,7 +119,7 @@ fi
 
 if [ -z $aligner ]
 then
-	aligner="$DIR/../GetDefaultAligner.sh"
+	aligner=$("$DIR/../GetDefaultAligner.sh")
 fi
 
 # Change the working directory to the directory of this script
