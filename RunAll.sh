@@ -487,7 +487,7 @@ case $step in
 	;;
 17)
 	echo "17. Skip extract sequences of interest and just copy sequences." >&2
-	if ! "$DIR/17_SkipExtraction.sh" -g "$gene" -d "$TreesForPruningFromPASTADir" -c $SequenceChunksForPruningDir $extension $overwrite
+	if ! "$DIR/17_SkipExtraction.sh" -g "$gene" $overwrite
 	then
 		echo "17. Failed to copy sequences directly." >&2
 		exit 1
