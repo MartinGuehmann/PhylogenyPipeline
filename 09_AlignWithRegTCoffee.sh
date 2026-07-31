@@ -57,7 +57,16 @@ mkdir -p $alignmentDir
 # outFile. Read the node's actual ceiling instead of guessing another
 # fixed number that could just as well be exceeded again later.
 maxNPid=$(cat /proc/sys/kernel/pid_max)
-MAX_N_PID_4_TCOFFEE=$maxNPid t_coffee -reg -seq $inputSequences -nseq 100 -tree mbed -method mafftlinsi_msa -outfile $outFile -outtree $outTree -thread 0  >&2 # In case this puts something to stdout
+# -thread 0 ("all those defined in the environment", per `t_coffee
+# -help`) does NOT respect this job's actual Slurm/cgroup CPU
+# allocation the way $numTreads (nproc, already computed above) does -
+# confirmed 2026-07-31: every one of a 26-task RegTCoffee array
+# coredumped after printing "!Maximum N Threads --- 96", the physical
+# node's full core count, while Resources.cfg only ever gave this job
+# 24 - t_coffee tried to run ~4x oversubscribed and crashed before
+# writing any output. Pass the already-detected, cgroup-respecting
+# count explicitly instead of trusting -thread 0's own detection.
+MAX_N_PID_4_TCOFFEE=$maxNPid t_coffee -reg -seq $inputSequences -nseq 100 -tree mbed -method mafftlinsi_msa -outfile $outFile -outtree $outTree -thread "$numTreads"  >&2 # In case this puts something to stdout
 
 ###########################################################
 # Restore sequence names, so that we have some idea of what we are looking when we are looking at the tree
