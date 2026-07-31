@@ -605,6 +605,42 @@
               # lookup at runtime; point it straight at the same
               # interpreter this flake's own PASTA package uses.
               sed -i "1s|.*|#!${py.python.interpreter}|" $out/bin/hmmeralign
+
+              # PASTA's own PastaTeam constructor (pastajob.py) builds a
+              # TreeShrink tool wrapper unconditionally on every run,
+              # whether or not the "treeshrink_filter" setting (which
+              # this repo never enables - run_pasta.py is called below
+              # with no config file, so it keeps upstream's own default
+              # of False) actually asks for it - configure.py's
+              # init_pasta() resolves every external tool's default path
+              # under PASTA_TOOLS_RUNDIR by name (including "treeshrink")
+              # before any of that gating happens, and ExternalTool's own
+              # __init__ (tools.py) then fatally errors out if that path
+              # doesn't exist, for any "is_bundled_tool" class - which
+              # TreeShrink is. Confirmed 2026-07-31: every part of a
+              # 26-task PASTA array on Mas1 failed immediately with
+              # "The path '.../bin/treeshrink' does not exist" for
+              # exactly this reason, despite treeshrink filtering never
+              # being requested. This repo's own `treeshrink` flake
+              # package only installs run_treeshrink.py (a differently-
+              # shaped CLI - it takes -i/-t flags, not PASTA's own
+              # `treeshrink <alignment> <tree>` two-positional-arg call)
+              # and can't just be symlinked in under this name, so this
+              # stub only satisfies the eager existence check; if
+              # treeshrink_filter is ever turned on for real, this should
+              # be replaced by a wrapper that actually shells out to
+              # run_treeshrink.py and reshapes its output to what
+              # tools.py's TreeShrink.create_job expects (shrunk_0.05.fasta
+              # / shrunk_0.05.tre in its scratch dir).
+              printf '%s\n' \
+                '#!${pkgs.runtimeShell}' \
+                'echo "This stub exists only so PASTA'"'"'s eager tool-path check" >&2' \
+                'echo "passes - it does not implement TreeShrink filtering." >&2' \
+                'echo "See flake.nix'"'"'s pastaRunDir comment before enabling" >&2' \
+                'echo "PASTA'"'"'s treeshrink_filter setting." >&2' \
+                'exit 1' \
+                > $out/bin/treeshrink
+              chmod +x $out/bin/treeshrink
             '';
           };
 

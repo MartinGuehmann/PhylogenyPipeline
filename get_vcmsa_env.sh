@@ -68,8 +68,7 @@ fi
 removeStaleEnv
 
 # vcMSA doesn't publish its conda environment spec on PyPI, only in its
-# own repo - clone just to get environment.txt, then install the actual
-# vcmsa package from PyPI as normal. Per vcMSA's own install
+# own repo - clone just to get environment.txt. Per vcMSA's own install
 # instructions (see README's "Porting to a new cluster" section): use
 # -n here, not vcMSA's own suggested --prefix vcmsa_env -
 # 09_Scheduler-AlignWithVCMSA.sh activates the env by bare name
@@ -97,9 +96,18 @@ then
 	exit 1
 fi
 
-if ! conda run -n "$envName" pip install vcmsa
+# The package is NOT actually published on PyPI despite the README's
+# "vcmsa can be directly installed ... from pypi" claim - `pip install
+# vcmsa` 404s (confirmed 2026-07-31: "Could not find a version that
+# satisfies the requirement vcmsa (from versions: none)" on every one
+# of a 26-task array). Install from the clone already sitting here
+# instead, same as the README's own "install from source" fallback
+# (`cd vcmsa && python setup.py install`) - `pip install <dir>` is the
+# modern equivalent and needs no extra network access beyond the clone
+# already done above.
+if ! conda run -n "$envName" pip install "$cloneDir/vcmsa"
 then
-	echo "pip install vcmsa failed inside $envName - removing the incomplete environment so the next attempt starts fresh instead of finding a half-installed one" >&2
+	echo "pip install of the cloned vcmsa source failed inside $envName - removing the incomplete environment so the next attempt starts fresh instead of finding a half-installed one" >&2
 	removeStaleEnv
 	exit 1
 fi
