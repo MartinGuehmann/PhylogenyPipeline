@@ -18,6 +18,17 @@ fi
 
 conda activate vcmsa_env
 
+# Enter-NixDevShell.sh (sourced above, needed further down for RunAll.sh's
+# raxml-ng/seqkit post-processing) leaves PYTHONPATH pointing at Nix's own
+# Python 3.14 site-packages, including its numpy build. conda activate
+# doesn't clear that - it only prepends vcmsa_env's own bin/lib to PATH -
+# so the env's Python 3.9 `vcmsa` script still finds the Nix-built numpy
+# first and dies importing a cpython-314 .so from cpython-39 ("No module
+# named 'numpy._core._multiarray_umath'"), confirmed 2026-08-02 on every
+# task of a 26-task array. Nothing downstream of here is Python, so
+# clearing it is safe - raxml-ng/seqkit resolve via PATH, not PYTHONPATH.
+unset PYTHONPATH
+
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
 if [ -z "$gene" ]
