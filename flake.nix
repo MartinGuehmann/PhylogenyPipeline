@@ -724,6 +724,20 @@
             # relying on argv.
             postPatch = ''
               sed -i 's/if TRACKINSTALL is not None and (wanted & seen) and not (notwanted & seen):/if False:/' setup.py
+
+              # Python 3.13+ removed the stdlib "cgi" module (PEP 594,
+              # gone per https://docs.python.org/3/whatsnew/3.13.html)
+              # ete3/__init__.py unconditionally does `from
+              # .webplugin.webapp import *`, and webapp.py does `import
+              # cgi` at module level - confirmed 2026-08-03: "No module
+              # named 'cgi'" on this flake's Python 3.14, even though
+              # 12_ConvertTreesToFigures.py only ever imports
+              # Tree/NexmlTree/faces/etc, never the web plugin. ete3's
+              # own __init__.py already wraps its other optional/fragile
+              # submodules (phylomedb, treeview) in try/except
+              # ImportError a few lines below - give webapp the same
+              # treatment instead of inventing a new pattern.
+              sed -i 's/from \.webplugin\.webapp import \*/try:\n    from .webplugin.webapp import *\nexcept ImportError as e:\n    pass/' ete3/__init__.py
             '';
             # setup.py's own install_requires is empty (it only *checks*
             # for these and warns if missing); they're genuinely needed
