@@ -14,7 +14,7 @@ then
 fi
 
 date >&2
-time "$DIR/../RunAll.sh" -g "$gene" -s "12" -i "$iteration" -a "$aligner" $suffix $extension $update $updateBig $inputDir $ignoreIfMasterFileDoesNotExist
+time "$DIR/../RunAll.sh" -g "$gene" -s "12" -i "$iteration" -a "$aligner" $suffix $masterAligner $masterSuffix $extension $update $updateBig $inputDir $ignoreIfMasterFileDoesNotExist
 status=$?
 sstat -j "$SLURM_JOB_ID.batch" --format=JobID,MaxRSS,AveCPU,MaxVMSize -n 2>&1 >&2
 date >&2

@@ -38,6 +38,18 @@ do
             shift
             aligner="$1"
             ;;
+        --masterAligner)
+            ;&
+        -A)
+            shift
+            masterAligner="-A $1"
+            ;;
+        --masterSuffix)
+            ;&
+        -X)
+            shift
+            masterSuffix="-X $1"
+            ;;
         --extension)
             ;&
         -e)
@@ -60,6 +72,8 @@ echo "Running $thisScript with"            >&2
 echo "gene:             $gene"             >&2
 echo "iteration:        $iteration"        >&2
 echo "aligner:          $aligner"          >&2
+echo "masterAligner:    $masterAligner"    >&2
+echo "masterSuffix:     $masterSuffix"     >&2
 echo "extension:        $extension"        >&2
 echo "Note the script is copied to"        >&2
 echo "another place with another name"     >&2
@@ -88,7 +102,7 @@ do
 	then
 		for iterDir in "$alignerDir/"*
 		do
-			jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "12" -i "$iteration" -a "$aligner" -f "$iterDir" $extension -u)
+			jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "12" -i "$iteration" -a "$aligner" -f "$iterDir" $masterAligner $masterSuffix $extension -u)
 			abortIfJobIDsEmpty "$jobIDs" "step 12 for $iterDir"
 		done
 	fi

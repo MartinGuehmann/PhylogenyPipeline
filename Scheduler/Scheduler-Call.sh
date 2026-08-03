@@ -29,6 +29,8 @@ depend=""
 allSeqs=""
 shuffleSeqs=""
 suffix=""
+masterAligner=""
+masterSuffix=""
 extension=""
 
 # Idiomatic parameter and option handling in sh
@@ -93,6 +95,18 @@ do
         -x)
             shift
             suffix="-x $1"
+            ;;
+        --masterAligner)
+            ;&
+        -A)
+            shift
+            masterAligner="-A $1"
+            ;;
+        --masterSuffix)
+            ;&
+        -X)
+            shift
+            masterSuffix="-X $1"
             ;;
         --extension)
             ;&
@@ -333,7 +347,7 @@ case $step in
 	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, shuffleSeqs=$shuffleSeqs, suffix=$suffix, previousAligner=$previousAligner, restore=$restore" "$DIR/11_Scheduler-RemoveRogues.sh")
 	;;
 12)
-	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, suffix=$suffix, extension=$extension, update=$update, updateBig=$updateBig, inputDir=$inputDir, ignoreIfMasterFileDoesNotExist=$ignoreIfMasterFileDoesNotExist" "$DIR/12_Scheduler-ConvertTreesToFigures.sh")
+	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, suffix=$suffix, masterAligner=$masterAligner, masterSuffix=$masterSuffix, extension=$extension, update=$update, updateBig=$updateBig, inputDir=$inputDir, ignoreIfMasterFileDoesNotExist=$ignoreIfMasterFileDoesNotExist" "$DIR/12_Scheduler-ConvertTreesToFigures.sh")
 	;;
 13)
 	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene, overwrite=$overwrite" "$DIR/13_Scheduler-SplitNonRedundantSequences.sh")
