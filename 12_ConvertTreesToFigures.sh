@@ -42,7 +42,24 @@ function pdf2png ()
 	local fileBase="$1"
 	local inputFile="$1.pdf"
 	local outputFile="$1.png"
-	pdftoppm -png -r 600 "$inputFile" > "$outputFile"
+	# 600 DPI is needed for the PNG to actually be useful, but for a very
+	# large tree's page size (confirmed 2026-08-04: 519x56029pt for
+	# Mas1's FAMSA.BigTree0 fullTree, ~21817 leaves) that means
+	# rasterizing well over 2 billion pixels, which pdftoppm can fail to
+	# even allocate a buffer for. It still exits 0 when that happens
+	# though (confirmed same date) - it just silently writes a
+	# degenerate 1x1 PNG instead of the real thing, so checking its exit
+	# status alone wouldn't catch this. Check stderr instead: a clean
+	# conversion produces none at all. Not treated as a failure of this
+	# step either way - $inputFile (the PDF) is still there and still
+	# the real, complete artifact regardless - just surface it instead
+	# of leaving a silently-broken PNG with no explanation.
+	local pdftoppmErr
+	pdftoppmErr=$(pdftoppm -png -r 600 "$inputFile" 2>&1 1>"$outputFile")
+	if [ -n "$pdftoppmErr" ]
+	then
+		echo "pdftoppm had trouble converting $inputFile to PNG at 600 DPI (probably too large a page to rasterize) - $inputFile itself is still there. pdftoppm said: $pdftoppmErr" >&2
+	fi
 }
 
 # Get the directory where this script is
