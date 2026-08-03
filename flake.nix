@@ -738,6 +738,24 @@
               # ImportError a few lines below - give webapp the same
               # treatment instead of inventing a new pattern.
               sed -i 's/from \.webplugin\.webapp import \*/try:\n    from .webplugin.webapp import *\nexcept ImportError as e:\n    pass/' ete3/__init__.py
+
+              # treeview/main.py's save() has three export branches - SVG,
+              # PDF/PS, and raster (PNG etc.) - each creates a QPainter,
+              # calls scene.render(pp, ...), then MUST call pp.end()
+              # before the underlying paint device (svg writer/QPrinter/
+              # QImage) gets garbage-collected, since destroying a paint
+              # device its painter hasn't ended is undefined behavior in
+              # Qt. The SVG and raster branches both do this correctly;
+              # only the PDF/PS branch is missing its pp.end() call -
+              # confirmed 2026-08-03: PDF export reliably segfaults with
+              # "QPaintDevice: Cannot destroy paint device that is being
+              # painted" on this flake's Qt 5.15.19, regardless of
+              # QT_QPA_PLATFORM (offscreen or xcb via xvfb-run both
+              # crashed identically) - a real pre-existing bug in this
+              # code path, not an environment/platform-plugin issue.
+              # Give the PDF/PS branch the same pp.end() the other two
+              # already have, right before its "else:" (raster branch).
+              sed -z -i 's/        scene\.render(pp, targetRect, scene\.sceneRect(), ratio_mode)\n    else:/        scene.render(pp, targetRect, scene.sceneRect(), ratio_mode)\n        pp.end()\n    else:/' ete3/treeview/main.py
             '';
             # setup.py's own install_requires is empty (it only *checks*
             # for these and warns if missing); they're genuinely needed
@@ -912,6 +930,28 @@
               pythonWithEte3
               blast2_9
             ];
+
+            # ete3's PDF tree export (12_ConvertTreesToFigures.py) goes
+            # through PyQt5's QApplication, which needs a Qt "platform
+            # plugin" (libqxcb.so for a real X11 display, libqoffscreen.so
+            # for headless rendering) to even start - confirmed
+            # 2026-08-03: "qt.qpa.plugin: Could not find the Qt platform
+            # plugin \"xcb\" in \"\"" on this cluster/workstation, neither
+            # of which reliably has a live X server. QLibraryInfo reports
+            # Qt's own compiled-in plugin search path as
+            # qtbase's main "out" output's lib/qt-*/plugins, but nixpkgs
+            # actually puts the plugin .so files (including
+            # libqoffscreen.so) in qtbase's separate "bin" output instead
+            # - "out" alone, which is all py.pyqt5's runtime closure
+            # pulls in, has none of them. QT_QPA_PLATFORM=offscreen avoids
+            # needing a real or virtual (xvfb-run) X server at all, per
+            # the ete3 derivation's own comment above about that
+            # requirement - offscreen rendering is all this pipeline ever
+            # needs, since it only ever runs headless/batch.
+            shellHook = ''
+              export QT_QPA_PLATFORM_PLUGIN_PATH="${pkgs.qt5.qtbase.bin}/lib/qt-${pkgs.qt5.qtbase.version}/plugins/platforms"
+              export QT_QPA_PLATFORM="offscreen"
+            '';
           };
         });
     in
