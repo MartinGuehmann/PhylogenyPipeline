@@ -68,6 +68,20 @@ maxNPid=$(cat /proc/sys/kernel/pid_max)
 # count explicitly instead of trusting -thread 0's own detection.
 MAX_N_PID_4_TCOFFEE=$maxNPid t_coffee -reg -seq $inputSequences -nseq 100 -tree mbed -method mafftlinsi_msa -outfile $outFile -outtree $outTree -thread "$numTreads"  >&2 # In case this puts something to stdout
 
+# Without this check, a t_coffee failure (e.g. the coredump above) fell
+# through silently into the seqkit rename below, which then manufactured
+# a 0-byte $outFile of its own (seqkit failing to read the never-written
+# $outFile, redirected into $outFileFixed, then mv'd over $outFile) -
+# so the only thing that ever caught the failure was raxml-ng's
+# downstream --check happening to notice the alignment was empty.
+# Fail fast here instead, so a t_coffee failure that left behind
+# non-empty garbage doesn't slip past that indirect check unnoticed.
+if [ $? -ne 0 ]
+then
+	echo "9. t_coffee failed to align $inputSequences with RegTCoffee." >&2
+	exit 1
+fi
+
 ###########################################################
 # Restore sequence names, so that we have some idea of what we are looking when we are looking at the tree
 mapFile="$alignmentDir/$base.map.txt"
