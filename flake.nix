@@ -748,11 +748,33 @@
             # xvfb-run) - packaging it doesn't remove that requirement.
           };
 
-          # A python3 with ete3 (and its deps) merged into its own
-          # site-packages, so that a bare `python3 script.py` - not just
-          # ete3's own console script - can `import ete3`. This, not the
-          # `ete3` package above directly, is what goes into the devShell.
-          pythonWithEte3 = pkgs.python3.withPackages (ps: [ ete3 ]);
+          # logomaker (sequence-logo plotting, used by
+          # 12_ConvertTreesToFigures.py) isn't in nixpkgs at all -
+          # confirmed 2026-08-03 via `nix eval nixpkgs#python3Packages`.
+          # Pure-Python, no compiled extensions, so a plain wheel fetch
+          # is enough - no need for the source-build machinery ete3 above
+          # needs. Fetched by direct URL (not py.fetchPypi's
+          # name+version-derived guess) since PyPI's actual file paths
+          # are hash-prefixed and not reliably derivable that way.
+          logomaker = py.buildPythonPackage rec {
+            pname = "logomaker";
+            version = "0.8.7"; # pypi.org/project/logomaker, latest as of 2026-08-03
+            format = "wheel";
+            src = pkgs.fetchurl {
+              url = "https://files.pythonhosted.org/packages/d5/1f/9be29e34615a4325a0ff6da18c55994cb546dcff4423c91f80f101a9858c/logomaker-${version}-py3-none-any.whl";
+              sha256 = "8a65a5e5136a08823d199fbb5a9443674062a1c223236301accde19b0e401762";
+            };
+            propagatedBuildInputs = [ py.matplotlib py.numpy py.pandas ];
+            doCheck = false;
+          };
+
+          # A python3 with ete3 and 12_ConvertTreesToFigures.py's other
+          # non-stdlib deps merged into its own site-packages, so that a
+          # bare `python3 script.py` - not just ete3's own console script
+          # - can `import ete3` (and Bio, pandas, matplotlib, logomaker).
+          # This, not the `ete3` package above directly, is what goes
+          # into the devShell.
+          pythonWithEte3 = pkgs.python3.withPackages (ps: [ ete3 py.biopython py.pandas py.matplotlib logomaker ]);
 
           # NCBI's BLAST+ 2.10.0 introduced a network-service "dispatcher"
           # (Service/dispd.cgi) for -remote queries that does not work
