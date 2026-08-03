@@ -103,13 +103,13 @@ do
             shift
             inputDir="$1"
             ;;
-        --extension)
+        --cladeFile)
             ;&
         -c)
             shift
             cladeFile="$1"
             ;;
-        --cladeFile)
+        --extension)
             ;&
         -e)
             shift
