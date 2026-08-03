@@ -21,6 +21,19 @@
 #     which aligner/iteration directory gets re-rendered, that comes from
 #     the alignerDir/iterDir loop below regardless of this value.
 #     Defaults to GetDefaultAligner.sh's choice if not given.
+#  --masterAligner (-A) <AlignerName>
+#     Overrides --aligner specifically for the master/BigTree lookup
+#     (12_ConvertTreesToFigures.sh's --masterAligner) - only useful
+#     together with --masterSuffix, since --aligner alone already
+#     becomes the master aligner by default. Not passed at all if omitted.
+#  --masterSuffix (-X) <SuffixForAlignmentDirectory>
+#     The BigTree suffix identifying which master tree defines clade
+#     membership, e.g. "BigTree0" for Mas1/Alignments/FAMSA.BigTree0/ -
+#     without this, the master tree is looked up at the unsuffixed
+#     $aligner/RogueIter_$baseIteration, which does not exist for genes
+#     whose real master tree lives under a suffixed BigTree directory.
+#     Not passed at all if omitted, same as the cluster version's own
+#     (equally affected) behavior.
 #  --extension (-e) <TreeFileExtension>
 #     The extension of the Newick tree files, for instance "tre" (PASTA)
 #     or "contree"/"treefile" (IQ-Tree). Passed through unchanged if given.
@@ -59,6 +72,18 @@ do
         -a)
             shift
             aligner="$1"
+            ;;
+        --masterAligner)
+            ;&
+        -A)
+            shift
+            masterAligner="-A $1"
+            ;;
+        --masterSuffix)
+            ;&
+        -X)
+            shift
+            masterSuffix="-X $1"
             ;;
         --extension)
             ;&
@@ -100,6 +125,8 @@ echo "Running $thisScript with"    >&2
 echo "gene:             $gene"     >&2
 echo "iteration:        $iteration" >&2
 echo "aligner:          $aligner"  >&2
+echo "masterAligner:    $masterAligner" >&2
+echo "masterSuffix:     $masterSuffix" >&2
 echo "extension:        $extension" >&2
 
 stepFailed="false"
@@ -109,7 +136,7 @@ do
 	then
 		for iterDir in "$alignerDir/"*
 		do
-			if ! "$DIR/RunAll.sh" -g "$gene" -s "12" -i "$iteration" -a "$aligner" -f "$iterDir" $extension -u
+			if ! "$DIR/RunAll.sh" -g "$gene" -s "12" -i "$iteration" -a "$aligner" -f "$iterDir" $masterAligner $masterSuffix $extension -u
 			then
 				echo "Failed to revisualize trees for $iterDir." >&2
 				stepFailed="true"
