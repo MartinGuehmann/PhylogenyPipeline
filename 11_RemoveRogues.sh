@@ -115,9 +115,7 @@ rm -f "$protectedTaxa"
 # gene's own priority list (the same list step 4/PickSequenceRepresentatives.py
 # uses to prefer a well-annotated representative during clustering) - e.g.
 # a human/mouse/etc. sequence should stay in the tree even if it looks
-# statistically unstable. Both tools take this the same way: a file of one
-# taxon (tree tip label/accession) per line via -x, so the same file and
-# flag work for all three calls below. No-op (no -x passed at all) if this
+# statistically unstable. No-op (no protected-taxa file at all) if this
 # gene has no such list, same conditional pattern as step 4.
 protectedTaxaArg=""
 if [ -f "$speciesForSeqReps" ]
@@ -128,8 +126,20 @@ then
 	protectedTaxaArg="-x $protectedTaxa"
 fi
 
-RogueNaRok-parallel -s 2 -i $inputTrees -n $base -w $rogueFreeTreesDir -T $numTreads $protectedTaxaArg
-RogueNaRok-parallel -s 2 -i $inputTrees -n $bbase -b -w $rogueFreeTreesDir -T $numTreads $protectedTaxaArg
+# RogueNaRok-parallel's own -x does NOT protect the taxa in that file the
+# way its help text claims - confirmed 2026-08-03 by running it directly
+# on real part_026 data: every -x'd taxon is force-appended to the
+# dropped-taxa output (rawImprovement/RBIC = NA, i.e. never actually
+# scored) before the rogue-optimization algorithm even starts, and
+# removing them upfront also perturbs the consensus tree/bipartition
+# profile used to score every OTHER, non-protected taxon. So -x is
+# deliberately not passed to either RogueNaRok-parallel call below -
+# protection is enforced downstream instead, against RogueNaRok's raw
+# (unprotected) output. run_treeshrink.py's own -x was verified against
+# the same data to behave as documented (none of the protected taxa
+# turned up in its dropped list), so it still gets protectedTaxaArg.
+RogueNaRok-parallel -s 2 -i $inputTrees -n $base -w $rogueFreeTreesDir -T $numTreads
+RogueNaRok-parallel -s 2 -i $inputTrees -n $bbase -b -w $rogueFreeTreesDir -T $numTreads
 
 # Creates a .contree file in the target directory
 run_treeshrink.py -t "$consenseTree" -o "$rogueFreeTreesDir" -f -O "$base" $protectedTaxaArg
@@ -137,6 +147,15 @@ run_treeshrink.py -t "$consenseTree" -o "$rogueFreeTreesDir" -f -O "$base" $prot
 grep -o -f "$seqsOfInterestIDs" "$baseRogueNaRokDropped" > "$baseRogueNaRokDroppedCSV"
 grep -o -f "$seqsOfInterestIDs" "$bbaseRogueNaRokDropped" >> "$baseRogueNaRokDroppedCSV"
 grep -o -f "$seqsOfInterestIDs" "$baseShrunken" >> "$baseRogueNaRokDroppedCSV"
+
+# Enforce the protected-taxa list ourselves here, rather than trusting
+# RogueNaRok-parallel's broken -x (see above) - filters IDs, not full
+# tip labels, same as the greps just above.
+if [ -f "$protectedTaxa" ]
+then
+	grep -v -f <(grep -o -f "$seqsOfInterestIDs" "$protectedTaxa") "$baseRogueNaRokDroppedCSV" > "$baseRogueNaRokDroppedCSV.tmp"
+	mv "$baseRogueNaRokDroppedCSV.tmp" "$baseRogueNaRokDroppedCSV"
+fi
 
 seqkit grep -f "$baseRogueNaRokDroppedCSV" -j "$numTreads" "$seqsOfInterestDir/$base.fasta" > "$droppedFinal"
 
