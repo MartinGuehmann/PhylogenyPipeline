@@ -756,6 +756,20 @@
               # Give the PDF/PS branch the same pp.end() the other two
               # already have, right before its "else:" (raster branch).
               sed -z -i 's/        scene\.render(pp, targetRect, scene\.sceneRect(), ratio_mode)\n    else:/        scene.render(pp, targetRect, scene.sceneRect(), ratio_mode)\n        pp.end()\n    else:/' ete3/treeview/main.py
+
+              # _PieChartItem.paint() (used by PieChartFace, which
+              # 12_ConvertTreesToFigures.py imports and uses directly)
+              # computes angle_span as a float (p/100. * 5760) and passes
+              # it straight to QPainter.drawPie(), whose overloads all
+              # require int angles (1/16-degree units, per Qt's own
+              # convention) - confirmed 2026-08-03: "TypeError: arguments
+              # did not match any overloaded call" on this flake's
+              # stricter PyQt5, the same class of float-where-int-expected
+              # bug already patched above for main.py's QImage() call.
+              # Cast only at the drawPie() call site, not the running
+              # angle_start total itself, so per-slice rounding doesn't
+              # accumulate drift across many pie slices.
+              sed -i 's/painter\.drawPie(self\.rect(), angle_start, angle_span )/painter.drawPie(self.rect(), int(angle_start), int(angle_span))/' ete3/treeview/faces.py
             '';
             # setup.py's own install_requires is empty (it only *checks*
             # for these and warns if missing); they're genuinely needed
