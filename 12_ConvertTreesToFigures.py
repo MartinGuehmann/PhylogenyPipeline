@@ -987,6 +987,9 @@ def getLeaveOfClade(tree, cladeSeqId, cladeName, cladeTreeFile):
 
 ###############################################################################
 def initialReroot(tree, clades):
+	if not clades:
+		print("No defined clades have a representative in this tree, rendering it as a plain tree without clade-based rerooting.", file=sys.stderr)
+		return
 	clade = clades[-1] # Use the last clade for rooting
 	tree.set_outgroup(clade.typeNode)
 
@@ -1082,6 +1085,8 @@ def collapseTree(tree, clades):
 
 ###############################################################################
 def collapseOnlyOutgroup(tree, clades):
+	if not clades:
+		return
 	clade = clades[-1]
 
 	clade.rootNode.cladeName = clade.name
