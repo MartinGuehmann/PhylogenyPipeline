@@ -58,7 +58,9 @@ function pdf2png ()
 	pdftoppmErr=$(pdftoppm -png -r 600 "$inputFile" 2>&1 1>"$outputFile")
 	if [ -n "$pdftoppmErr" ]
 	then
+		echo "" >&2
 		echo "pdftoppm had trouble converting $inputFile to PNG at 600 DPI (probably too large a page to rasterize) - $inputFile itself is still there. pdftoppm said: $pdftoppmErr" >&2
+		echo "" >&2
 	fi
 }
 
