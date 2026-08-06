@@ -131,6 +131,25 @@ then
 	removeStaleEnv
 	exit 1
 fi
+
+# vcMSA's own environment.txt pins icecream 2.1.3 and executing 1.2.0
+# (confirmed matching its requirements.txt too), and that exact pair
+# does import cleanly - confirmed 2026-08-06 in an isolated venv. But
+# on the cluster, `conda create --file environment.txt` sometimes still
+# ends up with an executing that's incompatible with icecream
+# (`AttributeError: module 'executing' has no attribute 'Source'`,
+# icecream/icecream.py's own `class Source(executing.Source)` failing
+# at import), the same "conda create doesn't reliably land on the
+# versions its own explicit environment.txt asked for" territory as
+# the combat gap above. Root cause on the conda side unconfirmed - not
+# worth chasing further given pip can just directly force the known-
+# good pair regardless of what conda's own resolution produced.
+if ! conda run -n "$envName" pip install "icecream==2.1.3" "executing==1.2.0"
+then
+	echo "pip install of icecream/executing (pinning them to vcmsa's own known-compatible versions) failed inside $envName - removing the incomplete environment so the next attempt starts fresh instead of finding a half-installed one" >&2
+	removeStaleEnv
+	exit 1
+fi
 ) 200>"$DIR/get_vcmsa_env.lock"
 status=$?
 
