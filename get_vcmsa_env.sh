@@ -152,6 +152,28 @@ then
 	removeStaleEnv
 	exit 1
 fi
+
+# Every step above can succeed individually and the result can still be
+# unusable - confirmed 2026-08-06: this exact sequence completed with
+# no errors and still left `from Bio.Align import MultipleSeqAlignment`
+# broken inside vcmsa_utils.py (vcMSA's own environment.txt pins
+# biopython 1.80, which does have that symbol when installed via pip
+# directly - so this isn't a wrong-version-pinned gap like combat/
+# icecream/executing above, still being root-caused). Whatever the next
+# such gap turns out to be, re-run the exact same usability check used
+# at the top of this script to decide whether to rebuild in the first
+# place, so a still-broken environment is caught and reported HERE -
+# once, clearly, with the real traceback - instead of every waiting
+# task inheriting the same silently-broken environment and each only
+# discovering it later, deep inside its own real alignment run.
+importCheckOutput=$(conda run -n "$envName" python -c "import vcmsa.vcmsa_utils" 2>&1)
+if [ $? -ne 0 ]
+then
+	echo "$envName was rebuilt without any individual step failing, but vcmsa.vcmsa_utils still doesn't import cleanly - removing the environment rather than leaving a silently-broken one for the next attempt to find. Traceback:" >&2
+	echo "$importCheckOutput" >&2
+	removeStaleEnv
+	exit 1
+fi
 )
 status=$?
 releaseLockDir "$DIR/get_vcmsa_env.lockdir"
