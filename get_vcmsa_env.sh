@@ -49,9 +49,15 @@ fi
 # env list`) isn't enough - same reasoning as blastdbcmd -info elsewhere
 # in this pipeline: existence isn't the same as usable. A previous
 # attempt could have created the env but failed partway through
-# installing vcmsa itself. Check that the actual command is on PATH
-# inside the environment instead.
-if conda run -n "$envName" command -v vcmsa >/dev/null 2>&1
+# installing vcmsa itself. Checking that the vcmsa command is merely on
+# PATH isn't enough either - confirmed 2026-08-06: it was, but every
+# task of a 26-task array still died with "ModuleNotFoundError: No
+# module named 'combat'" the moment vcmsa's own code ran, since that's
+# imported by vcmsa_utils.py but never installed (see the combat
+# install below). Actually import vcmsa's own top-level module instead,
+# so a partially-broken env like that one gets caught and rebuilt below
+# rather than waved through.
+if conda run -n "$envName" python -c "import vcmsa.vcmsa_utils" >/dev/null 2>&1
 then
 	exit 0
 fi
@@ -108,6 +114,20 @@ fi
 if ! conda run -n "$envName" pip install "$cloneDir/vcmsa"
 then
 	echo "pip install of the cloned vcmsa source failed inside $envName - removing the incomplete environment so the next attempt starts fresh instead of finding a half-installed one" >&2
+	removeStaleEnv
+	exit 1
+fi
+
+# vcMSA's own vcmsa_utils.py does `from combat.pycombat import pycombat`,
+# but neither its setup.py (no install_requires at all) nor its
+# environment.txt actually declares this - confirmed 2026-08-06: every
+# task of a 26-task array died with "ModuleNotFoundError: No module
+# named 'combat'" the moment vcmsa's code ran. The PyPI package that
+# provides this import is called "combat" (not "pycombat" - that name
+# is taken by an unrelated package on PyPI).
+if ! conda run -n "$envName" pip install combat
+then
+	echo "pip install of combat (vcmsa's own undeclared dependency) failed inside $envName - removing the incomplete environment so the next attempt starts fresh instead of finding a half-installed one" >&2
 	removeStaleEnv
 	exit 1
 fi
