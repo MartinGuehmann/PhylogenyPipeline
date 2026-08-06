@@ -12,29 +12,31 @@
 # Nix installed at all, relies entirely on `module load`, or has
 # everything installed by hand on PATH already.
 
+# A multi-user Nix install isn't on PATH until its profile scripts are
+# sourced - harmless if they don't apply here, since each is only
+# sourced when present (same pattern as BuildNixDependencies.sh).
+# Computed unconditionally (not just when entering fresh) since the
+# verify-and-retry step below needs $nixCmd too.
+for profileScript in \
+	/nix/var/nix/profiles/default/etc/profile.d/nix.sh \
+	/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+do
+	[ -f "$profileScript" ] && . "$profileScript"
+done
+
+nixCmd=""
+if command -v nix >/dev/null 2>&1
+then
+	nixCmd="nix"
+elif command -v nix-portable >/dev/null 2>&1
+then
+	nixCmd="nix-portable nix"
+fi
+
 # nix develop/nix shell set this - skip re-entering if we're already in
 # one, otherwise the exec below would recurse into itself forever.
 if [ -z "$IN_NIX_SHELL" ]
 then
-	# A multi-user Nix install isn't on PATH until its profile scripts
-	# are sourced - harmless if they don't apply here, since each is
-	# only sourced when present (same pattern as BuildNixDependencies.sh).
-	for profileScript in \
-		/nix/var/nix/profiles/default/etc/profile.d/nix.sh \
-		/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
-	do
-		[ -f "$profileScript" ] && . "$profileScript"
-	done
-
-	nixCmd=""
-	if command -v nix >/dev/null 2>&1
-	then
-		nixCmd="nix"
-	elif command -v nix-portable >/dev/null 2>&1
-	then
-		nixCmd="nix-portable nix"
-	fi
-
 	# No Nix on this cluster at all: fall through and rely entirely on
 	# module load and/or a manual PATH install instead - Nix is a
 	# fallback, never a requirement.
@@ -42,4 +44,45 @@ then
 	then
 		exec $nixCmd develop "$DIR/.." --command "$0" "$@"
 	fi
+fi
+
+# We're now either freshly re-entered into the devShell above, were
+# already in one, or Nix isn't available here at all (rely-on-module
+# case, $nixCmd empty, nothing to verify). Confirmed 2026-08-06 on the
+# cluster: when many array tasks launch `nix develop` simultaneously, a
+# handful can come back with an incomplete PATH - some devShell tools
+# resolve, others don't (raxml-ng missing while famsa itself worked, in
+# the observed case) - instead of either a clean failure or a fully
+# populated shell. Sanity-check a few tools spread across flake.nix's
+# devShell package list (not just the one that happened to be missing
+# that time) rather than trusting the environment blindly. This looked
+# like a nix store/profile race under concurrent launches - not
+# consistently reproducible - so one retry (a fresh `nix develop`, not
+# just re-checking the same shell) is worth it before giving up.
+# $NIX_DEVSHELL_VERIFIED/$NIX_DEVSHELL_RETRIED are exported so nested
+# scripts that source this file again inherit the already-done work
+# instead of repeating it.
+if [ -n "$nixCmd" ] && [ -n "$IN_NIX_SHELL" ] && [ -z "$NIX_DEVSHELL_VERIFIED" ]
+then
+	missingTool=""
+	for tool in raxml-ng seqkit mafft
+	do
+		command -v "$tool" >/dev/null 2>&1 || missingTool="$tool"
+	done
+
+	if [ -n "$missingTool" ]
+	then
+		if [ -z "$NIX_DEVSHELL_RETRIED" ]
+		then
+			echo "Nix devShell looks incompletely activated ($missingTool not on PATH) - retrying nix develop once before giving up." >&2
+			export NIX_DEVSHELL_RETRIED=1
+			unset IN_NIX_SHELL
+			exec $nixCmd develop "$DIR/.." --command "$0" "$@"
+		else
+			echo "Nix devShell still incompletely activated after a retry ($missingTool not on PATH) - giving up. This looks like the known intermittent nix store/profile race under concurrent job launches, not a real missing dependency (it's listed in flake.nix's devShell packages) - resubmitting this task on its own may well succeed." >&2
+			exit 1
+		fi
+	fi
+
+	export NIX_DEVSHELL_VERIFIED=1
 fi
