@@ -322,36 +322,116 @@
 
           t-coffee = pkgs.stdenv.mkDerivation rec {
             pname = "t-coffee";
-            version = "13.46.2.7c9e712d"; # matches bioconda's pin
-            src = pkgs.fetchurl {
-              url = "https://s3.eu-central-1.amazonaws.com/tcoffee-packages/Archives/T-COFFEE_distribution_Version_${version}.tar.gz";
-              sha256 = "84f9b4076767d39dec6619c5eb91c9538a7c58c68a3731a92ebbf2e1f914296f";
+            # Deliberately NOT bioconda's pin (13.46.2.7c9e712d) - confirmed
+            # 2026-08-06 that both it and the release before it (13.46.1.b8b01e06)
+            # segfault unconditionally in `-reg`/regressive mode (two different
+            # crash sites: free_tree() right after guide-tree computation in
+            # 13.46.2, kmsa2msa() during the final MSA merge in 13.46.1 - see
+            # https://github.com/cbcrg/tcoffee/issues/73). Confirmed compiler-
+            # independent (crashes identically under gcc 11 and gcc 15) and
+            # 100% reproducible down to a 5-sequence input, so not a nix
+            # packaging/environment issue - genuinely broken upstream in both
+            # releases. This pin (2019-11-30, the version already informally
+            # in use via this user's old personal install) was verified the
+            # same day to run `-reg` mode to completion cleanly, including on
+            # real ~930-sequence production input.
+            version = "13.41.0.28bdc39";
+            src = pkgs.fetchFromGitHub {
+              owner = "cbcrg";
+              repo = "tcoffee";
+              rev = "28bdc39911d10d8597db8513f9515fb2ed7a9158";
+              sha256 = "1i18m0i6zpnx9949nc0m869h56fs7i3n6n60gd24raaazi8807fz";
             };
             nativeBuildInputs = [ pkgs.gfortran pkgs.perl ];
-            # bioconda's build.sh runs the source through T-Coffee's own
-            # `install` perl script, which also tries to download plugin
-            # binaries over the network - unusable in a sandboxed Nix
-            # build. Instead this only replicates bioconda's *compile*
-            # step (`cd t_coffee_source && make all`), which is enough for
-            # a standalone t_coffee binary (the one this pipeline actually
-            # needs, not T-Coffee's whole bundled meta-aligner ensemble).
-            # Skipped: bioconda's own `coredump.patch` (a small upstream
-            # fix to util.c's set_nproc signature) - not applied here
-            # since only its two changed lines, not full context, were
-            # available. If `make all` fails around `set_nproc`, that
-            # patch is the fix.
+            # No S3-hosted release tarball exists for this older version (only
+            # the last few releases are kept there), so this builds straight
+            # from the cbcrg/tcoffee git tree at that commit instead - laid
+            # out as compile/ (the makefile) + lib/ (the actual sources),
+            # unlike the tarball releases' self-contained t_coffee_source/.
+            # Same story as the tarball-based build otherwise: this only
+            # replicates T-Coffee's own `install` perl script's *compile*
+            # step, not its full plugin-fetching install (unusable in a
+            # sandboxed Nix build) - enough for the standalone t_coffee
+            # binary this pipeline actually needs.
+            #
+            # The git tree (unlike the tarball releases) ships a couple of
+            # its own perl helper scripts with a literal `#!/usr/bin/env
+            # perl` shebang that the makefile invokes directly mid-build
+            # (lib/perl/lib/perl4makefile/tclinkdb2header.pl) - /usr/bin/env
+            # doesn't exist in Nix's sandboxed build, confirmed 2026-08-06
+            # ("bad interpreter: No such file or directory"). patchShebangs
+            # fixes these to Nix's own perl.
+            #
+            # set_nproc() in util_lib/util.c is declared to return int but
+            # its body has no return statement at all - definite undefined
+            # behavior (falls off the end of a non-void function), not
+            # just a style nit: since this file has to be compiled as C++
+            # (via g++, for other .c files' use of C++-only syntax like
+            # const_cast elsewhere in this tree - see CC="$CXX" below),
+            # and this codebase's optimization level is high enough for
+            # GCC to prove the fallthrough, GCC inserts a hard trap
+            # instruction at the end of the function instead of just
+            # silently returning garbage. Confirmed 2026-08-06: this is
+            # exactly what was crashing -reg mode here with SIGILL in
+            # set_nproc() (not the same crash as 13.46.1/13.46.2's, which
+            # is why this version was picked in the first place) - the
+            # literal same source, built identically except at -O0 with
+            # plain system g++ instead of Nix's wrapped one, never traps
+            # here since no optimization pass proves the fallthrough. This
+            # is bioconda's own upstream `coredump.patch`
+            # (bioconda-recipes/recipes/t-coffee/coredump.patch) - flagged
+            # but not applied in this flake's other/newer t-coffee attempt
+            # (see git history) since that version's set_nproc had since
+            # gained a real return statement, making the patch moot there;
+            # it's the actual, necessary fix here. No caller anywhere in
+            # this codebase uses set_nproc's return value (confirmed via
+            # grep - both call sites invoke it as a bare statement), so
+            # void is not just a workaround, it's what the signature
+            # always should have been.
+            #
+            # Same fall-off-the-end bug, same trap-instead-of-garbage
+            # symptom, second instance: io_lib/tree_util.c's
+            # no_rec_free_tree() is declared to return NT_node (a
+            # pointer) but its body ends after a `while (stack) {...}`
+            # loop with no return statement - confirmed 2026-08-06, this
+            # is what crashed (SIGILL) immediately after the set_nproc
+            # fix above stopped that one. Its sibling rec_free_tree()
+            # already returns properly in every path, so only this one
+            # needs the fix. free_tree() forwards whichever of the two
+            # gets called (return no_rec_free_tree(R)/return
+            # rec_free_tree(R)) straight back to its own caller in
+            # seq2dnd(), which never uses that value either (bare
+            # `free_tree(T);` statement) - so returning the input
+            # pointer unchanged is a safe, harmless fix, not a real
+            # behavior change.
+            postPatch = ''
+              patchShebangs lib compile
+              sed -i 's/^int set_nproc(int np)/void set_nproc(int np)/' lib/util_lib/util.c
+              sed -i 's/^int set_nproc (int nproc);/void set_nproc (int nproc);/' lib/util_lib/util.h
+              perl -0777 -pi -e 's/(NT_node tofree=stack;\n\s*stack->visited\+\+;\n\s*stack=stack->bot;\n\s*\n\s*\}\n)\}/\1  return root;\n}/' lib/io_lib/tree_util.c
+            '';
             buildPhase = ''
               runHook preBuild
-              sed -i 's|CC=g++|CC=$(CXX)|' t_coffee_source/makefile
-              sed -i 's|$(FCC)|$(FC)|' t_coffee_source/makefile
-              (cd t_coffee_source && make all -j"$NIX_BUILD_CORES")
+              sed -i 's|CC=g++|CC=$(CXX)|' compile/makefile
+              sed -i 's|$(FCC)|$(FC)|' compile/makefile
+              # This tree's .c files use C++-only syntax in a few spots
+              # (e.g. const_cast<>), same as the tarball releases, so CC
+              # must actually be the C++ compiler - the makefile's own
+              # "CC=$(CXX)" default (just patched in above) isn't enough
+              # on its own, since stdenv's environment already exports a
+              # CC (pointing at the C compiler) that otherwise wins.
+              # -fcommon: this tree predates gcc 10's -fno-common default;
+              # without it, tentative definitions shared across multiple
+              # .c files (several globals declared, not just extern'd, in
+              # more than one translation unit) fail to link.
+              (cd compile && LIB_DIR=../lib CC="$CXX" CFLAGS="-fcommon" VERSION="${version}" make all -j"$NIX_BUILD_CORES")
               runHook postBuild
             '';
             installPhase = ''
               runHook preInstall
               mkdir -p $out/bin
-              cp t_coffee_source/t_coffee $out/bin/
-              [ -f t_coffee_source/TMalign ] && cp t_coffee_source/TMalign $out/bin/
+              cp compile/t_coffee $out/bin/
+              [ -f compile/TMalign ] && cp compile/TMalign $out/bin/
               runHook postInstall
             '';
           };
