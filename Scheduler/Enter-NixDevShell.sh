@@ -51,35 +51,44 @@ fi
 # case, $nixCmd empty, nothing to verify). Confirmed 2026-08-06 on the
 # cluster: when many array tasks launch `nix develop` simultaneously, a
 # handful can come back with an incomplete PATH - some devShell tools
-# resolve, others don't (raxml-ng missing while famsa itself worked, in
-# the observed case) - instead of either a clean failure or a fully
-# populated shell. Sanity-check a few tools spread across flake.nix's
-# devShell package list (not just the one that happened to be missing
-# that time) rather than trusting the environment blindly. This looked
-# like a nix store/profile race under concurrent launches - not
-# consistently reproducible - so one retry (a fresh `nix develop`, not
-# just re-checking the same shell) is worth it before giving up.
+# resolve, others don't - instead of either a clean failure or a fully
+# populated shell. First seen with raxml-ng missing while famsa worked;
+# a later batch hit t_coffee missing instead - a fixed shortlist of
+# "representative" tools to check (tried first, see git history) chases
+# whichever package happens to be affected that time and misses the
+# rest, so check every /nix/store path Nix put on PATH directly instead
+# - name-agnostic, catches any of them. This looked like a nix
+# store/profile race under concurrent launches - not consistently
+# reproducible - so one retry (a fresh `nix develop`, not just
+# re-checking the same shell) is worth it before giving up.
 # $NIX_DEVSHELL_VERIFIED/$NIX_DEVSHELL_RETRIED are exported so nested
 # scripts that source this file again inherit the already-done work
 # instead of repeating it.
 if [ -n "$nixCmd" ] && [ -n "$IN_NIX_SHELL" ] && [ -z "$NIX_DEVSHELL_VERIFIED" ]
 then
-	missingTool=""
-	for tool in raxml-ng seqkit mafft
+	missingPathEntry=""
+	oldIFS="$IFS"
+	IFS=':'
+	for pathEntry in $PATH
 	do
-		command -v "$tool" >/dev/null 2>&1 || missingTool="$tool"
+		case "$pathEntry" in
+			/nix/store/*)
+				[ -d "$pathEntry" ] || missingPathEntry="$pathEntry"
+				;;
+		esac
 	done
+	IFS="$oldIFS"
 
-	if [ -n "$missingTool" ]
+	if [ -n "$missingPathEntry" ]
 	then
 		if [ -z "$NIX_DEVSHELL_RETRIED" ]
 		then
-			echo "Nix devShell looks incompletely activated ($missingTool not on PATH) - retrying nix develop once before giving up." >&2
+			echo "Nix devShell looks incompletely activated ($missingPathEntry on PATH but not actually there) - retrying nix develop once before giving up." >&2
 			export NIX_DEVSHELL_RETRIED=1
 			unset IN_NIX_SHELL
 			exec $nixCmd develop "$DIR/.." --command "$0" "$@"
 		else
-			echo "Nix devShell still incompletely activated after a retry ($missingTool not on PATH) - giving up. This looks like the known intermittent nix store/profile race under concurrent job launches, not a real missing dependency (it's listed in flake.nix's devShell packages) - resubmitting this task on its own may well succeed." >&2
+			echo "Nix devShell still incompletely activated after a retry ($missingPathEntry on PATH but not actually there) - giving up. This looks like the known intermittent nix store/profile race under concurrent job launches, not a real missing dependency - resubmitting this task on its own may well succeed." >&2
 			exit 1
 		fi
 	fi
