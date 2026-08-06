@@ -28,14 +28,18 @@ mkdir -p "$DIR/$database"
 
 cd "$DIR/$database"
 
+source "$DIR/../Lock-Dir.sh"
+
 # Only one process at a time may check/download/build this database - same
 # reasoning as get_uniprot_database.sh's lock (two gene pipelines both
 # needing the same database before either has fetched it yet must not both
 # run update_blastdb.pl into the same directory at once). A second process
 # just blocks on the lock until the first is done, then finds the
 # database already there and skips straight past the check below.
+# staleAfterSeconds generous (12h) - a full nr fetch/build measured at
+# ~5h below.
+acquireLockDir "$database.lockdir" 43200
 (
-flock -x 200
 
 # Exit code contract for callers: 0 = a usable local database is ready.
 # 1 = a genuinely broken environment (blastdbcmd itself missing) - this
@@ -86,11 +90,12 @@ then
 	# show volumes being fetched concurrently out of numeric order, so
 	# there's no reliable way to identify just "the one volume in flight
 	# when the job died" either. Wiping this database's own files (never
-	# the lock file - that's a different, always-current mechanism) and
-	# forcing a full fresh redownload is the only way to guarantee a
-	# clean result - measured at ~5 hours for nr's ~170 volumes, so
-	# expensive, but this is a rare recovery path, not the common case.
-	find . -maxdepth 1 -name "$database.*" ! -name "$database.lock" -delete
+	# the lock dir - that's a different, always-current mechanism, and
+	# we're holding it open right now besides) and forcing a full fresh
+	# redownload is the only way to guarantee a clean result - measured
+	# at ~5 hours for nr's ~170 volumes, so expensive, but this is a rare
+	# recovery path, not the common case.
+	find . -maxdepth 1 -name "$database.*" ! -name "$database.lockdir" -delete
 
 	# update_blastdb.pl downloads NCBI's pre-formatted database volumes
 	# directly (not a FASTA file), so there's no separate makeblastdb
@@ -110,9 +115,8 @@ then
 
 	touch "$database.ok"
 fi
-) 200>"$database.lock"
+)
 status=$?
-
-wait # Wait until all are done
+releaseLockDir "$database.lockdir"
 
 exit $status

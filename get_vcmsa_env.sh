@@ -12,6 +12,8 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 envName="vcmsa_env"
 repoURL="https://github.com/clairemcwhite/vcmsa.git"
 
+source "$DIR/Lock-Dir.sh"
+
 # `conda env remove` refuses to touch a directory that exists but isn't
 # recognized as a valid conda environment (e.g. missing conda-meta/,
 # from a `conda create` that got interrupted before ever finishing) -
@@ -36,8 +38,8 @@ removeStaleEnv() {
 # must not both run conda create into it at once). A second process just
 # blocks on the lock until the first is done, then finds the environment
 # already there and skips straight past the check below.
+acquireLockDir "$DIR/get_vcmsa_env.lockdir"
 (
-flock -x 200
 
 if ! command -v conda >/dev/null 2>&1
 then
@@ -150,9 +152,8 @@ then
 	removeStaleEnv
 	exit 1
 fi
-) 200>"$DIR/get_vcmsa_env.lock"
+)
 status=$?
-
-wait # Wait until all are done
+releaseLockDir "$DIR/get_vcmsa_env.lockdir"
 
 exit $status

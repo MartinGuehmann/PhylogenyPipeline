@@ -18,6 +18,8 @@ mkdir -p "$DIR/$database"
 
 cd "$DIR/$database"
 
+source "$DIR/../Lock-Dir.sh"
+
 # Only one process at a time may check/download/build this database -
 # without this, two concurrent callers (e.g. two gene pipelines both
 # needing it before either has built it yet) can both wget into the
@@ -25,8 +27,8 @@ cd "$DIR/$database"
 # once, silently corrupting it. A second process just blocks on the
 # lock until the first is done, then finds the database already built
 # and skips straight past both checks below.
+acquireLockDir "$database.lockdir" 21600
 (
-flock -x 200
 
 # $database.fasta existing isn't enough on its own: gunzip writes its
 # output directly to that name and only deletes the source .gz on
@@ -85,9 +87,8 @@ then
 	makeblastdb -in "$database.fasta" -out "$database" -dbtype prot -parse_seqids
 	touch "$database.parseseqids"
 fi
-) 200>"$database.lock"
+)
 status=$?
-
-wait # Wait until all are done
+releaseLockDir "$database.lockdir"
 
 exit $status

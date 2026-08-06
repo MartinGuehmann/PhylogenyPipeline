@@ -9,6 +9,8 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
+
+source "$DIR/Lock-Dir.sh"
 gene="$1"
 localDatabases="$2"
 
@@ -482,14 +484,13 @@ do
 			if [ ${#newlyConfirmedDead[@]} -gt 0 ]
 			then
 				echo "efetch permanently failed for newly-confirmed-dead ID(s) (auto-added to KnownDeadAccessions.txt, not treated as a failure) in batch $i..$((i + range - 1)) after $maxTrials trials: ${newlyConfirmedDead[*]}" >&2
-				(
-					flock -x 201
-					{
-						echo ""
-						echo "# Auto-confirmed dead $(date -I) ($gene, efetch's own \"Failed to retrieve sequence\" response)"
-						printf '%s\n' "${newlyConfirmedDead[@]}"
-					} >> "$knownDeadFile"
-				) 201>"$knownDeadFile.lock"
+				acquireLockDir "$knownDeadFile.lockdir"
+				{
+					echo ""
+					echo "# Auto-confirmed dead $(date -I) ($gene, efetch's own \"Failed to retrieve sequence\" response)"
+					printf '%s\n' "${newlyConfirmedDead[@]}"
+				} >> "$knownDeadFile"
+				releaseLockDir "$knownDeadFile.lockdir"
 				knownDeadIDs=$(printf '%s\n%s\n' "$knownDeadIDs" "${newlyConfirmedDead[*]}" | tr ' ' '\n' | sort -u)
 			fi
 
