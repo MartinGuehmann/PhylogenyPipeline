@@ -69,7 +69,14 @@ sed -e 's/__/_/g' \
 ###########################################################
 # Align the sequences with VCMSA
 model="$DIR/../Models/prot_t5_xl_uniref50"
-vcmsa --exclude -i $cleanedInputSequences -o $outFile -m $model >&2 # Redirect anything to the error stream
+# -l/--layers defaults to the last 16 hidden layers, concatenated per
+# residue (1024*16 dims) and padded out to the longest sequence in the
+# whole input file before being kept for every sequence at once -
+# confirmed 2026-08-07 this alone needs ~137GiB for a 930-sequence
+# chunk with a 2414-residue outlier (930 * 2414 * 1024*16 * 4 bytes),
+# which OOM-killed real runs at both 30GB and 62GB. Limit to the last 2
+# layers instead - cuts this dominant cost by ~8x.
+vcmsa --exclude -l -2 -1 -i $cleanedInputSequences -o $outFile -m $model >&2 # Redirect anything to the error stream
 
 # This must be the only stuff that goes to stdout here, since we use this as a return value
 echo "$outFile"
