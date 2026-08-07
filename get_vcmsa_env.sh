@@ -113,7 +113,16 @@ fi
 # (`cd vcmsa && python setup.py install`) - `pip install <dir>` is the
 # modern equivalent and needs no extra network access beyond the clone
 # already done above.
-if ! conda run -n "$envName" pip install "$cloneDir/vcmsa"
+# python -m pip, not a bare `pip` - confirmed 2026-08-06: a bare `pip`
+# name lookup inside `conda run -n "$envName"` sometimes resolved to a
+# completely different Python (the Nix devShell's own python3.14 env,
+# not this conda env's python3.9), landing packages there instead of
+# $envName - even though $envName's own environment.txt does pin its
+# own pip. `conda run -n "$envName" python ...` has never been observed
+# to pick the wrong interpreter (see the usability checks above/below),
+# so routing pip through that same already-reliable `python` lookup
+# avoids the second, independently-resolved `pip` lookup entirely.
+if ! conda run -n "$envName" python -m pip install "$cloneDir/vcmsa"
 then
 	echo "pip install of the cloned vcmsa source failed inside $envName - removing the incomplete environment so the next attempt starts fresh instead of finding a half-installed one" >&2
 	removeStaleEnv
@@ -127,7 +136,7 @@ fi
 # named 'combat'" the moment vcmsa's code ran. The PyPI package that
 # provides this import is called "combat" (not "pycombat" - that name
 # is taken by an unrelated package on PyPI).
-if ! conda run -n "$envName" pip install combat
+if ! conda run -n "$envName" python -m pip install combat
 then
 	echo "pip install of combat (vcmsa's own undeclared dependency) failed inside $envName - removing the incomplete environment so the next attempt starts fresh instead of finding a half-installed one" >&2
 	removeStaleEnv
@@ -146,7 +155,7 @@ fi
 # the combat gap above. Root cause on the conda side unconfirmed - not
 # worth chasing further given pip can just directly force the known-
 # good pair regardless of what conda's own resolution produced.
-if ! conda run -n "$envName" pip install "icecream==2.1.3" "executing==1.2.0"
+if ! conda run -n "$envName" python -m pip install "icecream==2.1.3" "executing==1.2.0"
 then
 	echo "pip install of icecream/executing (pinning them to vcmsa's own known-compatible versions) failed inside $envName - removing the incomplete environment so the next attempt starts fresh instead of finding a half-installed one" >&2
 	removeStaleEnv
