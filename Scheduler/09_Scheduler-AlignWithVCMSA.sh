@@ -16,6 +16,15 @@ then
 	exit 1
 fi
 
+# 09_AlignWithVCMSA.sh points vcmsa at a local copy of the
+# prot_t5_xl_uniref50 protein language model (-m) rather than a Hugging
+# Hub repo id, so this needs to exist before that runs.
+if ! "$DIR/../get_prot_t5_model.sh"
+then
+	echo "Failed to get/download the prot_t5_xl_uniref50 model" >&2
+	exit 1
+fi
+
 conda activate vcmsa_env
 
 # Enter-NixDevShell.sh (sourced above, needed further down for RunAll.sh's

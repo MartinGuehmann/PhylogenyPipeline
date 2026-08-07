@@ -13,6 +13,7 @@ envName="vcmsa_env"
 repoURL="https://github.com/clairemcwhite/vcmsa.git"
 
 source "$DIR/Lock-Dir.sh"
+source "$DIR/Conda-Env-Python.sh"
 
 # `conda env remove` refuses to touch a directory that exists but isn't
 # recognized as a valid conda environment (e.g. missing conda-meta/,
@@ -30,29 +31,6 @@ removeStaleEnv() {
 	do
 		rm -rf "$envsDir/$envName"
 	done
-}
-
-# `conda run -n "$envName" <name>` resolves <name> by modifying PATH and
-# then doing a normal command-name lookup - confirmed 2026-08-07 that
-# this isn't reliable inside this Nix devShell: `conda run -n vcmsa_env
-# python -m pip install ...` resolved "python" itself to a bare Nix-store
-# Python 3.14 with no pip module at all, not vcmsa_env's own conda
-# Python 3.9, even though earlier runs' `conda run -n vcmsa_env python
-# -c "import ..."` checks had reliably hit the right interpreter -
-# proving that lookup isn't safe to trust either, not just the `pip`
-# lookup a previous fix here tried to route around. Resolve the env's
-# own interpreter by absolute path instead, via plain `conda env list`
-# (not `conda run` - every plain conda invocation in this script, e.g.
-# removeStaleEnv's `conda config --show`, has been reliable throughout
-# this investigation; it's specifically conda run's PATH-search step
-# that isn't), so every python/pip call below runs the exact binary
-# this script means, with no name lookup left for anything else on PATH
-# to win a race against. Echoes nothing (caller sees an empty string) if
-# $envName doesn't exist yet.
-envPython() {
-	local prefix
-	prefix=$(conda env list | awk -v n="$envName" '$1 == n { print $NF; exit }')
-	[ -n "$prefix" ] && echo "$prefix/bin/python"
 }
 
 # Only one process at a time may check/create this environment - same
@@ -108,7 +86,7 @@ fi
 # it for these calls only (not the whole script - other parts may still
 # rely on it) keeps vcmsa_env's own site-packages the only thing this
 # interpreter ever sees.
-pythonPath=$(envPython)
+pythonPath=$(condaEnvPython "$envName")
 if [ -n "$pythonPath" ] && env -u PYTHONPATH "$pythonPath" -c "import vcmsa.vcmsa_utils" >/dev/null 2>&1
 then
 	exit 0
@@ -154,7 +132,7 @@ then
 	exit 1
 fi
 
-pythonPath=$(envPython)
+pythonPath=$(condaEnvPython "$envName")
 if [ -z "$pythonPath" ]
 then
 	echo "$envName was just created but doesn't show up in \`conda env list\` afterward - cannot resolve its own python to install into" >&2
