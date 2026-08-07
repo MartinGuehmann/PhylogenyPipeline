@@ -32,6 +32,29 @@ removeStaleEnv() {
 	done
 }
 
+# `conda run -n "$envName" <name>` resolves <name> by modifying PATH and
+# then doing a normal command-name lookup - confirmed 2026-08-07 that
+# this isn't reliable inside this Nix devShell: `conda run -n vcmsa_env
+# python -m pip install ...` resolved "python" itself to a bare Nix-store
+# Python 3.14 with no pip module at all, not vcmsa_env's own conda
+# Python 3.9, even though earlier runs' `conda run -n vcmsa_env python
+# -c "import ..."` checks had reliably hit the right interpreter -
+# proving that lookup isn't safe to trust either, not just the `pip`
+# lookup a previous fix here tried to route around. Resolve the env's
+# own interpreter by absolute path instead, via plain `conda env list`
+# (not `conda run` - every plain conda invocation in this script, e.g.
+# removeStaleEnv's `conda config --show`, has been reliable throughout
+# this investigation; it's specifically conda run's PATH-search step
+# that isn't), so every python/pip call below runs the exact binary
+# this script means, with no name lookup left for anything else on PATH
+# to win a race against. Echoes nothing (caller sees an empty string) if
+# $envName doesn't exist yet.
+envPython() {
+	local prefix
+	prefix=$(conda env list | awk -v n="$envName" '$1 == n { print $NF; exit }')
+	[ -n "$prefix" ] && echo "$prefix/bin/python"
+}
+
 # Only one process at a time may check/create this environment - same
 # reasoning as get_ncbi_blastdb.sh's/get_uniprot_database.sh's lock (two
 # gene pipelines both needing vcmsa_env before either has created it yet
@@ -70,7 +93,8 @@ fi
 # install below). Actually import vcmsa's own top-level module instead,
 # so a partially-broken env like that one gets caught and rebuilt below
 # rather than waved through.
-if conda run -n "$envName" python -c "import vcmsa.vcmsa_utils" >/dev/null 2>&1
+pythonPath=$(envPython)
+if [ -n "$pythonPath" ] && "$pythonPath" -c "import vcmsa.vcmsa_utils" >/dev/null 2>&1
 then
 	exit 0
 fi
@@ -115,6 +139,14 @@ then
 	exit 1
 fi
 
+pythonPath=$(envPython)
+if [ -z "$pythonPath" ]
+then
+	echo "$envName was just created but doesn't show up in \`conda env list\` afterward - cannot resolve its own python to install into" >&2
+	removeStaleEnv
+	exit 1
+fi
+
 # The package is NOT actually published on PyPI despite the README's
 # "vcmsa can be directly installed ... from pypi" claim - `pip install
 # vcmsa` 404s (confirmed 2026-07-31: "Could not find a version that
@@ -124,16 +156,7 @@ fi
 # (`cd vcmsa && python setup.py install`) - `pip install <dir>` is the
 # modern equivalent and needs no extra network access beyond the clone
 # already done above.
-# python -m pip, not a bare `pip` - confirmed 2026-08-06: a bare `pip`
-# name lookup inside `conda run -n "$envName"` sometimes resolved to a
-# completely different Python (the Nix devShell's own python3.14 env,
-# not this conda env's python3.9), landing packages there instead of
-# $envName - even though $envName's own environment.txt does pin its
-# own pip. `conda run -n "$envName" python ...` has never been observed
-# to pick the wrong interpreter (see the usability checks above/below),
-# so routing pip through that same already-reliable `python` lookup
-# avoids the second, independently-resolved `pip` lookup entirely.
-if ! conda run -n "$envName" python -m pip install "$cloneDir/vcmsa"
+if ! "$pythonPath" -m pip install "$cloneDir/vcmsa"
 then
 	echo "pip install of the cloned vcmsa source failed inside $envName - removing the incomplete environment so the next attempt starts fresh instead of finding a half-installed one" >&2
 	removeStaleEnv
@@ -147,7 +170,7 @@ fi
 # named 'combat'" the moment vcmsa's code ran. The PyPI package that
 # provides this import is called "combat" (not "pycombat" - that name
 # is taken by an unrelated package on PyPI).
-if ! conda run -n "$envName" python -m pip install combat
+if ! "$pythonPath" -m pip install combat
 then
 	echo "pip install of combat (vcmsa's own undeclared dependency) failed inside $envName - removing the incomplete environment so the next attempt starts fresh instead of finding a half-installed one" >&2
 	removeStaleEnv
@@ -166,7 +189,7 @@ fi
 # the combat gap above. Root cause on the conda side unconfirmed - not
 # worth chasing further given pip can just directly force the known-
 # good pair regardless of what conda's own resolution produced.
-if ! conda run -n "$envName" python -m pip install "icecream==2.1.3" "executing==1.2.0"
+if ! "$pythonPath" -m pip install "icecream==2.1.3" "executing==1.2.0"
 then
 	echo "pip install of icecream/executing (pinning them to vcmsa's own known-compatible versions) failed inside $envName - removing the incomplete environment so the next attempt starts fresh instead of finding a half-installed one" >&2
 	removeStaleEnv
@@ -186,7 +209,7 @@ fi
 # once, clearly, with the real traceback - instead of every waiting
 # task inheriting the same silently-broken environment and each only
 # discovering it later, deep inside its own real alignment run.
-importCheckOutput=$(conda run -n "$envName" python -c "import vcmsa.vcmsa_utils" 2>&1)
+importCheckOutput=$("$pythonPath" -c "import vcmsa.vcmsa_utils" 2>&1)
 if [ $? -ne 0 ]
 then
 	echo "$envName was rebuilt without any individual step failing, but vcmsa.vcmsa_utils still doesn't import cleanly - removing the environment rather than leaving a silently-broken one for the next attempt to find. Traceback:" >&2
