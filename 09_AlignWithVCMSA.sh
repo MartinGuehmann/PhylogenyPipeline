@@ -74,9 +74,15 @@ model="$DIR/../Models/prot_t5_xl_uniref50"
 # whole input file before being kept for every sequence at once -
 # confirmed 2026-08-07 this alone needs ~137GiB for a 930-sequence
 # chunk with a 2414-residue outlier (930 * 2414 * 1024*16 * 4 bytes),
-# which OOM-killed real runs at both 30GB and 62GB. Limit to the last 2
-# layers instead - cuts this dominant cost by ~8x.
-vcmsa --exclude -l -2 -1 -i $cleanedInputSequences -o $outFile -m $model >&2 # Redirect anything to the error stream
+# which OOM-killed real runs at both 30GB and 62GB. -l -2 -1 (2 layers)
+# still OOM-killed at 62GB - get_seq_groups() itself keeps multiple full
+# copies of the (still padded) embeddings array alive at once (an early
+# np.array(reshape_flat(...)) copy, plus the original in embedding_dict,
+# plus per-sequence np.take() copies in a loop), multiplying whatever
+# --layers produces by roughly another 3-4x on top. Down to the single
+# last layer now, paired with Resources.cfg's whole-node bump - this is
+# the last resort short of the whole-node ceiling.
+vcmsa --exclude -l -1 -i $cleanedInputSequences -o $outFile -m $model >&2 # Redirect anything to the error stream
 
 # This must be the only stuff that goes to stdout here, since we use this as a return value
 echo "$outFile"
