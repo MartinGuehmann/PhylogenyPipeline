@@ -38,7 +38,15 @@ source "$DIR/../Lock-Dir.sh"
 # database already there and skips straight past the check below.
 # staleAfterSeconds generous (12h) - a full nr fetch/build measured at
 # ~5h below.
+#
+# Release via an EXIT trap, not just a plain call after the subshell
+# below - see get_vcmsa_env.sh's identical lock for why: a plain call
+# there never ran when a task got killed mid-build, orphaning the lock
+# for everyone else until its full staleAfterSeconds elapsed. EXIT fires
+# on every exit path, including a kill mid-download here, so the lock
+# comes free immediately instead of after a 12h guess.
 acquireLockDir "$database.lockdir" 43200
+trap 'releaseLockDir "$database.lockdir"' EXIT
 (
 
 # Exit code contract for callers: 0 = a usable local database is ready.
@@ -117,6 +125,5 @@ then
 fi
 )
 status=$?
-releaseLockDir "$database.lockdir"
 
 exit $status

@@ -484,13 +484,22 @@ do
 			if [ ${#newlyConfirmedDead[@]} -gt 0 ]
 			then
 				echo "efetch permanently failed for newly-confirmed-dead ID(s) (auto-added to KnownDeadAccessions.txt, not treated as a failure) in batch $i..$((i + range - 1)) after $maxTrials trials: ${newlyConfirmedDead[*]}" >&2
+				# Release via an EXIT trap, not just the plain call right after
+				# the append below - see get_vcmsa_env.sh's identical lock for
+				# why: a plain call there never ran when a task got killed
+				# mid-critical-section, orphaning the lock for everyone else
+				# until its full staleAfterSeconds elapsed. Cleared again right
+				# after releasing so it doesn't linger armed for the rest of
+				# this script's (possibly much later) normal exit.
 				acquireLockDir "$knownDeadFile.lockdir"
+				trap 'releaseLockDir "$knownDeadFile.lockdir"' EXIT
 				{
 					echo ""
 					echo "# Auto-confirmed dead $(date -I) ($gene, efetch's own \"Failed to retrieve sequence\" response)"
 					printf '%s\n' "${newlyConfirmedDead[@]}"
 				} >> "$knownDeadFile"
 				releaseLockDir "$knownDeadFile.lockdir"
+				trap - EXIT
 				knownDeadIDs=$(printf '%s\n%s\n' "$knownDeadIDs" "${newlyConfirmedDead[*]}" | tr ' ' '\n' | sort -u)
 			fi
 

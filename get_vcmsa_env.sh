@@ -38,7 +38,18 @@ removeStaleEnv() {
 # must not both run conda create into it at once). A second process just
 # blocks on the lock until the first is done, then finds the environment
 # already there and skips straight past the check below.
+#
+# Release via an EXIT trap, not just a plain call after the subshell
+# below - confirmed 2026-08-06: a task scancelled while inside that
+# subshell (e.g. mid conda-create) kills this parent script too, with
+# no trap installed nothing ever ran the plain call that used to sit
+# after it, leaving the lock orphaned for other tasks to sit out its
+# full staleAfterSeconds even though its holder was already dead. EXIT
+# fires on every exit path - normal, `exit $status` below, or killed by
+# a signal - so the lock comes free as soon as this script actually
+# does, not after a timeout guessing that it might have.
 acquireLockDir "$DIR/get_vcmsa_env.lockdir"
+trap 'releaseLockDir "$DIR/get_vcmsa_env.lockdir"' EXIT
 (
 
 if ! command -v conda >/dev/null 2>&1
@@ -185,6 +196,5 @@ then
 fi
 )
 status=$?
-releaseLockDir "$DIR/get_vcmsa_env.lockdir"
 
 exit $status

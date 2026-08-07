@@ -27,7 +27,15 @@ source "$DIR/../Lock-Dir.sh"
 # once, silently corrupting it. A second process just blocks on the
 # lock until the first is done, then finds the database already built
 # and skips straight past both checks below.
+#
+# Release via an EXIT trap, not just a plain call after the subshell
+# below - see get_vcmsa_env.sh's identical lock for why: a plain call
+# there never ran when a task got killed mid-build, orphaning the lock
+# for everyone else until its full staleAfterSeconds elapsed. EXIT fires
+# on every exit path, including a kill mid-download here, so the lock
+# comes free immediately instead of after a 6h guess.
 acquireLockDir "$database.lockdir" 21600
+trap 'releaseLockDir "$database.lockdir"' EXIT
 (
 
 # $database.fasta existing isn't enough on its own: gunzip writes its
@@ -89,6 +97,5 @@ then
 fi
 )
 status=$?
-releaseLockDir "$database.lockdir"
 
 exit $status
