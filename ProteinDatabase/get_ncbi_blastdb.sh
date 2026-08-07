@@ -45,7 +45,11 @@ source "$DIR/../Lock-Dir.sh"
 # for everyone else until its full staleAfterSeconds elapsed. EXIT fires
 # on every exit path, including a kill mid-download here, so the lock
 # comes free immediately instead of after a 12h guess.
-acquireLockDir "$database.lockdir" 43200
+if ! acquireLockDir "$database.lockdir" 43200
+then
+	echo "Failed to acquire $database.lockdir - see acquireLockDir's own error above" >&2
+	exit 2
+fi
 trap 'releaseLockDir "$database.lockdir"' EXIT
 (
 

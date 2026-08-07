@@ -16,6 +16,17 @@ modelDir="$DIR/../Models/prot_t5_xl_uniref50"
 source "$DIR/Lock-Dir.sh"
 source "$DIR/Conda-Env-Python.sh"
 
+# acquireLockDir's mkdir needs $modelDir's parent to already exist -
+# confirmed 2026-08-07: without this, a first-ever run (nothing has
+# created Models/ before) made mkdir fail every single retry with
+# "No such file or directory", which acquireLockDir couldn't tell apart
+# from genuine contention at the time - a silent, unrecoverable hang for
+# over an hour with zero CPU anywhere. Lock-Dir.sh itself is now
+# hardened to fail loudly instead of retrying forever over that class of
+# error, but this still needs to actually exist rather than relying on
+# that as a safety net.
+mkdir -p "$(dirname "$modelDir")"
+
 # Only one process at a time may check/download this model - same
 # reasoning as get_ncbi_blastdb.sh's/get_vcmsa_env.sh's lock (two gene
 # pipelines both needing it before either has fetched it yet must not
@@ -29,7 +40,11 @@ source "$DIR/Conda-Env-Python.sh"
 # below - see get_vcmsa_env.sh's identical lock for why: a plain call
 # there never ran when a task got killed mid-build, orphaning the lock
 # for everyone else until its full staleAfterSeconds elapsed.
-acquireLockDir "$modelDir.lockdir" 21600
+if ! acquireLockDir "$modelDir.lockdir" 21600
+then
+	echo "Failed to acquire $modelDir.lockdir - see acquireLockDir's own error above" >&2
+	exit 1
+fi
 trap 'releaseLockDir "$modelDir.lockdir"' EXIT
 (
 

@@ -16,25 +16,54 @@
 # multiple gene pipelines that can run concurrently) use it instead.
 #
 # Usage:
-#   acquireLockDir "$someLockDir" [staleAfterSeconds]
+#   if ! acquireLockDir "$someLockDir" [staleAfterSeconds]
+#   then
+#       exit 1 # or otherwise bail out - $someLockDir isn't held
+#   fi
 #   ...critical section...
 #   releaseLockDir "$someLockDir"
 #
 # $someLockDir is a directory path, not a plain file like the old flock
 # idiom's lock file - it gets created (and later removed) as the lock
 # itself, so it must not collide with anything else that's meant to
-# exist at that path. staleAfterSeconds defaults to 3600 (1h) - pass a
-# larger value for anything that can legitimately run longer than that
-# (see get_ncbi_blastdb.sh's ~5h nr download for an example), since the
-# stale-lock recovery below can't otherwise tell "still legitimately
-# running" apart from "died a long time ago".
+# exist at that path. Its parent directory must already exist -
+# acquireLockDir doesn't create it. staleAfterSeconds defaults to 3600
+# (1h) - pass a larger value for anything that can legitimately run
+# longer than that (see get_ncbi_blastdb.sh's ~5h nr download for an
+# example), since the stale-lock recovery below can't otherwise tell
+# "still legitimately running" apart from "died a long time ago".
+#
+# Returns 1 without acquiring anything if mkdir fails for a reason other
+# than the lock already being held (e.g. a missing parent directory) -
+# callers must check this, not assume it always eventually succeeds.
 
 acquireLockDir() {
 	local lockDir="$1"
 	local staleAfterSeconds="${2:-3600}"
+	local mkdirError
 
-	while ! mkdir "$lockDir" 2>/dev/null
+	while true
 	do
+		mkdirError=$(mkdir "$lockDir" 2>&1) && return 0
+
+		# mkdir fails for reasons other than "the lock is already held" too
+		# - a missing parent directory, a permissions problem, a full
+		# filesystem. Those don't leave $lockDir behind, unlike genuine
+		# contention, so they're distinguishable - confirmed 2026-08-07:
+		# get_prot_t5_model.sh called this on a Models/ directory that had
+		# never been created yet, and every retry failed the exact same
+		# way, forever, with zero CPU and no lock directory ever appearing
+		# - the age check below always saw "not found" (falling back to
+		# "now"), so it never crossed staleAfterSeconds and never stopped
+		# retrying either. Fail loudly instead of joining that silent,
+		# unrecoverable retry loop.
+		if [ ! -d "$lockDir" ]
+		then
+			echo "acquireLockDir: mkdir \"$lockDir\" failed for a reason other than the lock already being held - not retrying forever over this. mkdir's own error:" >&2
+			echo "$mkdirError" >&2
+			return 1
+		fi
+
 		# Unlike flock, this lock does NOT get released automatically just
 		# because its owning process died (walltime, scancel, node
 		# failure) - something has to reclaim it eventually, or every

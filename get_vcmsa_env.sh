@@ -49,7 +49,11 @@ removeStaleEnv() {
 # fires on every exit path - normal, `exit $status` below, or killed by
 # a signal - so the lock comes free as soon as this script actually
 # does, not after a timeout guessing that it might have.
-acquireLockDir "$DIR/get_vcmsa_env.lockdir"
+if ! acquireLockDir "$DIR/get_vcmsa_env.lockdir"
+then
+	echo "Failed to acquire $DIR/get_vcmsa_env.lockdir - see acquireLockDir's own error above" >&2
+	exit 1
+fi
 trap 'releaseLockDir "$DIR/get_vcmsa_env.lockdir"' EXIT
 (
 

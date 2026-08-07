@@ -491,7 +491,11 @@ do
 				# until its full staleAfterSeconds elapsed. Cleared again right
 				# after releasing so it doesn't linger armed for the rest of
 				# this script's (possibly much later) normal exit.
-				acquireLockDir "$knownDeadFile.lockdir"
+				if ! acquireLockDir "$knownDeadFile.lockdir"
+				then
+					echo "Failed to acquire $knownDeadFile.lockdir - see acquireLockDir's own error above" >&2
+					exit 1
+				fi
 				trap 'releaseLockDir "$knownDeadFile.lockdir"' EXIT
 				{
 					echo ""
