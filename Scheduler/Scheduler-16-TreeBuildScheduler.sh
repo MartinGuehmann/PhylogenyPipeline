@@ -161,13 +161,20 @@ previousAligner=""
 # reporting a clean, misleading success.
 hadError=""
 
-# Make an iteration for all available aligners, except for the main aligner
+# Make an iteration for all available aligners, except for the main
+# aligner and anything listed in SkippedAligners.cfg - a way to turn an
+# aligner off pipeline-wide (e.g. one that isn't panning out) without
+# touching its own 09_Scheduler-AlignWith<Name>.sh or anything that
+# calls it, so turning it back on later is just deleting a line there.
 for alignerScript in "$DIR/09_Scheduler-AlignWith"*".sh"*
 do
 	if [[ $alignerScript =~ 09_Scheduler-AlignWith(.*)\.sh ]]
 	then
 		usedAligner=${BASH_REMATCH[1]}
-		if [[ $usedAligner != $aligner ]]
+		if [ -f "$DIR/SkippedAligners.cfg" ] && grep -v '^#' "$DIR/SkippedAligners.cfg" | grep -v '^[[:space:]]*$' | grep -qFx "$usedAligner"
+		then
+			echo "$usedAligner is listed in SkippedAligners.cfg - not submitting" >&2
+		elif [[ $usedAligner != $aligner ]]
 		then
 			resumeIteration=$("$DIR/../GetResumeIteration.sh" -g "$gene" -a "$usedAligner" -m 0)
 			resumeStatus=$?
