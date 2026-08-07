@@ -93,8 +93,23 @@ fi
 # install below). Actually import vcmsa's own top-level module instead,
 # so a partially-broken env like that one gets caught and rebuilt below
 # rather than waved through.
+#
+# env -u PYTHONPATH, every time $pythonPath is run below - confirmed
+# 2026-08-07: even invoked by absolute path, vcmsa_env's own python 3.9
+# still resolved `import numpy` to a Nix-store numpy built for Python
+# 3.14 ("ModuleNotFoundError: No module named
+# 'numpy._core._multiarray_umath'", an ABI mismatch, not a missing
+# package). The Nix devShell's own packages list includes pythonWithEte3
+# (flake.nix), and nixpkgs' python setup-hook automatically adds every
+# such package's site-packages to PYTHONPATH in the shell - intentional
+# so 12_ConvertTreesToFigures.py's bare `python3 script.py` sees ete3,
+# but it leaks into every other Python this script runs too, absolute
+# path or not, since PYTHONPATH is just an inherited env var. Clearing
+# it for these calls only (not the whole script - other parts may still
+# rely on it) keeps vcmsa_env's own site-packages the only thing this
+# interpreter ever sees.
 pythonPath=$(envPython)
-if [ -n "$pythonPath" ] && "$pythonPath" -c "import vcmsa.vcmsa_utils" >/dev/null 2>&1
+if [ -n "$pythonPath" ] && env -u PYTHONPATH "$pythonPath" -c "import vcmsa.vcmsa_utils" >/dev/null 2>&1
 then
 	exit 0
 fi
@@ -156,7 +171,7 @@ fi
 # (`cd vcmsa && python setup.py install`) - `pip install <dir>` is the
 # modern equivalent and needs no extra network access beyond the clone
 # already done above.
-if ! "$pythonPath" -m pip install "$cloneDir/vcmsa"
+if ! env -u PYTHONPATH "$pythonPath" -m pip install "$cloneDir/vcmsa"
 then
 	echo "pip install of the cloned vcmsa source failed inside $envName - removing the incomplete environment so the next attempt starts fresh instead of finding a half-installed one" >&2
 	removeStaleEnv
@@ -170,7 +185,7 @@ fi
 # named 'combat'" the moment vcmsa's code ran. The PyPI package that
 # provides this import is called "combat" (not "pycombat" - that name
 # is taken by an unrelated package on PyPI).
-if ! "$pythonPath" -m pip install combat
+if ! env -u PYTHONPATH "$pythonPath" -m pip install combat
 then
 	echo "pip install of combat (vcmsa's own undeclared dependency) failed inside $envName - removing the incomplete environment so the next attempt starts fresh instead of finding a half-installed one" >&2
 	removeStaleEnv
@@ -189,7 +204,7 @@ fi
 # the combat gap above. Root cause on the conda side unconfirmed - not
 # worth chasing further given pip can just directly force the known-
 # good pair regardless of what conda's own resolution produced.
-if ! "$pythonPath" -m pip install "icecream==2.1.3" "executing==1.2.0"
+if ! env -u PYTHONPATH "$pythonPath" -m pip install "icecream==2.1.3" "executing==1.2.0"
 then
 	echo "pip install of icecream/executing (pinning them to vcmsa's own known-compatible versions) failed inside $envName - removing the incomplete environment so the next attempt starts fresh instead of finding a half-installed one" >&2
 	removeStaleEnv
@@ -209,7 +224,7 @@ fi
 # once, clearly, with the real traceback - instead of every waiting
 # task inheriting the same silently-broken environment and each only
 # discovering it later, deep inside its own real alignment run.
-importCheckOutput=$("$pythonPath" -c "import vcmsa.vcmsa_utils" 2>&1)
+importCheckOutput=$(env -u PYTHONPATH "$pythonPath" -c "import vcmsa.vcmsa_utils" 2>&1)
 if [ $? -ne 0 ]
 then
 	echo "$envName was rebuilt without any individual step failing, but vcmsa.vcmsa_utils still doesn't import cleanly - removing the environment rather than leaving a silently-broken one for the next attempt to find. Traceback:" >&2
