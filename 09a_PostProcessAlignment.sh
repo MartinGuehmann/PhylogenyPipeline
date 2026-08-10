@@ -47,6 +47,21 @@ reducedAlignmentFile="$alignmentFile.raxml.reduced.phy"
 # reduced.phy that would otherwise read as "already exists" to the
 # check below without actually being valid, so always clear it (and
 # the log) first, on both the initial attempt and the retry.
+#
+# Also covers a second, distinct failure mode sharing this same loop:
+# raxml-ng itself missing ("command not found", exit 127) even though
+# Enter-NixDevShell.sh's own verification (which runs once, at job
+# start) reported the devShell fully activated. Confirmed 2026-08-10 on
+# real RegTCoffee chunks, always in same-node pairs (two array tasks on
+# the same compute node failing identically) - consistent with a stale
+# NFS attribute/directory-cache entry on that specific node for
+# raxml-ng's store path, not a genuinely missing or broken file (a
+# missing directory *entry* can't be told apart from one that's simply
+# not synced yet from inside the same cached view that's hiding it - no
+# stat-based check run on that node can see past it). A 5s retry sleep
+# is very likely shorter than typical NFS acdirmax/acdirmin windows
+# (commonly 30-60s on HPC mounts), so it retried into the same stale
+# window both times. 60s comfortably outlasts that.
 for attempt in 1 2
 do
 	rm -f "$reducedAlignmentFile" "$alignmentFile.raxml.log"
@@ -59,7 +74,7 @@ do
 	if [ $attempt -eq 1 ]
 	then
 		echo "$alignmentFile: raxml-ng --check failed (exit $checkStatus) - retrying once" >&2
-		sleep 5
+		sleep 60
 	fi
 done
 
