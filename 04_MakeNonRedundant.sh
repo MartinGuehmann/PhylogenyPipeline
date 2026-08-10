@@ -48,7 +48,24 @@ rm -f $nrSequenceFile90
 
 seqFiles=$sequences/*.fasta
 
-seqkit rmdup -s -j $numTreads $seqFiles > $nrSequenceFile
+# NCBI's own efetch output can bundle accessions that share a byte-
+# identical sequence into a single FASTA record (multiple ">accession
+# desc [organism]" segments concatenated on one header line, no
+# newline between them) - every accession after the first in such a
+# line is invisible to seqkit rmdup below (and every other FASTA tool)
+# otherwise, since a record boundary is defined as a line *starting*
+# with ">". Split those back into individual records first, and (if
+# this gene has a species priority list) reorder so rmdup's own "only
+# the first record is saved for duplicates" rule (no other way to
+# control which duplicate survives - see its own --help) prefers a
+# priority-species accession within any group of identical sequences,
+# same list already used to override cd-hit's own representative
+# choice below. Confirmed 2026-08-10, 631 such merged lines in a
+# single PRRs part file alone.
+speciesListArg=""
+[ -f "$speciesForSeqReps" ] && speciesListArg="--species-list $speciesForSeqReps"
+
+python3 "$DIR/PrepareSequencesForDedup.py" $seqFiles $speciesListArg | seqkit rmdup -s -j $numTreads > $nrSequenceFile
 
 cd-hit -i $nrSequenceFile -o $nrSequenceFile90 -c 0.9 -M 0 -d 0 -T $numTreads
 
