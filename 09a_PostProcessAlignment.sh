@@ -74,6 +74,28 @@ reducedAlignmentFile="$alignmentFile.raxml.reduced.phy"
 # available at all (same "fallback, never a requirement" stance as
 # Enter-NixDevShell.sh) - can't do better than the original attempt
 # there, but no worse either.
+#
+# Confirmed 2026-08-10 this fallback was silently the one actually
+# taken on real failing chunks - both attempts' "command not found"
+# blamed the exact same source line (the plain in-place call), meaning
+# `command -v nix` itself failed here too, not just raxml-ng. This
+# process is already running inside whatever devShell Enter-
+# NixDevShell.sh composed, and that's the same $PATH this broken
+# attempt inherited - so `command -v nix` alone is trusting the very
+# thing suspected of being incomplete. Enter-NixDevShell.sh never makes
+# that assumption for its own first entry: it re-sources nix's profile
+# scripts unconditionally before ever checking for the nix command,
+# since those don't depend on whatever the current $PATH happens to
+# contain. Do the same here before checking, so a real "just missing
+# raxml-ng, nix itself still resolvable" case doesn't fall back to the
+# no-better-than-before path for the wrong reason.
+for profileScript in \
+	/nix/var/nix/profiles/default/etc/profile.d/nix.sh \
+	/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+do
+	[ -f "$profileScript" ] && . "$profileScript"
+done
+
 nixCmd=""
 if command -v nix >/dev/null 2>&1
 then
@@ -88,8 +110,10 @@ do
 	rm -f "$reducedAlignmentFile" "$alignmentFile.raxml.log"
 	if [ $attempt -eq 1 ] || [ -z "$nixCmd" ]
 	then
+		[ $attempt -eq 2 ] && echo "$alignmentFile: retrying in-place, not via a fresh nix develop - nix itself wasn't found even after re-sourcing its profile scripts" >&2
 		raxml-ng --msa "$alignmentFile" --threads $numTreads --model LG+G --check >&2
 	else
+		echo "$alignmentFile: retrying via a fresh '$nixCmd develop'" >&2
 		$nixCmd develop "$DIR" --command raxml-ng --msa "$alignmentFile" --threads $numTreads --model LG+G --check >&2
 	fi
 	checkStatus=$?
