@@ -39,7 +39,16 @@ Supported aligners are:
 	- Clustal-Omega (module load)
 	- MAGUS (user path: a `magus` command, e.g. via
 	  `pip install --user magus-msa`, or the flake's `magus` package)
-	- vcMSA (module load Python 3 + a conda environment named `vcmsa_env`)
+	- vcMSA (module load Python 3 + a conda environment named `vcmsa_env`) -
+	  currently disabled pipeline-wide via `Scheduler/SkippedAligners.cfg`
+	  (see that file's own header comment to re-enable). Confirmed
+	  2026-08-07 on real Mas1 production data that its embedding step's
+	  memory use scales with input size badly enough that even a whole
+	  compute node (96 CPUs/248GB, the largest single-job request this
+	  cluster allows) still OOM-killed - root-caused to vcMSA's own
+	  padding-to-longest-sequence embedding storage and multiple
+	  redundant in-memory copies during clustering, not a
+	  configuration/environment issue on this end.
 
 Optional, however if not installed will generate an error:
 
