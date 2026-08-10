@@ -105,15 +105,23 @@ then
 	nixCmd="nix-portable nix"
 fi
 
+# Logged alongside every failure/retry message below so a recurrence
+# (e.g. the same-node-pairs pattern seen 2026-08-10) can be correlated
+# straight from the downloaded logs, without cross-referencing squeue
+# output by timestamp. `hostname` rather than a scheduler-specific env
+# var (e.g. Slurm's $SLURMD_NODENAME) - this pipeline also supports
+# PBS/Torque (see Scheduler-GetArrayIndex.sh), which wouldn't set that.
+node=$(hostname)
+
 for attempt in 1 2
 do
 	rm -f "$reducedAlignmentFile" "$alignmentFile.raxml.log"
 	if [ $attempt -eq 1 ] || [ -z "$nixCmd" ]
 	then
-		[ $attempt -eq 2 ] && echo "$alignmentFile: retrying in-place, not via a fresh nix develop - nix itself wasn't found even after re-sourcing its profile scripts" >&2
+		[ $attempt -eq 2 ] && echo "$alignmentFile ($node): retrying in-place, not via a fresh nix develop - nix itself wasn't found even after re-sourcing its profile scripts" >&2
 		raxml-ng --msa "$alignmentFile" --threads $numTreads --model LG+G --check >&2
 	else
-		echo "$alignmentFile: retrying via a fresh '$nixCmd develop'" >&2
+		echo "$alignmentFile ($node): retrying via a fresh '$nixCmd develop'" >&2
 		$nixCmd develop "$DIR" --command raxml-ng --msa "$alignmentFile" --threads $numTreads --model LG+G --check >&2
 	fi
 	checkStatus=$?
@@ -123,14 +131,14 @@ do
 	fi
 	if [ $attempt -eq 1 ]
 	then
-		echo "$alignmentFile: raxml-ng --check failed (exit $checkStatus) - retrying once, via a fresh nix develop" >&2
+		echo "$alignmentFile ($node): raxml-ng --check failed (exit $checkStatus) - retrying once, via a fresh nix develop" >&2
 		sleep 60
 	fi
 done
 
 if [ $checkStatus -ne 0 ]
 then
-	echo "$alignmentFile: raxml-ng --check failed twice in a row (exit $checkStatus) - giving up" >&2
+	echo "$alignmentFile ($node): raxml-ng --check failed twice in a row (exit $checkStatus) - giving up" >&2
 	exit $checkStatus
 fi
 
