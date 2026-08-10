@@ -353,7 +353,19 @@ case $step in
 
 		echo "$AlignmentParts"*"$AlignmentLastBit" > $alignmentFiles
 		numFiles=$(wc -w $alignmentFiles | cut -d " " -f1)
-		jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, alignmentFiles=$alignmentFiles, iteration=$iteration, aligner=$aligner, suffix=$suffix, previousAligner=$previousAligner" "$DIR/10_Scheduler-MakeTreeWithIQ-Tree.sh")
+		# noTrimAl is a comparison-only path (never meant for BigTree
+		# scale), but its untrimmed alignments still have far more
+		# sites/columns than normal - confirmed 2026-08-10 up to ~20x
+		# more for MAGUS - which pushes real walltime up to 21-24h even
+		# for otherwise well-behaved aligners, right at or past the
+		# regular script's own 24h budget (itself shared across every
+		# aligner, not just noTrimAl ones, so it can't just be extended
+		# to cover this on its own without wasting budget everywhere
+		# else). Route through the Long/72h script instead - it also
+		# resolves alignmentToUse per array task now, same as this one.
+		treeScript="$DIR/10_Scheduler-MakeTreeWithIQ-Tree.sh"
+		[[ $suffix == *noTrimAl* ]] && treeScript="$DIR/10_Scheduler-Long-MakeTreeWithIQ-Tree.sh"
+		jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, alignmentFiles=$alignmentFiles, iteration=$iteration, aligner=$aligner, suffix=$suffix, previousAligner=$previousAligner" "$treeScript")
 	fi
 	;;
 11)
