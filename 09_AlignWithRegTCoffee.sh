@@ -50,13 +50,18 @@ mkdir -p $alignmentDir
 
 # Align the sequences with regressive t-coffee
 #
-# T-Coffee refuses to fork a subprocess once its PID exceeds
-# MAX_N_PID_4_TCOFFEE, hardcoded here until 2026-07-30 as 520000 - on
-# this cluster real PIDs already run into the millions, so every call
-# aborted immediately with "MAX_N_PID exceded", leaving an empty
-# outFile. Read the node's actual ceiling instead of guessing another
-# fixed number that could just as well be exceeded again later.
-maxNPid=$(cat /proc/sys/kernel/pid_max)
+# T-Coffee refuses to fork a subprocess once its PID exceeds a
+# hardcoded MAX_N_PID - on this cluster real PIDs already run into the
+# millions, well past the 260000 this pinned version (13.41.0.28bdc39,
+# see flake.nix) compiles in. Used to be worked around here via a
+# MAX_N_PID_4_TCOFFEE env var, but confirmed 2026-08-10 (after 2 of 26
+# real chunks failed with "current: 260000") that this version's source
+# has no such env-var override at all - that fix was written against a
+# different t-coffee version and had silently been a no-op since the
+# pin was switched down to 13.41.0. Fixed for real at the source
+# instead: flake.nix's t-coffee derivation now patches MAX_N_PID up to
+# 4194304 (Linux's own pid_max ceiling) at build time.
+#
 # -thread 0 ("all those defined in the environment", per `t_coffee
 # -help`) does NOT respect this job's actual Slurm/cgroup CPU
 # allocation the way $numTreads (nproc, already computed above) does -
@@ -66,7 +71,7 @@ maxNPid=$(cat /proc/sys/kernel/pid_max)
 # 24 - t_coffee tried to run ~4x oversubscribed and crashed before
 # writing any output. Pass the already-detected, cgroup-respecting
 # count explicitly instead of trusting -thread 0's own detection.
-MAX_N_PID_4_TCOFFEE=$maxNPid t_coffee -reg -seq $inputSequences -nseq 100 -tree mbed -method mafftlinsi_msa -outfile $outFile -outtree $outTree -thread "$numTreads"  >&2 # In case this puts something to stdout
+t_coffee -reg -seq $inputSequences -nseq 100 -tree mbed -method mafftlinsi_msa -outfile $outFile -outtree $outTree -thread "$numTreads"  >&2 # In case this puts something to stdout
 
 # Without this check, a t_coffee failure (e.g. the coredump above) fell
 # through silently into the seqkit rename below, which then manufactured

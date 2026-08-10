@@ -409,6 +409,27 @@
               sed -i 's/^int set_nproc(int np)/void set_nproc(int np)/' lib/util_lib/util.c
               sed -i 's/^int set_nproc (int nproc);/void set_nproc (int nproc);/' lib/util_lib/util.h
               perl -0777 -pi -e 's/(NT_node tofree=stack;\n\s*stack->visited\+\+;\n\s*stack=stack->bot;\n\s*\n\s*\}\n)\}/\1  return root;\n}/' lib/io_lib/tree_util.c
+              # lib/coffee_defines.h hardcodes MAX_N_PID (the size of a
+              # pid_t bookkeeping table -reg mode allocates once, and
+              # aborts through if any forked child's real PID exceeds) to
+              # 260000, compiled in - confirmed 2026-08-10 via this exact
+              # source tree that there is no MAX_N_PID_4_TCOFFEE (or any
+              # other) env-var override anywhere in this version, unlike
+              # whatever version 09_AlignWithRegTCoffee.sh's own
+              # MAX_N_PID_4_TCOFFEE=$(cat /proc/sys/kernel/pid_max) fix
+              # (dated 2026-07-30, before this pin was switched down to
+              # dodge the segfault bugs above) was originally written
+              # against - that env var is silently a no-op here. This
+              # cluster's real PIDs already run into the millions
+              # (observed 1695787/1704220 in production RegTCoffee logs,
+              # both aborting with "current: 260000"), so the 260000
+              # ceiling caused 2 of 26 real chunks to fail outright.
+              # Bumped to 4194304 (PID_MAX_LIMIT - the actual highest
+              # value /proc/sys/kernel/pid_max can ever be set to on a
+              # 64-bit Linux kernel), so no real PID can ever exceed it
+              # again; the three vcalloc'd tables this guards stay tiny
+              # either way (a few MB, not GB).
+              sed -i 's/^#define MAX_N_PID       260000$/#define MAX_N_PID       4194304/' lib/coffee_defines.h
             '';
             buildPhase = ''
               runHook preBuild
