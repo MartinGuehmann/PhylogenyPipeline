@@ -64,6 +64,19 @@ fi
 # $NIX_DEVSHELL_VERIFIED/$NIX_DEVSHELL_RETRIED are exported so nested
 # scripts that source this file again inherit the already-done work
 # instead of repeating it.
+#
+# Checking that each /nix/store PATH entry's own directory exists isn't
+# enough - confirmed 2026-08-10: a raxml-ng post-check step hit "raxml-ng:
+# command not found" (breaking the pipeline step that needed its output)
+# even though this check passed, four different times across one array,
+# twice in matching same-second pairs (consistent with a node-local
+# race, not independent bad luck). nixpkgs binaries are frequently
+# symlinks/wrappers pointing at another store path's file, so the
+# containing bin/ directory can exist and be listed just fine while the
+# specific entry inside it is a dangling symlink (its target GC'd or not
+# yet synced) - a directory-only check can't see that. Stat every entry
+# inside each store PATH directory too, not just the directory itself;
+# "-e" follows symlinks, so a dangling one is correctly caught as missing.
 if [ -n "$nixCmd" ] && [ -n "$IN_NIX_SHELL" ] && [ -z "$NIX_DEVSHELL_VERIFIED" ]
 then
 	missingPathEntry=""
@@ -73,9 +86,22 @@ then
 	do
 		case "$pathEntry" in
 			/nix/store/*)
-				[ -d "$pathEntry" ] || missingPathEntry="$pathEntry"
+				if [ ! -d "$pathEntry" ]
+				then
+					missingPathEntry="$pathEntry"
+				else
+					for entry in "$pathEntry"/*
+					do
+						if [ ! -e "$entry" ]
+						then
+							missingPathEntry="$entry"
+							break
+						fi
+					done
+				fi
 				;;
 		esac
+		[ -n "$missingPathEntry" ] && break
 	done
 	IFS="$oldIFS"
 
