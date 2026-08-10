@@ -22,6 +22,12 @@ shopt -s extglob
 # for the incident this is guarding against).
 source "$DIR/../CheckNixDependenciesBuilt.sh"
 
+# --exclude/-N NODELIST passes straight through to Scheduler-Sub.sh's
+# own --exclude/-N (see its header comment) - keeps a bad node
+# (confirmed node032 repeatedly, 2026-08-10) out of a targeted single-
+# step resubmission, e.g. `./Scheduler-Call.sh -g ../Mas1 -s 9 -a
+# RegTCoffee -N node032`, without waiting for a whole-cluster fix.
+
 # These would not need to be defined guards if called via "$DIR/Scheduler-Sub.sh"
 iteration="0"
 hold=""
@@ -32,6 +38,7 @@ suffix=""
 masterAligner=""
 masterSuffix=""
 extension=""
+exclude=""
 
 # Idiomatic parameter and option handling in sh
 # Adapted from https://superuser.com/questions/186272/check-if-any-of-the-parameters-to-a-bash-script-match-a-string
@@ -79,6 +86,12 @@ do
             ;&
         -h)
             hold="-h"
+            ;;
+        --exclude)
+            ;&
+        -N)
+            shift
+            exclude="-N $1"
             ;;
         --allSeqs)
             ;&
@@ -279,46 +292,46 @@ case $step in
 	# need building - makeblastdb ignores its assigned CPU count
 	resourceOverride=""
 	"$DIR/../ProteinDatabase/NeedsBuilding.sh" && resourceOverride="-R AskForWholeNode"
-	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" $resourceOverride -v "DIR=$DIR, gene=$gene, localDatabases=$localDatabases" "$DIR/00_Scheduler-GetGenesFromAllDataBases.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" $resourceOverride -v "DIR=$DIR, gene=$gene, localDatabases=$localDatabases" "$DIR/00_Scheduler-GetGenesFromAllDataBases.sh")
 	;;
 1)
 	# Same database-build concern as step 0 above
 	resourceOverride=""
 	"$DIR/../ProteinDatabase/NeedsBuilding.sh" && resourceOverride="-R AskForWholeNode"
-	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" $resourceOverride -v "DIR=$DIR, gene=$gene" "$DIR/01_Scheduler-CombineHitsForEachDatabase.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" $resourceOverride -v "DIR=$DIR, gene=$gene" "$DIR/01_Scheduler-CombineHitsForEachDatabase.sh")
 	;;
 2)
-	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene" "$DIR/02_Scheduler-CombineHitsFromAllNCBIDatabases.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -v "DIR=$DIR, gene=$gene" "$DIR/02_Scheduler-CombineHitsFromAllNCBIDatabases.sh")
 	;;
 3)
 	# Efetch is missing for that, anyway this can be done on a laptop
 	# Same database-build concern as step 0 above
 	resourceOverride=""
 	"$DIR/../ProteinDatabase/NeedsBuilding.sh" && resourceOverride="-R AskForWholeNode"
-	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" $resourceOverride -v "DIR=$DIR, gene=$gene, localDatabases=$localDatabases" "$DIR/03_Scheduler-ExtractSequences.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" $resourceOverride -v "DIR=$DIR, gene=$gene, localDatabases=$localDatabases" "$DIR/03_Scheduler-ExtractSequences.sh")
 	;;
 4)
-	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene, overwrite=$overwrite" "$DIR/04_Scheduler-MakeNonRedundant.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -v "DIR=$DIR, gene=$gene, overwrite=$overwrite" "$DIR/04_Scheduler-MakeNonRedundant.sh")
 	;;
 5)
-	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene" "$DIR/05_Scheduler-MakeClansFile.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -v "DIR=$DIR, gene=$gene" "$DIR/05_Scheduler-MakeClansFile.sh")
 	;;
 6)
-	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene" "$DIR/06_Scheduler-ClusterWithClans.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -v "DIR=$DIR, gene=$gene" "$DIR/06_Scheduler-ClusterWithClans.sh")
 	;;
 7)
-	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene" "$DIR/07_Scheduler-MakeTreeForPruning.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -v "DIR=$DIR, gene=$gene" "$DIR/07_Scheduler-MakeTreeForPruning.sh")
 	;;
 8)
-	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene" "$DIR/08_Scheduler-ExtractSequencesOfInterest.sh")
+	jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -v "DIR=$DIR, gene=$gene" "$DIR/08_Scheduler-ExtractSequencesOfInterest.sh")
 	;;
 9)
 	if [[ ! -z $inputFile ]]
 	then
-		jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene, seqsToAlign=$inputFile, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" "$alignerFile")
+		jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -v "DIR=$DIR, gene=$gene, seqsToAlign=$inputFile, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" "$alignerFile")
 	elif [[ $allSeqs == "allSeqs" ]]
 	then
-		jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" "$alignerFile")
+		jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -v "DIR=$DIR, gene=$gene, seqsToAlign=$SequencesOfInterest, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" "$alignerFile")
 	else
 		# Make alignment directory if it does not exist
 		mkdir -p $AlignmentDir
@@ -328,45 +341,45 @@ case $step in
 
 		echo "$SequencesOfInterestParts"+([0-9])".fasta" > $seqFiles
 		numFiles=$(wc -w $seqFiles | cut -d " " -f1)
-		jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, seqFiles=$seqFiles, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" "$alignerFile")
+		jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, seqFiles=$seqFiles, iteration=$iteration, suffix=$suffix, previousAligner=$previousAligner, trimAl=$trimAl" "$alignerFile")
 	fi
 	;;
 10)
 	if [[ $allSeqs == "allSeqs" ]]
 	then
-		jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner, suffix=$suffix, previousAligner=$previousAligner" "$DIR/10_Scheduler-Long-MakeTreeWithIQ-Tree.sh")
+		jobIDs=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner, suffix=$suffix, previousAligner=$previousAligner" "$DIR/10_Scheduler-Long-MakeTreeWithIQ-Tree.sh")
 	else
 		alignmentFiles="$AlignmentDir/$AlingmentFilesFile"
 
 		echo "$AlignmentParts"*"$AlignmentLastBit" > $alignmentFiles
 		numFiles=$(wc -w $alignmentFiles | cut -d " " -f1)
-		jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, alignmentFiles=$alignmentFiles, iteration=$iteration, aligner=$aligner, suffix=$suffix, previousAligner=$previousAligner" "$DIR/10_Scheduler-MakeTreeWithIQ-Tree.sh")
+		jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, alignmentFiles=$alignmentFiles, iteration=$iteration, aligner=$aligner, suffix=$suffix, previousAligner=$previousAligner" "$DIR/10_Scheduler-MakeTreeWithIQ-Tree.sh")
 	fi
 	;;
 11)
-	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, shuffleSeqs=$shuffleSeqs, suffix=$suffix, previousAligner=$previousAligner, restore=$restore" "$DIR/11_Scheduler-RemoveRogues.sh")
+	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, shuffleSeqs=$shuffleSeqs, suffix=$suffix, previousAligner=$previousAligner, restore=$restore" "$DIR/11_Scheduler-RemoveRogues.sh")
 	;;
 12)
-	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, suffix=$suffix, masterAligner=$masterAligner, masterSuffix=$masterSuffix, extension=$extension, update=$update, updateBig=$updateBig, inputDir=$inputDir, ignoreIfMasterFileDoesNotExist=$ignoreIfMasterFileDoesNotExist" "$DIR/12_Scheduler-ConvertTreesToFigures.sh")
+	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, suffix=$suffix, masterAligner=$masterAligner, masterSuffix=$masterSuffix, extension=$extension, update=$update, updateBig=$updateBig, inputDir=$inputDir, ignoreIfMasterFileDoesNotExist=$ignoreIfMasterFileDoesNotExist" "$DIR/12_Scheduler-ConvertTreesToFigures.sh")
 	;;
 13)
-	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene, overwrite=$overwrite" "$DIR/13_Scheduler-SplitNonRedundantSequences.sh")
+	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -v "DIR=$DIR, gene=$gene, overwrite=$overwrite" "$DIR/13_Scheduler-SplitNonRedundantSequences.sh")
 	;;
 14)
 	echo "$SequenceChunksForPruningDir/"*".part_"+([0-9])".fasta" > $seqFiles
 	numFiles=$(wc -w $seqFiles | cut -d " " -f1)
-	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, seqFiles=$seqFiles, trimAl=$trimAl" "$DIR/14_Scheduler-AlignWithPASTAForPruning.sh")
+	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, seqFiles=$seqFiles, trimAl=$trimAl" "$DIR/14_Scheduler-AlignWithPASTAForPruning.sh")
 	;;
 15)
 	echo "$AllPruningSeqs"+([0-9])"$PruningLastBit" > $alignmentFiles
 	numFiles=$(wc -w $alignmentFiles | cut -d " " -f1)
-	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, alignmentFiles=$alignmentFiles" "$DIR/15_Scheduler-MakeTreeWithIQ-TreeForPruning.sh")
+	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -J "1-$numFiles" -v "DIR=$DIR, gene=$gene, alignmentFiles=$alignmentFiles" "$DIR/15_Scheduler-MakeTreeWithIQ-TreeForPruning.sh")
 	;;
 16)
-	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene, extension=$extension, overwrite=$overwrite" "$DIR/16_Scheduler-ExtractSequencesOfInterest.sh")
+	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -v "DIR=$DIR, gene=$gene, extension=$extension, overwrite=$overwrite" "$DIR/16_Scheduler-ExtractSequencesOfInterest.sh")
 	;;
 17)
-	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend -g "$gene" -v "DIR=$DIR, gene=$gene, overwrite=$overwrite" "$DIR/17_Scheduler-SkipSequenceExtraction.sh")
+	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -v "DIR=$DIR, gene=$gene, overwrite=$overwrite" "$DIR/17_Scheduler-SkipSequenceExtraction.sh")
 	;;
 
 *)

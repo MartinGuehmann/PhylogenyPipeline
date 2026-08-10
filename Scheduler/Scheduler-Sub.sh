@@ -18,6 +18,19 @@
 # Resources.cfg lookup above - so this must be run with Scheduler/ as
 # the working directory). That's a per-gene Logs directory next to
 # Sequences, Hits, etc. Without --gene, files land in ../Logs instead.
+#
+# Pass --exclude/-N NODELIST to keep this job off specific compute
+# nodes (Slurm's own --exclude=NODELIST syntax, e.g. "node032" or
+# "node032,node045") - added 2026-08-10 after node032 repeatedly showed
+# a broken/unreachable-looking /nix mount (raxml-ng and even nix itself
+# "command not found" on that node specifically, confirmed via 09a_
+# PostProcessAlignment.sh's own node-logging, across multiple separate
+# job submissions), with no way to route array tasks around it short of
+# hand-writing a raw sbatch call outside this repo's own scripts.
+# PBS Pro has no equivalent this script implements - excluding a named
+# host there means rewriting the -l select=... chunk spec built below,
+# not a separate flag, so --exclude is accepted but warned-about and
+# otherwise ignored on that branch instead of silently doing nothing.
 
 hold=""
 depend=""
@@ -27,6 +40,7 @@ exportFlag=""
 script=""
 resourceName=""
 gene=""
+exclude=""
 
 if [ -x "$(command -v qsub)" ]
 then
@@ -72,6 +86,12 @@ then
 				shift
 				gene="$1"
 				;;
+			--exclude)
+				;&
+			-N)
+				shift
+				exclude="$1"
+				;;
 			-*)
 				;&
 			--*)
@@ -90,6 +110,12 @@ then
 		esac
 		shift
 	done
+
+	# See the --exclude/-N header comment above - not implemented for
+	# PBS Pro, since it isn't a separate flag there (it would mean
+	# rewriting the -l select=... chunk spec below). Warn instead of
+	# silently ignoring it, so this doesn't look like it worked.
+	[ -n "$exclude" ] && echo "--exclude/-N ($exclude) is not implemented for PBS Pro - ignoring it, see Scheduler-Sub.sh's own header comment" >&2
 
 	logDir="../$gene/Logs"
 	mkdir -p "$logDir"
@@ -171,6 +197,12 @@ then
 				shift
 				gene="$1"
 				;;
+			--exclude)
+				;&
+			-N)
+				shift
+				exclude="$1"
+				;;
 			-*)
 				;&
 			--*)
@@ -217,6 +249,9 @@ then
 		[ -n "$partition" ] && resources="$resources --partition=$partition"
 	fi
 
+	excludeOption=""
+	[ -n "$exclude" ] && excludeOption="--exclude=$exclude"
+
 	# %j is resolved by Slurm itself once the job is queued, so unlike the
 	# PBS branch above, the job ID can go first in the filename here. For
 	# an array job (-J/--range set $range above), %j resolves per task to
@@ -232,7 +267,7 @@ then
 		logOptions="--output=$logDir/%j_$scriptName.out --error=$logDir/%j_$scriptName.err"
 	fi
 
-	jobID=$(sbatch --kill-on-invalid-dep=yes $hold $account $depend $range $resources $logOptions $exportFlag"$export" $script)
+	jobID=$(sbatch --kill-on-invalid-dep=yes $hold $account $depend $range $resources $excludeOption $logOptions $exportFlag"$export" $script)
 	echo ${jobID##* }
 else
 	echo "No known scheduler present!" >&2
