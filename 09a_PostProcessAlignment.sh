@@ -53,19 +53,45 @@ reducedAlignmentFile="$alignmentFile.raxml.reduced.phy"
 # Enter-NixDevShell.sh's own verification (which runs once, at job
 # start) reported the devShell fully activated. Confirmed 2026-08-10 on
 # real RegTCoffee chunks, always in same-node pairs (two array tasks on
-# the same compute node failing identically) - consistent with a stale
-# NFS attribute/directory-cache entry on that specific node for
-# raxml-ng's store path, not a genuinely missing or broken file (a
-# missing directory *entry* can't be told apart from one that's simply
-# not synced yet from inside the same cached view that's hiding it - no
-# stat-based check run on that node can see past it). A 5s retry sleep
-# is very likely shorter than typical NFS acdirmax/acdirmin windows
-# (commonly 30-60s on HPC mounts), so it retried into the same stale
-# window both times. 60s comfortably outlasts that.
+# the same compute node failing identically). A first theory - stale
+# NFS directory-cache entries on that node, needing only a longer wait
+# - was ruled out the same day: bumping this retry's sleep to 60s and
+# re-running the exact same `raxml-ng` command still failed identically
+# (confirmed via the job's own `real` runtime genuinely including the
+# full 60s, not a short-circuited failure). That rules out anything
+# that self-heals with time alone from inside this shell - the retry
+# runs in the very same process/environment as the first attempt, so if
+# raxml-ng's own store path was simply never included when this job's
+# $PATH was originally composed (plausible given the recurring "SQLite
+# database ... is busy" warnings seen elsewhere in these same logs,
+# from nix's own eval-cache under concurrent job launches), no amount
+# of waiting inside that already-built shell can add it after the
+# fact. Only a fresh `nix develop` invocation gives nix a genuine new
+# chance to compose $PATH correctly, so the retry now goes through that
+# instead of just re-running raxml-ng in place - still preceded by the
+# 60s sleep, in case whatever's causing the contention on this node
+# hasn't cleared yet either. Falls back to a plain re-run if nix isn't
+# available at all (same "fallback, never a requirement" stance as
+# Enter-NixDevShell.sh) - can't do better than the original attempt
+# there, but no worse either.
+nixCmd=""
+if command -v nix >/dev/null 2>&1
+then
+	nixCmd="nix"
+elif command -v nix-portable >/dev/null 2>&1
+then
+	nixCmd="nix-portable nix"
+fi
+
 for attempt in 1 2
 do
 	rm -f "$reducedAlignmentFile" "$alignmentFile.raxml.log"
-	raxml-ng --msa "$alignmentFile" --threads $numTreads --model LG+G --check >&2
+	if [ $attempt -eq 1 ] || [ -z "$nixCmd" ]
+	then
+		raxml-ng --msa "$alignmentFile" --threads $numTreads --model LG+G --check >&2
+	else
+		$nixCmd develop "$DIR" --command raxml-ng --msa "$alignmentFile" --threads $numTreads --model LG+G --check >&2
+	fi
 	checkStatus=$?
 	if [ $checkStatus -eq 0 ]
 	then
@@ -73,7 +99,7 @@ do
 	fi
 	if [ $attempt -eq 1 ]
 	then
-		echo "$alignmentFile: raxml-ng --check failed (exit $checkStatus) - retrying once" >&2
+		echo "$alignmentFile: raxml-ng --check failed (exit $checkStatus) - retrying once, via a fresh nix develop" >&2
 		sleep 60
 	fi
 done
