@@ -31,7 +31,15 @@
 # host there means rewriting the -l select=... chunk spec built below,
 # not a separate flag, so --exclude is accepted but warned-about and
 # otherwise ignored on that branch instead of silently doing nothing.
-
+#
+# ExcludedNodes.cfg (next to this script) lists node names to keep
+# every job off automatically, regardless of caller - unlike
+# --exclude/-N above, which only ever covers whichever single
+# invocation happened to pass it, this applies pipeline-wide without
+# threading a new flag through every script in the --continue chain
+# from 13_RestartProcessing.sh down to here. Same idea, same format, as
+# SkippedAligners.cfg. Read once below and merged (comma-joined) with
+# whatever --exclude/-N adds on top - both apply together.
 hold=""
 depend=""
 range=""
@@ -41,6 +49,11 @@ script=""
 resourceName=""
 gene=""
 exclude=""
+excludeFromConfig=""
+if [ -f "./ExcludedNodes.cfg" ]
+then
+	excludeFromConfig=$(grep -v '^#' "./ExcludedNodes.cfg" | grep -v '^[[:space:]]*$' | paste -sd,)
+fi
 
 if [ -x "$(command -v qsub)" ]
 then
@@ -111,11 +124,14 @@ then
 		shift
 	done
 
+	combinedExclude="$exclude"
+	[ -n "$excludeFromConfig" ] && combinedExclude="${combinedExclude:+$combinedExclude,}$excludeFromConfig"
+
 	# See the --exclude/-N header comment above - not implemented for
 	# PBS Pro, since it isn't a separate flag there (it would mean
 	# rewriting the -l select=... chunk spec below). Warn instead of
 	# silently ignoring it, so this doesn't look like it worked.
-	[ -n "$exclude" ] && echo "--exclude/-N ($exclude) is not implemented for PBS Pro - ignoring it, see Scheduler-Sub.sh's own header comment" >&2
+	[ -n "$combinedExclude" ] && echo "--exclude/-N and/or ExcludedNodes.cfg ($combinedExclude) is not implemented for PBS Pro - ignoring it, see Scheduler-Sub.sh's own header comment" >&2
 
 	logDir="../$gene/Logs"
 	mkdir -p "$logDir"
@@ -249,8 +265,10 @@ then
 		[ -n "$partition" ] && resources="$resources --partition=$partition"
 	fi
 
+	combinedExclude="$exclude"
+	[ -n "$excludeFromConfig" ] && combinedExclude="${combinedExclude:+$combinedExclude,}$excludeFromConfig"
 	excludeOption=""
-	[ -n "$exclude" ] && excludeOption="--exclude=$exclude"
+	[ -n "$combinedExclude" ] && excludeOption="--exclude=$combinedExclude"
 
 	# %j is resolved by Slurm itself once the job is queued, so unlike the
 	# PBS branch above, the job ID can go first in the filename here. For
