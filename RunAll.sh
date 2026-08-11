@@ -128,7 +128,16 @@ do
         --ignoreIfMasterFileDoesNotExist)
             ;&
         -M)
-            ignoreIfMasterFileDoesNotExist="-X"
+            # Must forward as -M, not -X: -X already means --masterSuffix
+            # in both 12a_ConvertTreesToFiguresForAllClades.sh and
+            # 12_ConvertTreesToFigures.sh. Forwarding -X here silently
+            # discarded this flag (it got consumed as a bogus
+            # --masterSuffix instead, along with the next token),
+            # corrupting the constructed master alignment directory and
+            # producing "Bad option ... is ignored" - confirmed
+            # 2026-08-11 on Mas1's step 12 log and reproduced locally by
+            # running the real script chain.
+            ignoreIfMasterFileDoesNotExist="-M"
             ;;
         --overwrite)
             ;&
