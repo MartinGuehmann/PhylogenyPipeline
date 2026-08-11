@@ -197,7 +197,30 @@ oldSuffix=$suffix
 suffix="-x BigTree0"
 # Make the big tree with the main aligner
 allSeqs="--allSeqs"
-resumeIteration=$("$DIR/../GetResumeIteration.sh" -g "$gene" -a "$aligner" -x "BigTree0" -m 0)
+
+# Normally this call only ever submits a single round (numRoundsLeft
+# hardcoded to 0 below) - BigTree0 gets its real bigNumRoundsLeft
+# refinement later, from Scheduler-11-RemoveMoreRougues.sh's own
+# bigTreeIteration check once the *regular small-scale loop* reaches
+# iteration $bigTreeIteration (matched by suffix, "BigTree$iteration").
+# That mechanism can't fire at all if bigTreeIteration is "0" and the
+# regular loop is skipped entirely (numRoundsLeft="0", further below) -
+# confirmed 2026-08-11 on PRRs, which wants only BigTree0, no regular
+# loop at all. Have this call carry the continuation itself in that one
+# case, checking/resuming across the full bigNumRoundsLeft range
+# instead of just iteration 0. For any other bigTreeIteration value,
+# leave this as the one-shot early snapshot it's always been -
+# continuation still comes from the regular loop reaching that
+# iteration later.
+bigTreeNumRounds="$numRoundsLeftZero"
+bigTreeMaxCheck="0"
+if [ "$bigTreeIteration" == "0" ]
+then
+	bigTreeNumRounds="$bigNumRoundsLeft"
+	bigTreeMaxCheck="$bigNumRoundsLeft"
+fi
+
+resumeIteration=$("$DIR/../GetResumeIteration.sh" -g "$gene" -a "$aligner" -x "BigTree0" -m "$bigTreeMaxCheck")
 resumeStatus=$?
 if [ $resumeStatus -ne 0 ]
 then
@@ -205,7 +228,12 @@ then
 	hadError="true"
 elif [ -n "$resumeIteration" ]
 then
-	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+	remainingBigTreeRounds="$bigTreeNumRounds"
+	if [ "$bigTreeIteration" == "0" ]
+	then
+		remainingBigTreeRounds=$((bigTreeNumRounds - resumeIteration))
+	fi
+	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$remainingBigTreeRounds, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
 	    "$DIR/Scheduler-09-RogueOptAlign.sh"
 else
 	echo "$aligner.BigTree0 already has a completed round - skipping" >&2
