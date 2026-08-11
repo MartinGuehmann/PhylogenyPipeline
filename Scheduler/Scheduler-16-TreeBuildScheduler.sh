@@ -166,6 +166,23 @@ hadError=""
 # aligner off pipeline-wide (e.g. one that isn't panning out) without
 # touching its own 09_Scheduler-AlignWith<Name>.sh or anything that
 # calls it, so turning it back on later is just deleting a line there.
+#
+# Uses a single regular (non-allSeqs) round by default, matching the
+# main aligner's own regular loop it's meant to compare against. When
+# bigTreeIteration=="0" the main aligner isn't doing a regular loop at
+# all (BigTree0-only, see above/below) - a regular-mode comparison
+# round wouldn't be comparing against anything real then, so use a
+# single BigTree0 round instead, matching what the main aligner
+# actually builds. Confirmed 2026-08-11 on PRRs.
+otherAlignerAllSeqs="$allSeqs"
+otherAlignerSuffix="$suffix"
+otherAlignerResumeSuffixArg=""
+if [ "$bigTreeIteration" == "0" ]
+then
+	otherAlignerAllSeqs="--allSeqs"
+	otherAlignerSuffix="-x BigTree0"
+	otherAlignerResumeSuffixArg="-x BigTree0"
+fi
 for alignerScript in "$DIR/09_Scheduler-AlignWith"*".sh"*
 do
 	if [[ $alignerScript =~ 09_Scheduler-AlignWith(.*)\.sh ]]
@@ -176,7 +193,7 @@ do
 			echo "$usedAligner is listed in SkippedAligners.cfg - not submitting" >&2
 		elif [[ $usedAligner != $aligner ]]
 		then
-			resumeIteration=$("$DIR/../GetResumeIteration.sh" -g "$gene" -a "$usedAligner" -m 0)
+			resumeIteration=$("$DIR/../GetResumeIteration.sh" -g "$gene" -a "$usedAligner" $otherAlignerResumeSuffixArg -m 0)
 			resumeStatus=$?
 			if [ $resumeStatus -ne 0 ]
 			then
@@ -184,7 +201,7 @@ do
 				hadError="true"
 			elif [ -n "$resumeIteration" ]
 			then
-				"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$usedAligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+				"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$usedAligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$otherAlignerAllSeqs, suffix=$otherAlignerSuffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
 				    "$DIR/Scheduler-09-RogueOptAlign.sh"
 			else
 				echo "$usedAligner already has a completed round - skipping" >&2
