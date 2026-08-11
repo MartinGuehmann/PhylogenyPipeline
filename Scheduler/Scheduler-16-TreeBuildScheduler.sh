@@ -247,19 +247,32 @@ previousAligner=""
 # incomplete round, with numRoundsLeft reduced by however many rounds
 # are already done, instead of always restarting at iteration 0 with the
 # full original count.
-resumeIteration=$("$DIR/../GetResumeIteration.sh" -g "$gene" -a "$aligner" -m "$numRoundsLeft")
-resumeStatus=$?
-if [ $resumeStatus -ne 0 ]
+#
+# numRoundsLeft="0" means skip this loop entirely, not "run round 0 and
+# then stop" - GetResumeIteration.sh -m 0 checks iteration 0 alone and,
+# since it isn't done yet, prints "0" (a non-empty string meaning
+# "iteration 0 still needs doing"), which used to submit round 0
+# regardless of numRoundsLeft. Confirmed 2026-08-11 needed for a gene
+# family small enough that only the BigTree0 branch above is wanted at
+# all, with no separate small-scale split-chunk loop alongside it.
+if [ "$numRoundsLeft" == "0" ]
 then
-	echo "GetResumeIteration.sh failed (exit $resumeStatus) for $aligner's regular loop - not submitting" >&2
-	hadError="true"
-elif [ -n "$resumeIteration" ]
-then
-	remainingRounds=$((numRoundsLeft - resumeIteration))
-	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$remainingRounds, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" \
-	    "$DIR/Scheduler-09-RogueOptAlign.sh"
+	echo "numRoundsLeft is 0 - skipping $aligner's regular (small-scale) round loop entirely" >&2
 else
-	echo "$aligner's regular loop already completed all $numRoundsLeft rounds - skipping" >&2
+	resumeIteration=$("$DIR/../GetResumeIteration.sh" -g "$gene" -a "$aligner" -m "$numRoundsLeft")
+	resumeStatus=$?
+	if [ $resumeStatus -ne 0 ]
+	then
+		echo "GetResumeIteration.sh failed (exit $resumeStatus) for $aligner's regular loop - not submitting" >&2
+		hadError="true"
+	elif [ -n "$resumeIteration" ]
+	then
+		remainingRounds=$((numRoundsLeft - resumeIteration))
+		"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$remainingRounds, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" \
+		    "$DIR/Scheduler-09-RogueOptAlign.sh"
+	else
+		echo "$aligner's regular loop already completed all $numRoundsLeft rounds - skipping" >&2
+	fi
 fi
 
 if [ -z "$trimAl" ]
