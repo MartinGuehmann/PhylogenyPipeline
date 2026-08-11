@@ -331,6 +331,18 @@ else
 	trimAl=""
 fi
 
+# Same reasoning as the other-aligner comparison loop above: when
+# bigTreeIteration=="0" the main aligner isn't running a regular loop
+# at all (BigTree0-only), so this trimAl/noTrimAl comparison round
+# should also be BigTree0-scale to actually be comparing against
+# something real, rather than a regular-mode round that no longer
+# exists for this gene family. Confirmed on PRRs.
+if [ "$bigTreeIteration" == "0" ]
+then
+	allSeqs="--allSeqs"
+	suffix="-x BigTree0.${suffix#-x }"
+fi
+
 # Make an iteration for the main aligner, with switched pruning settings
 resumeIteration=$("$DIR/../GetResumeIteration.sh" -g "$gene" -a "$aligner" -x "${suffix#-x }" -m 0)
 resumeStatus=$?
