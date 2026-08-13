@@ -47,6 +47,20 @@ then
 	# Something went wrong while aligning
 	# but PASTA does not overwrite the old files if they exist
 	# so delete them manually
+	#
+	# Confirmed 2026-08-13: "does not overwrite" means run_pasta.py
+	# silently renames its own job internally (e.g. "part_005" ->
+	# "part_0051") whenever it finds any pre-existing file under the
+	# current job name - including leftover _temp_iteration_* files
+	# from a run that was killed mid-way (e.g. hit its walltime)
+	# rather than genuinely failing. It does not inspect or resume
+	# from them. Tried leaving those checkpoint files in place for
+	# exactly that reason (real, hours of PASTA progress otherwise
+	# discarded for nothing) - confirmed on a real PeptideReceptors
+	# chunk that PASTA just renames around them instead, which then
+	# breaks this script's own $outFile (it stays pointed at the old
+	# name while PASTA writes results under the new one). So the
+	# blanket wipe here is required, not just defensive.
 	rm $alignmentDir/${base}*
 fi
 
