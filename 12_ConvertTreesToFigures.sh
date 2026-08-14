@@ -190,6 +190,23 @@ then
 	masterAligner="$aligner"
 fi
 
+# Unlike masterAligner above, this has no equivalent fallback anywhere
+# upstream (RunAll.sh, 12a_ConvertTreesToFiguresForAllClades.sh,
+# Scheduler-Call.sh all just forward whatever masterSuffix they were
+# given, verbatim) - so it stayed genuinely empty for any caller that
+# sets --suffix but never separately passes --masterSuffix too, e.g.
+# Scheduler-16-TreeBuildScheduler.sh's comparison-aligner loop (sets
+# suffix="-x BigTree0" for every non-primary aligner, never -X).
+# Confirmed 2026-08-13 on PRRs: this made the master-tree lookup for a
+# BigTree0 comparison aligner (SUPER5) fall back to the plain,
+# unsuffixed alignment directory, which never existed - the tree only
+# ever got built under the .BigTree0 suffix, since that's the only
+# directory that comparison run actually used.
+if [[ -z "$masterSuffix" ]]
+then
+	masterSuffix="$suffix"
+fi
+
 # Get the names of the input files, first for the master tree
 
 # Use the input directory if supplied
