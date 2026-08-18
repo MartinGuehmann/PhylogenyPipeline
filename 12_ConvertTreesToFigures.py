@@ -494,11 +494,23 @@ def makeSeqLogo(tree, clades, refSeqConfigData, logoOutFileBase):
 	logoFigure.savefig(logoOutFileBase + ".logoSingle.svg", format='svg')
 
 ###############################################################################
+def iqTreeSanitizedName(name):
+	# IQ-Tree replaces '+' with '_' when writing tip names into its
+	# .treefile, but raxml-ng's own alignment output (the "master
+	# alignment" read into AlignmentData) keeps the original '+' -
+	# raxml-ng's disallowed-character list doesn't include it, so the
+	# pipeline's own upstream ID sanitization (09a_PostProcessAlignment.sh)
+	# deliberately leaves '+' untouched too. Mirror IQ-Tree's substitution
+	# here so tree-leaf names (already sanitized) still match master
+	# alignment records looked up by id, instead of silently missing them.
+	return name.replace('+', '_')
+
+###############################################################################
 def sortMasterAlignment(tree, alignmentData, sortedAlignmentFile):
 
 	sequenceMap = {}
 	for record in alignmentData.masterAlignment:
-		sequenceMap[record.id] = record
+		sequenceMap[iqTreeSanitizedName(record.id)] = record
 
 	with open(sortedAlignmentFile, "w") as outFile:
 		for leaf in tree.iter_leaves():
@@ -515,7 +527,7 @@ def determineSpecialAminoAcidsAtPos(tree, refSeqConfigData):
 
 	sequenceMap = {}
 	for record in refSeqConfigData.alignmentData.masterAlignment:
-		sequenceMap[record.id] = record
+		sequenceMap[iqTreeSanitizedName(record.id)] = record
 
 	for leaf in tree.iter_leaves():
 		if leaf.name in sequenceMap:
