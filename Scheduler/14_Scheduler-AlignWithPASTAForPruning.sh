@@ -4,6 +4,7 @@
 # No modules to be loaded
 
 source "$DIR/Enter-NixDevShell.sh"
+source "$DIR/Check-InputFile.sh"
 thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
 if [ -z "$gene" ]
@@ -14,6 +15,7 @@ then
 fi
 
 seqsToAlign=$(cut -d " " -f $("$DIR/Scheduler-GetArrayIndex.sh") $seqFiles)
+checkInputFile "$seqsToAlign"
 
 date >&2
 time "$DIR/../RunAll.sh" -g "$gene" -s "14" -i "$iteration" -a "PASTA" -f "$seqsToAlign" $suffix $previousAligner $trimAl

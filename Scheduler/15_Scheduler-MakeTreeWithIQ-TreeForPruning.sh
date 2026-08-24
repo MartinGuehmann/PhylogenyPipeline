@@ -2,6 +2,7 @@
 
 # Resources for this job (cpus, mem, walltime) are set in Scheduler/Resources.cfg.
 source "$DIR/Enter-NixDevShell.sh"
+source "$DIR/Check-InputFile.sh"
 source "$DIR/Load-Module.sh"
 load_module MODULE_IQTREE
 
@@ -15,6 +16,7 @@ then
 fi
 
 alignmentToUse=$(cut -d " " -f $("$DIR/Scheduler-GetArrayIndex.sh") $alignmentFiles)
+checkInputFile "$alignmentToUse"
 
 date >&2
 time "$DIR/../RunAll.sh" -g "$gene" -s "15" -f "$alignmentToUse"

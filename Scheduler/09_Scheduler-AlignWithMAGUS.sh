@@ -2,6 +2,7 @@
 
 # Resources for this job (cpus, mem, walltime) are set in Scheduler/Resources.cfg.
 source "$DIR/Enter-NixDevShell.sh"
+source "$DIR/Check-InputFile.sh"
 source "$DIR/Load-Module.sh"
 load_module MODULE_PYTHON_MAGUS
 # You also need to install dendropy
@@ -21,6 +22,7 @@ if [ ! -z $seqFiles ]
 then
 	seqsToAlign=$(cut -d " " -f $("$DIR/Scheduler-GetArrayIndex.sh") $seqFiles)
 fi
+checkInputFile "$seqsToAlign"
 
 date >&2
 time "$DIR/../RunAll.sh" -g "$gene" -s "9" -i "$iteration" -a "MAGUS" -f "$seqsToAlign" $suffix $previousAligner $trimAl
