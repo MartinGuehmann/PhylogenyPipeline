@@ -252,6 +252,16 @@ do
 	fi
 done
 
+# An empty label list (missing newick_utils tools, bad RerootLeaves/
+# LeavesOfSubTreeToKeep, empty tree files, ...) is never a legitimate
+# result and must not be treated as "0 sequences of interest", since
+# downstream code interprets it as "everything is an outgroup" instead.
+if [ ! -s "$treeLabels" ]
+then
+	echo "$thisScript: no sequence labels were extracted from any tree in $TreesForPruningFromPASTADir - refusing to continue with an empty selection" >&2
+	exit 1
+fi
+
 if [[ ! -z $justCount ]]
 then
 	if [[ ! -z $threshold ]]
