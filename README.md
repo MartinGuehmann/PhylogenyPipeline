@@ -22,6 +22,16 @@ The pipeline requires to run:
 	- TreeShrink (user path) with Python 2.7 (module load)
 	- newick_utils: nw_reroot, nw_clade, nw_labels (user path)
 
+Steps 5-7 build a tree via CLANS clustering and neighbor-joining
+(rapidNJ) - an abandoned, experimental alternative to the main
+alignment/tree-building pipeline (steps 9+). Only needed if you run
+those steps specifically (all base folder):
+
+	- ClansTools (private git repo, distinct from the public CLANS-Tools
+	  Python repo)
+	- CLANS (https://github.com/proteinevolution/clans)
+	- rapidNJ
+
 Steps 0 and 3 query NCBI remotely (BLAST and efetch). This needs a
 machine with a genuinely working round trip to NCBI - not just "a
 machine with internet access" via some proxy. See "Remote NCBI access"
