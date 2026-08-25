@@ -27,8 +27,8 @@ Steps 5-7 build a tree via CLANS clustering and neighbor-joining
 alignment/tree-building pipeline (steps 9+). Only needed if you run
 those steps specifically (all base folder):
 
-	- ClansTools (private git repo, distinct from the public CLANS-Tools
-	  Python repo)
+	- ClansTools (https://github.com/MartinGuehmann/ClansTools, distinct
+	  from the public CLANS-Tools Python repo)
 	- CLANS (https://github.com/proteinevolution/clans)
 	- rapidNJ
 
