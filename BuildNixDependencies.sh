@@ -74,6 +74,7 @@ fi
 declare -a packages=(
 	raxml-ng
 	roguenarok
+	newick-utils
 	famsa
 	treeshrink
 	magus

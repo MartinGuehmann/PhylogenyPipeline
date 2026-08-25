@@ -232,11 +232,11 @@ do
 	# Remove the single quotation marks
 	sed -e "s/'//g" | \
 	# And reroot the tree
-	"$DIR/../newick_utils/src/nw_reroot" - $RerootLeaves | \
+	nw_reroot - $RerootLeaves | \
 	# Extract the clade with the proteins of interest
-	"$DIR/../newick_utils/src/nw_clade" - $LeavesOfSubTreeToKeep | \
+	nw_clade - $LeavesOfSubTreeToKeep | \
 	# And then extract all the lables
-	"$DIR/../newick_utils/src/nw_labels" -I - >> $treeLabels
+	nw_labels -I - >> $treeLabels
 
 	count=$accCount
 	accCount=$(wc -l "$treeLabels" | sed 's\ .*$\\g')

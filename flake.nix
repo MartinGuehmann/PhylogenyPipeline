@@ -88,6 +88,50 @@
             '';
           };
 
+          # Used by 16_ExtractSequencesOfInterest.sh (nw_reroot, nw_clade,
+          # nw_labels) to extract the clade of interest from each pruning
+          # tree. No tagged release exists in this repo - GitHub's tags/
+          # releases API both return empty lists (confirmed 2026-08-25) -
+          # so this pins the same commit bioconda's own recipe
+          # (recipes/newick_utils) builds against instead of a version tag.
+          newick-utils = pkgs.stdenv.mkDerivation rec {
+            pname = "newick-utils";
+            version = "1.6"; # bioconda's version number for this commit
+            src = pkgs.fetchFromGitHub {
+              owner = "tjunier";
+              repo = "newick_utils";
+              rev = "da121155a977197cab9fbb15953ca1b40b11eb87"; # tip of master as of 2016-04-13, bioconda's own pin
+              hash = "sha256-y/aLjKCS9ZPriclUBEII10TA8BNr1QxuP47XgHMQfMI=";
+            };
+            nativeBuildInputs = [ pkgs.autoreconfHook pkgs.bison pkgs.flex ];
+            buildInputs = [ pkgs.libxml2 ];
+            # -fcommon: same -fno-common/gcc-10-default-change issue as
+            # roguenarok below - this is 2016-era C relying on
+            # tentative-definition merging across translation units,
+            # matching bioconda's own build.sh, which sets the same flag
+            # for the same reason.
+            # -std=gnu17: same K&R-empty-parens/gcc-14-default-change
+            # issue as t-coffee's set_nproc() elsewhere in this file -
+            # display.c calls destroy_all_rnodes(node_destroyer) against
+            # rnode.h's `void destroy_all_rnodes();` (old-style
+            # unspecified-arguments declaration, not "()" meaning zero
+            # arguments), which only C23's stricter semantics (GCC 14's
+            # new gnu23 default) rejects as "too many arguments" -
+            # confirmed 2026-08-25.
+            env.NIX_CFLAGS_COMPILE = "-fcommon -std=gnu17";
+            # This 2016-era code passes non-literal format strings to
+            # fprintf() in several places (e.g. fprintf(stderr, USAGE) in
+            # prune.c) - always with a fixed, hardcoded string behind
+            # them, never anything attacker-controlled, but nixpkgs'
+            # default hardening turns -Wformat-security into a hard
+            # -Werror on those - confirmed 2026-08-25.
+            hardeningDisable = [ "format" ];
+            # Matches bioconda's build.sh exactly.
+            configureFlags = [ "--without-guile" "--without-lua" "--with-libxml" ];
+            # Provides nw_reroot, nw_clade, nw_labels, and the rest of the
+            # nw_* suite directly on PATH - no repo-relative path needed.
+          };
+
           famsa = pkgs.stdenv.mkDerivation rec {
             pname = "famsa";
             version = "2.5.2"; # github.com/refresh-bio/FAMSA, tag v2.5.2
@@ -996,9 +1040,9 @@
         in
         {
           packages = {
-            inherit raxml-ng roguenarok famsa treeshrink magus entrez-direct
-              t-coffee clustalw fasttree prank muscle3 muscle5 iqtree2 pasta
-              ete3 pythonWithEte3 blast2_9;
+            inherit raxml-ng roguenarok newick-utils famsa treeshrink magus
+              entrez-direct t-coffee clustalw fasttree prank muscle3 muscle5
+              iqtree2 pasta ete3 pythonWithEte3 blast2_9;
           };
           devShell = pkgs.mkShell {
             # Enter with `nix develop` (or `nix-portable nix develop` if
@@ -1030,6 +1074,7 @@
             ]) ++ [
               raxml-ng
               roguenarok
+              newick-utils
               famsa
               treeshrink
               magus

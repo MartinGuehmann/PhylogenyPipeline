@@ -68,8 +68,8 @@ do
 	done < $seqFile
 done
 
-"$DIR/../newick_utils/src/nw_clade" "$TreeForPruning" $LeavesOfSubTreeToKeep > $TreeWithSequencesOfInterest
-"$DIR/../newick_utils/src/nw_labels" $TreeWithSequencesOfInterest > $treeLabels
+nw_clade "$TreeForPruning" $LeavesOfSubTreeToKeep > $TreeWithSequencesOfInterest
+nw_labels $TreeWithSequencesOfInterest > $treeLabels
 
 sed -i "s/'//g" $treeLabels
 sed -i "s/\(^.*|.*|[^_]*_[^_]*\).*$/\1/g" $treeLabels
