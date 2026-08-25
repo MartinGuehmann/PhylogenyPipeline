@@ -30,7 +30,7 @@ those steps specifically (all base folder):
 	- ClansTools (https://github.com/MartinGuehmann/ClansTools, distinct
 	  from the public CLANS-Tools Python repo)
 	- CLANS (https://github.com/proteinevolution/clans)
-	- rapidNJ
+	- rapidNJ (https://github.com/somme89/rapidNJ)
 
 Steps 0 and 3 query NCBI remotely (BLAST and efetch). This needs a
 machine with a genuinely working round trip to NCBI - not just "a
