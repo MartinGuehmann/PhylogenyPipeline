@@ -17,7 +17,7 @@ The pipeline requires to run:
 	- cd-hit (user path)
 	- efetch (user path)
 	- blastp (module load)
-	- TrimAl (base folder)
+	- TrimAl (user path)
 	- RogueNaRok-parallel (user path)
 	- TreeShrink (user path) with Python 2.7 (module load)
 	- newick_utils: nw_reroot, nw_clade, nw_labels (user path)
