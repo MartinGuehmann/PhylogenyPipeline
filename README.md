@@ -20,6 +20,7 @@ The pipeline requires to run:
 	- TrimAl (base folder)
 	- RogueNaRok-parallel (user path)
 	- TreeShrink (user path) with Python 2.7 (module load)
+	- newick_utils: nw_reroot, nw_clade, nw_labels (user path)
 
 Steps 0 and 3 query NCBI remotely (BLAST and efetch). This needs a
 machine with a genuinely working round trip to NCBI - not just "a
@@ -126,9 +127,10 @@ scripts actually call, not assumed from each tool's usual name:
   if you need to fall back to it.
 
 The shell also builds raxml-ng, RogueNaRok-parallel (plus its rnr-prune/
-rnr-lsi/rnr-tii/rnr-mast helpers), FAMSA, TreeShrink, and MAGUS straight
-from source (nixpkgs' own `raxml` package is the older, classic RAxML,
-not raxml-ng - do not substitute it), since none of those are packaged
+rnr-lsi/rnr-tii/rnr-mast helpers), FAMSA, TreeShrink, MAGUS, and
+newick_utils (nw_reroot/nw_clade/nw_labels/etc.) straight from source
+(nixpkgs' own `raxml` package is the older, classic RAxML, not
+raxml-ng - do not substitute it), since none of those are packaged
 in nixpkgs either. These have since been build-tested successfully
 (`./BuildNixDependencies.sh` builds every derivation in the flake and
 reports OK for all of them), so the `fakeHash` placeholders described in
@@ -226,15 +228,23 @@ importable package and merged into its own `python3` via
 `pkgs.python3.withPackages`, and it's *that* interpreter (not a bare
 `ete3` command) that the devShell puts on PATH as `python3`.
 
-FAMSA, RogueNaRok, and MAGUS needed a different kind of fix: the pipeline
-called them via hardcoded sibling-directory paths
+FAMSA, RogueNaRok, MAGUS, and newick_utils needed a different kind of
+fix: the pipeline called them via hardcoded sibling-directory paths
 (`$DIR/../FAMSA/famsa`, `$DIR/../RogueNaRok/RogueNaRok-parallel`,
-`python3 $DIR/../MAGUS/magus.py`) rather than a PATH lookup, so the
-devShell's versions were never reached no matter what was on PATH.
-`09_AlignWithFAMSA.sh`, `11_RemoveRogues.sh`, and `09_AlignWithMAGUS.sh`
-now call `famsa`, `RogueNaRok-parallel`, and `magus` directly instead,
-so they resolve through the Nix devShell (or `module load`/base-folder
-installs, if you're not using the flake).
+`python3 $DIR/../MAGUS/magus.py`, `$DIR/../newick_utils/src/nw_reroot`)
+rather than a PATH lookup, so the devShell's versions were never reached
+no matter what was on PATH. `09_AlignWithFAMSA.sh`, `11_RemoveRogues.sh`,
+`09_AlignWithMAGUS.sh`, and `08_/16_ExtractSequencesOfInterest.sh` now
+call `famsa`, `RogueNaRok-parallel`, `magus`, and `nw_reroot`/`nw_clade`/
+`nw_labels` directly instead, so they resolve through the Nix devShell
+(or `module load`/base-folder installs, if you're not using the flake).
+The newick_utils case went undetected the longest of the four: with no
+tagged release upstream to notice going stale, the sibling checkout was
+simply never rebuilt after a cluster migration, and the missing-binary
+errors from `nw_reroot`/`nw_clade`/`nw_labels` didn't fail the job -
+`16_ExtractSequencesOfInterest.sh` now also refuses to continue if no
+sequence labels get extracted at all, instead of silently writing a
+random subsample as if it were the clade of interest.
 
 ## Gene Data Repositories
 
