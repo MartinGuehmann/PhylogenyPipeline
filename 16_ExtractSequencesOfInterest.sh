@@ -202,10 +202,15 @@ echo $LeavesOfSubTreeToKeep | sed "s/ /\n/g"> "$TreesForPruningFromPASTADir/Leav
 
 numTreads=$(nproc)
 
+# Saved to a file, not just echoed to stderr, so it's still there to
+# check after the fact even if the job's own log can't be found (or
+# never gets kept) - confirmed 2026-08-25 this can genuinely happen.
+countsFile="$TreesForPruningFromPASTADir/ExtractionCounts.txt"
+
 echo "Counts should be in the same order of magnitude across files" >&2
 echo "otherwise check the trees with LeavesToKeep.txt in Dendroscope." >&2
 echo "Move those sequences that do not belong to the target clade from BaitSequences to AdditionalBaitSequences" >&2
-echo "SeqenceFile" "AccumulativeCount" "Count" >&2
+echo "SeqenceFile" "AccumulativeCount" "Count" | tee "$countsFile" >&2
 
 accCount=0
 
@@ -241,7 +246,7 @@ do
 	count=$accCount
 	accCount=$(wc -l "$treeLabels" | sed 's\ .*$\\g')
 	count=$((accCount - count))
-	echo $TreeForPruning $accCount $count  >&2
+	echo $TreeForPruning $accCount $count | tee -a "$countsFile" >&2
 
 	if [[ ! -z $threshold ]]
 	then
