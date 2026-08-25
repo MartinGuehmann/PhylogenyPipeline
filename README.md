@@ -228,23 +228,11 @@ importable package and merged into its own `python3` via
 `pkgs.python3.withPackages`, and it's *that* interpreter (not a bare
 `ete3` command) that the devShell puts on PATH as `python3`.
 
-FAMSA, RogueNaRok, MAGUS, and newick_utils needed a different kind of
-fix: the pipeline called them via hardcoded sibling-directory paths
-(`$DIR/../FAMSA/famsa`, `$DIR/../RogueNaRok/RogueNaRok-parallel`,
-`python3 $DIR/../MAGUS/magus.py`, `$DIR/../newick_utils/src/nw_reroot`)
-rather than a PATH lookup, so the devShell's versions were never reached
-no matter what was on PATH. `09_AlignWithFAMSA.sh`, `11_RemoveRogues.sh`,
-`09_AlignWithMAGUS.sh`, and `08_/16_ExtractSequencesOfInterest.sh` now
-call `famsa`, `RogueNaRok-parallel`, `magus`, and `nw_reroot`/`nw_clade`/
-`nw_labels` directly instead, so they resolve through the Nix devShell
-(or `module load`/base-folder installs, if you're not using the flake).
-The newick_utils case went undetected the longest of the four: with no
-tagged release upstream to notice going stale, the sibling checkout was
-simply never rebuilt after a cluster migration, and the missing-binary
-errors from `nw_reroot`/`nw_clade`/`nw_labels` didn't fail the job -
-`16_ExtractSequencesOfInterest.sh` now also refuses to continue if no
-sequence labels get extracted at all, instead of silently writing a
-random subsample as if it were the clade of interest.
+`09_AlignWithFAMSA.sh`, `11_RemoveRogues.sh`, `09_AlignWithMAGUS.sh`, and
+`08_/16_ExtractSequencesOfInterest.sh` call `famsa`, `RogueNaRok-parallel`,
+`magus`, and `nw_reroot`/`nw_clade`/`nw_labels` by bare command name, so
+they resolve through the Nix devShell (or `module load`/base-folder
+installs, if you're not using the flake).
 
 ## Gene Data Repositories
 
