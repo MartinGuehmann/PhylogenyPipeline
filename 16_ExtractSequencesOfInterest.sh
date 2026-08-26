@@ -205,7 +205,7 @@ numTreads=$(nproc)
 # Saved to a file, not just echoed to stderr, so it's still there to
 # check after the fact even if the job's own log can't be found (or
 # never gets kept) - confirmed 2026-08-25 this can genuinely happen.
-countsFile="$TreesForPruningFromPASTADir/ExtractionCounts.txt"
+countsFile="$SequencesOfInterestDir/ExtractionCounts.txt"
 
 echo "Counts should be in the same order of magnitude across files" >&2
 echo "otherwise check the trees with LeavesToKeep.txt in Dendroscope." >&2
