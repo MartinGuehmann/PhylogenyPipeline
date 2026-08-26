@@ -83,5 +83,16 @@ then
 	numSeqChunks="1"
 fi
 
+# seqkit split2 below only writes part_001..part_$numSeqChunks - it never
+# clears $outputDir first. A rerun that produces fewer chunks than a
+# previous run (e.g. after trimming a bait set) would otherwise leave
+# higher-numbered part files from the old, larger run behind, silently
+# stale but indistinguishable from current ones to anything that globs
+# for them downstream. Remove this run's own previous part files first.
+shuffledBase=$(basename "$shuffledSequences")
+shuffledExt="${shuffledBase##*.}"
+shuffledBase="${shuffledBase%.*}"
+rm -f "$outputDir/$shuffledBase.part_"*".$shuffledExt"
+
 # Warns that output directory is not empty, but it is supposed to be non-empty
 seqkit split2 -j $numTreads -p $numSeqChunks -O $outputDir $shuffledSequences
