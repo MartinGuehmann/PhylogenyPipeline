@@ -238,16 +238,40 @@ do
 	# for the command line
 	seqkit seq -j $numTreads -n -i "$origSeqFile" | sed "s|\(^.*$\)|s/\1\[^:]\*/\1/g|g" > "$sedScript"
 
-	# Shorten the long labels to IDs only
-	sed -f $sedScript "$TreeForPruning" | \
-	# Remove the single quotation marks
-	sed -e "s/'//g" | \
-	# And reroot the tree
-	nw_reroot - $RerootLeaves | \
-	# Extract the clade with the proteins of interest
-	nw_clade - $LeavesOfSubTreeToKeep | \
-	# And then extract all the lables
-	nw_labels -I - >> $treeLabels
+	# Shorten the long labels to IDs only and remove the single quotation marks
+	relabeledTree=$(sed -f $sedScript "$TreeForPruning" | sed -e "s/'//g")
+
+	# nw_reroot fails ("Outgroup's LCA is tree's root") whenever the reroot
+	# leaves happen to fall into every one of this tree's top-level
+	# branches at once - IQ-Tree writes .contree/.treefile as an unrooted
+	# tree, represented as a trifurcation (3 children) at the top level, so
+	# with 3 independent reroot leaves this isn't even rare. Confirmed
+	# 2026-08-27 on PeptideReceptors part_025/part_094: nw_reroot printed
+	# that error to stderr, exited 0, and wrote nothing to stdout - which
+	# nothing downstream checked for, silently turning into 0 extracted
+	# sequences for those two chunks. Any *single* one of the reroot
+	# leaves reroots the same tree successfully and gives an identical
+	# clade result (verified directly on part_025), so retry with each
+	# reroot leaf alone before giving up on rerooting altogether.
+	rerootedTree=$(echo "$relabeledTree" | nw_reroot - $RerootLeaves 2>/dev/null)
+
+	if [[ -z "$rerootedTree" ]]
+	then
+		for rerootLeaf in $RerootLeaves
+		do
+			rerootedTree=$(echo "$relabeledTree" | nw_reroot - "$rerootLeaf" 2>/dev/null)
+			[[ -n "$rerootedTree" ]] && break
+		done
+	fi
+
+	if [[ -z "$rerootedTree" ]]
+	then
+		echo "$thisScript: could not reroot $TreeForPruning on any of: $RerootLeaves - extracting from it unrerooted" >&2
+		rerootedTree="$relabeledTree"
+	fi
+
+	# Extract the clade with the proteins of interest, then all its labels
+	echo "$rerootedTree" | nw_clade - $LeavesOfSubTreeToKeep | nw_labels -I - >> $treeLabels
 
 	count=$accCount
 	accCount=$(wc -l "$treeLabels" | sed 's\ .*$\\g')
