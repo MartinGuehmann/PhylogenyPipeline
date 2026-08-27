@@ -122,6 +122,12 @@ fi
 SequencesOfInterestDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene")
 mkdir -p $SequencesOfInterestDir
 
+# LeavesToKeep.txt and ExtractionCounts.txt below are produced once per
+# gene by this extraction step, not per RogueIter round - they belong in
+# the gene's SequencesOfInterest folder itself, not in the RogueIter_0
+# subfolder SequencesOfInterestDir resolves to.
+SequencesOfInterestBaseDir="$DIR/$gene/SequencesOfInterest"
+
 treeLabels="$SequencesOfInterestDir/LabelsOfInterest.txt"
 rm -f $treeLabels
 
@@ -193,19 +199,19 @@ do
 done
 
 # Save the leave labels of the leaves for subclade extraction, so that they can be used for debugging
-echo $LeavesOfSubTreeToKeep > "$TreesForPruningFromPASTADir/LeavesToKeep.txt"
+echo $LeavesOfSubTreeToKeep > "$SequencesOfInterestBaseDir/LeavesToKeep.txt"
 
 # Save this for trouble shooting
 # Use this file Dendroscope to see that the selected sequences form a monophyletic clade
 # If not than move the outliers from BaitSequences to AdditionalBaitSequences
-echo $LeavesOfSubTreeToKeep | sed "s/ /\n/g"> "$TreesForPruningFromPASTADir/LeavesToKeep.txt"
+echo $LeavesOfSubTreeToKeep | sed "s/ /\n/g"> "$SequencesOfInterestBaseDir/LeavesToKeep.txt"
 
 numTreads=$(nproc)
 
 # Saved to a file, not just echoed to stderr, so it's still there to
 # check after the fact even if the job's own log can't be found (or
 # never gets kept) - confirmed 2026-08-25 this can genuinely happen.
-countsFile="$SequencesOfInterestDir/ExtractionCounts.txt"
+countsFile="$SequencesOfInterestBaseDir/ExtractionCounts.txt"
 
 echo "Counts should be in the same order of magnitude across files" >&2
 echo "otherwise check the trees with LeavesToKeep.txt in Dendroscope." >&2
