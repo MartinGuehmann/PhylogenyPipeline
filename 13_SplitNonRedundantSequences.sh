@@ -87,6 +87,7 @@ BaitDir="$DIR/$gene/BaitSequences/"
 AdditionalBaitDir="$DIR/$gene/AdditionalBaitSequences/"
 OutgroupDir="$DIR/$gene/OutgroupSequences/"
 RerootSequences="$DIR/$gene/RerootSequences/"
+AnchorDir="$DIR/$gene/AnchorSequences/"
 
 declare -a seqFiles=( $BaitDir*.fasta )
 
@@ -103,6 +104,17 @@ fi
 if [ -d $RerootSequences ]
 then
 	seqFiles+=($RerootSequences*.fasta)
+fi
+
+# Known, unambiguously distant reference GPCRs (see AnchorSequences/
+# README.md) - not part of the bait/reroot/outgroup logic, added purely
+# so every chunk's tree has enough stable context to correctly place the
+# target clade's boundary. Confirmed 2026-08-27 that without them, chunk
+# trees are bimodally unstable (about half sweep unrelated GPCR branches
+# into the extracted clade).
+if [ -d $AnchorDir ]
+then
+	seqFiles+=($AnchorDir*.fasta)
 fi
 
 numTreads=$(nproc)

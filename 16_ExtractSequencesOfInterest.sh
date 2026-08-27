@@ -198,6 +198,32 @@ do
 	done < $rerootFile
 done
 
+# Collect the anchor sequence IDs - known, unambiguously distant reference
+# GPCRs (see AnchorSequences/README.md) injected into every chunk purely
+# to stabilize each chunk's tree topology. They must never be reported as
+# a real sequence of interest, even on the rare chunk where one still
+# lands inside the extracted clade (observed 2026-08-27 for one of them).
+AnchorDir="$DIR/$gene/AnchorSequences/"
+declare -a anchorFiles=($AnchorDir*.fasta)
+AnchorLeaves=""
+if [ -d $AnchorDir ]
+then
+	for anchorFile in ${anchorFiles[@]}
+	do
+		while read line
+		do
+			if [[ ">" == "${line:0:1}" ]]
+			then
+				long="${line#?}"
+				long="${long%% *}"
+
+				AnchorLeaves="$AnchorLeaves $long"
+			fi
+
+		done < $anchorFile
+	done
+fi
+
 # Save the leave labels of the leaves for subclade extraction, so that they can be used for debugging
 echo $LeavesOfSubTreeToKeep > "$SequencesOfInterestBaseDir/LeavesToKeep.txt"
 
@@ -271,7 +297,20 @@ do
 	fi
 
 	# Extract the clade with the proteins of interest, then all its labels
-	echo "$rerootedTree" | nw_clade - $LeavesOfSubTreeToKeep | nw_labels -I - >> $treeLabels
+	cladeLabels=$(echo "$rerootedTree" | nw_clade - $LeavesOfSubTreeToKeep | nw_labels -I -)
+
+	# Anchor sequences are reference-only (see AnchorSequences/README.md) -
+	# drop any that landed inside the extracted clade before counting or
+	# keeping anything, regardless of how well-behaved they were here.
+	if [[ -n "$AnchorLeaves" ]]
+	then
+		cladeLabels=$(echo "$cladeLabels" | grep -v -x -f <(echo "$AnchorLeaves" | tr ' ' '\n'))
+	fi
+
+	if [[ -n "$cladeLabels" ]]
+	then
+		echo "$cladeLabels" >> $treeLabels
+	fi
 
 	count=$accCount
 	accCount=$(wc -l "$treeLabels" | sed 's\ .*$\\g')
