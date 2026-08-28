@@ -296,25 +296,18 @@ do
 		rerootedTree="$relabeledTree"
 	fi
 
-	# Extract the clade with the proteins of interest, then all its labels
-	cladeLabels=$(echo "$rerootedTree" | nw_clade - $LeavesOfSubTreeToKeep | nw_labels -I -)
-
-	# Anchor sequences are known-distant reference GPCRs (see
-	# AnchorSequences/README.md). If any of them still landed inside the
-	# extracted clade, the deep split wasn't resolved cleanly in this
-	# chunk's random draw - empirically this is all-or-nothing (either zero
-	# anchors leak in, or every single one does), so treat a leak as a sign
-	# the whole extraction is unreliable and discard it, rather than just
-	# stripping the anchors and keeping everything else that came with them.
-	if [[ -n "$AnchorLeaves" ]]
-	then
-		leakedAnchors=$(echo "$cladeLabels" | grep -x -f <(echo "$AnchorLeaves" | tr ' ' '\n'))
-		if [[ -n "$leakedAnchors" ]]
-		then
-			echo "$thisScript: $TreeForPruning - $(echo "$leakedAnchors" | grep -c .) anchor(s) landed inside the extracted clade, discarding this chunk's extraction as unresolved" >&2
-			cladeLabels=""
-		fi
-	fi
+	# Extract the clade with the proteins of interest, then all its labels.
+	# Outgroup/anchor sequences (see AnchorSequences/README.md) are known,
+	# unambiguously distant reference GPCRs; whichever of them still ended
+	# up inside the bait MRCA each independently defines a clade to exclude
+	# (the largest sub-clade around that outgroup leaf containing no bait
+	# leaf) via ExcludeOutgroupClades.py, rather than discarding the whole
+	# chunk on any leak - that discarded content that happened to share a
+	# chunk with an unrelated outgroup leak elsewhere in the tree, when the
+	# ingroup/outgroup split should come only from BaitSequences and the
+	# outgroup markers themselves, not from where things land in one tree.
+	cladeLabels=$(echo "$rerootedTree" | nw_clade - $LeavesOfSubTreeToKeep | \
+		python3 "$DIR/ExcludeOutgroupClades.py" --bait $LeavesOfSubTreeToKeep --outgroup $AnchorLeaves)
 
 	if [[ -n "$cladeLabels" ]]
 	then
