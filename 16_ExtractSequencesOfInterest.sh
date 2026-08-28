@@ -299,12 +299,21 @@ do
 	# Extract the clade with the proteins of interest, then all its labels
 	cladeLabels=$(echo "$rerootedTree" | nw_clade - $LeavesOfSubTreeToKeep | nw_labels -I -)
 
-	# Anchor sequences are reference-only (see AnchorSequences/README.md) -
-	# drop any that landed inside the extracted clade before counting or
-	# keeping anything, regardless of how well-behaved they were here.
+	# Anchor sequences are known-distant reference GPCRs (see
+	# AnchorSequences/README.md). If any of them still landed inside the
+	# extracted clade, the deep split wasn't resolved cleanly in this
+	# chunk's random draw - empirically this is all-or-nothing (either zero
+	# anchors leak in, or every single one does), so treat a leak as a sign
+	# the whole extraction is unreliable and discard it, rather than just
+	# stripping the anchors and keeping everything else that came with them.
 	if [[ -n "$AnchorLeaves" ]]
 	then
-		cladeLabels=$(echo "$cladeLabels" | grep -v -x -f <(echo "$AnchorLeaves" | tr ' ' '\n'))
+		leakedAnchors=$(echo "$cladeLabels" | grep -x -f <(echo "$AnchorLeaves" | tr ' ' '\n'))
+		if [[ -n "$leakedAnchors" ]]
+		then
+			echo "$thisScript: $TreeForPruning - $(echo "$leakedAnchors" | grep -c .) anchor(s) landed inside the extracted clade, discarding this chunk's extraction as unresolved" >&2
+			cladeLabels=""
+		fi
 	fi
 
 	if [[ -n "$cladeLabels" ]]
