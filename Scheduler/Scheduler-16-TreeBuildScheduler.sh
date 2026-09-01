@@ -263,12 +263,27 @@ geneOnlyDataSet=$("$DIR/../GetSequencesOfInterestDirectory.sh" -g "$gene" -p "$(
 if [ -d $geneOnlyDataSet ]
 then
 	suffix="-x $(basename $gene).BigTree0"
-	previousAligner="-p $gene"
+	# Must be the basename, matching $geneOnlyDataSet's own -p above - the
+	# unresolved $gene (e.g. "../PeptideReceptors") was used here until
+	# 2026-09-01, which silently pointed this at the wrong directory:
+	# GetSequencesOfInterestDirectory.sh builds
+	# "$DIR/$gene/SequencesOfInterest/$previousAligner/RogueIter_$iteration"
+	# by plain string concatenation, so a previousAligner still carrying
+	# "../GeneName" doesn't just get appended - the filesystem later
+	# resolves the embedded ".." by cancelling the literal "SequencesOfInterest"
+	# path component in front of it, landing on
+	# ".../GeneName/GeneName/RogueIter_0" instead of
+	# ".../GeneName/SequencesOfInterest/GeneName/RogueIter_0" (what step 16
+	# actually creates) - a directory that can never exist, not a transient
+	# race. Confirmed 2026-09-01 on PeptideReceptors: both jobs below failed
+	# every time (Check-InputFile.sh's "does not exist" guard caught it),
+	# while $geneOnlyDataSet's own check above still passed, because *it*
+	# correctly used the basename.
+	previousAligner="-p $(basename $gene)"
 	# Make a big tree with the main aligner and without outgroup
 	# Not covered by the resume-check above: GetSequencesOfInterestDirectory.sh
 	# resolves the path from previousAligner alone once it's set, ignoring
-	# aligner/suffix entirely, and this branch isn't exercised by any
-	# locally-testable gene - left as an unconditional restart rather than
+	# aligner/suffix entirely - left as an unconditional restart rather than
 	# risk an unverified resume check here.
 	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=0, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
 	    "$DIR/Scheduler-09-RogueOptAlign.sh"
