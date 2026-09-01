@@ -8,6 +8,12 @@ from Bio import AlignIO, Align
 import os # Strip extension from file
 import sys, getopt # Parse program arguments
 
+# This script's own directory, mirroring the bash scripts' $DIR convention -
+# needed for paths (e.g. SpeciesDatabase/) that must resolve here regardless
+# of the caller's current working directory, which a Slurm job doesn't
+# guarantee is PhylogenyPipeline/ itself.
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Sequence logo
 import numpy as np
 import pandas as pd
@@ -1362,7 +1368,16 @@ def loadTaxa(iterestingTaxa, additionalTaxa):
 
 	loadColorMap(iterestingTaxa, taxonColorMap)
 
-	genusDatabase = "SpeciesDatabase/GenusLinage.csv"
+	# Must be anchored to SCRIPT_DIR, not a bare relative path -
+	# 12b_InstallSpeciesDatabase.sh builds this file at
+	# $DIR/SpeciesDatabase/GenusLinage.csv regardless of caller cwd, but a
+	# relative open() here only found it when this script's own cwd
+	# happened to be PhylogenyPipeline/ itself. Confirmed 2026-09-01 as the
+	# cause of every "FileNotFoundError: 'SpeciesDatabase/GenusLinage.csv'"
+	# seen in cluster job logs (e.g. PRRs/PeptideReceptors
+	# ConvertTreesToFigures runs) - the database was actually built fine
+	# each time, just not where this open() call was looking for it.
+	genusDatabase = os.path.join(SCRIPT_DIR, "SpeciesDatabase", "GenusLinage.csv")
 	f = open(genusDatabase, 'rt')
 
 	while True:
