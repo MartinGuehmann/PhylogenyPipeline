@@ -393,6 +393,14 @@ case $step in
 17)
 	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -v "DIR=$DIR, gene=$gene, overwrite=$overwrite" "$DIR/17_Scheduler-SkipSequenceExtraction.sh")
 	;;
+18)
+	# Always a single alignment (whichever one the caller names via
+	# -i/-a, e.g. the gene's final RogueIter_N round) - never an array
+	# job, unlike step 10's chunked branch. See 18_Scheduler-
+	# RefineTreeWithPMSF.sh's own header comment for why this step is
+	# never part of the automatic round-resubmission chain.
+	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -v "DIR=$DIR, gene=$gene, alignmentToUse=$AllSeqs, iteration=$iteration, aligner=$aligner, suffix=$suffix, previousAligner=$previousAligner" "$DIR/18_Scheduler-RefineTreeWithPMSF.sh")
+	;;
 
 *)
 	echo "Step $step is not a valid step." >&2

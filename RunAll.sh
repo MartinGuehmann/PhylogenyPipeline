@@ -503,6 +503,35 @@ case $step in
 	fi
 	echo "17. Sequence copied directly." >&2
 	;;
+18)
+	echo "18. Refine final tree with PMSF (site-heterogeneous model)." >&2
+	stepFailed="false"
+	if [ -z "$inputFile" ]
+	then
+		for phyFile in "$AlignmentParts"*"$AlignmentLastBit"
+		do
+			if [ -f $phyFile ]
+			then
+				if ! "$DIR/18_RefineTreeWithPMSF.sh" "$phyFile"
+				then
+					echo "18. Failed to refine tree for $phyFile with PMSF." >&2
+					stepFailed="true"
+				fi
+			fi
+		done
+	else
+		if ! "$DIR/18_RefineTreeWithPMSF.sh" "$inputFile"
+		then
+			echo "18. Failed to refine tree for $inputFile with PMSF." >&2
+			stepFailed="true"
+		fi
+	fi
+	if [ "$stepFailed" == "true" ]
+	then
+		exit 1
+	fi
+	echo "18. Tree refined with PMSF." >&2
+	;;
 *)
 	echo "Step $step is not a valid step." >&2
 	exit 1
