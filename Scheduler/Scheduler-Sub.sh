@@ -1,5 +1,22 @@
 #!/bin/bash
 
+# Get the directory where this script is - so Account.sh/Resources.cfg/
+# ExcludedNodes.cfg are found next to this script regardless of the
+# caller's own working directory, same as every other script in this
+# repo. (Previously these were looked up as bare "./Account.sh" etc.,
+# which only worked if the caller happened to have cd'd into Scheduler/
+# first - an unenforced precondition that failed silently: a missing
+# Resources.cfg/Account.sh just produced an empty lookup, not an error,
+# so a job could be submitted with none of its intended cpu/mem/
+# walltime/partition/account settings and nothing would say so.)
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
 # Wrapper for calling qsub from PBS-Pro or sbatch from Slurm
 # The parameters mapped from qsub to sbatch are hold, range,
 # dependency, and exported environment variables. Add if you
@@ -14,10 +31,10 @@
 # named profile such as AskForWholeNode.
 #
 # Pass --gene/-g NAME to place this job's stdout/stderr files under
-# ../NAME/Logs (relative to the current working directory, same as the
-# Resources.cfg lookup above - so this must be run with Scheduler/ as
-# the working directory). That's a per-gene Logs directory next to
-# Sequences, Hits, etc. Without --gene, files land in ../Logs instead.
+# ../NAME/Logs (relative to this script's own location, not the
+# caller's working directory - see the $DIR resolution above). That's a
+# per-gene Logs directory next to Sequences, Hits, etc. Without --gene,
+# files land in ../Logs instead.
 #
 # Pass --exclude/-N NODELIST to keep this job off specific compute
 # nodes (Slurm's own --exclude=NODELIST syntax, e.g. "node032" or
@@ -50,9 +67,9 @@ resourceName=""
 gene=""
 exclude=""
 excludeFromConfig=""
-if [ -f "./ExcludedNodes.cfg" ]
+if [ -f "$DIR/ExcludedNodes.cfg" ]
 then
-	excludeFromConfig=$(grep -v '^#' "./ExcludedNodes.cfg" | grep -v '^[[:space:]]*$' | paste -sd,)
+	excludeFromConfig=$(grep -v '^#' "$DIR/ExcludedNodes.cfg" | grep -v '^[[:space:]]*$' | paste -sd,)
 fi
 
 if [ -x "$(command -v qsub)" ]
@@ -133,12 +150,12 @@ then
 	# silently ignoring it, so this doesn't look like it worked.
 	[ -n "$combinedExclude" ] && echo "--exclude/-N and/or ExcludedNodes.cfg ($combinedExclude) is not implemented for PBS Pro - ignoring it, see Scheduler-Sub.sh's own header comment" >&2
 
-	logDir="../$gene/Logs"
+	logDir="$DIR/../$gene/Logs"
 	mkdir -p "$logDir"
 	scriptName=$(basename "$script")
 
 	profileName="${resourceName:-$(basename "$script")}"
-	resourceLine=$(grep -m1 "^${profileName}[[:space:]]" "./Resources.cfg")
+	resourceLine=$(grep -m1 "^${profileName}[[:space:]]" "$DIR/Resources.cfg")
 	resources=""
 	if [ -n "$resourceLine" ]
 	then
@@ -238,14 +255,14 @@ then
 		shift
 	done
 
-	account=$("./Account.sh")
+	account=$("$DIR/Account.sh")
 
-	logDir="../$gene/Logs"
+	logDir="$DIR/../$gene/Logs"
 	mkdir -p "$logDir"
 	scriptName=$(basename "$script")
 
 	profileName="${resourceName:-$(basename "$script")}"
-	resourceLine=$(grep -m1 "^${profileName}[[:space:]]" "./Resources.cfg")
+	resourceLine=$(grep -m1 "^${profileName}[[:space:]]" "$DIR/Resources.cfg")
 	resources=""
 	if [ -n "$resourceLine" ]
 	then
