@@ -66,11 +66,23 @@ do
     shift
 done
 
+# Every other entry point in this pipeline (13_RestartProcessing.sh,
+# 15_..., 16_TreeBuildScheduler.sh) is invoked with -g already in the
+# "../GeneName" form (they live inside the gene's own repo directory
+# and auto-derive it: gene=$(basename "$DIR"); gene="../$gene") -
+# Scheduler-Call.sh/GetAlignmentDirectory.sh/Scheduler-Sub.sh's own
+# logDir all assume that prefix is already there. This script is called
+# directly by a human instead, so -g must be given the same way by
+# hand: "../GeneName", not a bare gene name. Confirmed 2026-10-09: a
+# bare "-g PRRs" fed straight through unprefixed, pointing every real
+# submission at a nonexistent PhylogenyPipeline/PRRs/... path instead
+# of the real sibling Phylogenies/PRRs/..., so checkInputFile failed
+# every job immediately, before any PMSF computation ever ran.
 if [ -z "$gene" ]
 then
 	echo "GeneName missing" >&2
-	echo "You must give a GeneName, an Iteration and an Aligner, for instance:" >&2
-	echo "./$thisScript -g GeneName -i Iteration -a Aligner" >&2
+	echo "You must give the gene the same way the rest of this pipeline does - '../GeneName', not a bare name (see this script's own header comment for why) - plus an Iteration and an Aligner, for instance:" >&2
+	echo "./$thisScript -g ../GeneName -i Iteration -a Aligner" >&2
 	exit 1
 fi
 
