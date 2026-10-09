@@ -2,3 +2,4 @@ SpeciesDatabase/
 .Rhistory
 .nix-gcroots/
 Logs
+__pycache__/
