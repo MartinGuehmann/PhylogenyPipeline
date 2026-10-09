@@ -4,9 +4,10 @@ from ete3 import Tree, NexmlTree, nexml, faces, AttrFace, TextFace, RectFace, Se
 import csv
 from inspect import getmembers
 from Bio import AlignIO, Align, Phylo
+from Bio.Phylo.PhyloXML import Clade as PhyloXMLClade, Phylogeny as PhyloXMLPhylogeny, Property as PhyloXMLProperty
 
 import os # Strip extension from file
-import io # In-memory Newick round-trip for saveFullTreeAsPhyloXML
+import io # In-memory buffer for saveFullTreeAsPhyloXML's <?xml?> prepending
 import sys, getopt # Parse program arguments
 
 # This script's own directory, mirroring the bash scripts' $DIR convention -
@@ -1097,29 +1098,30 @@ def saveFullTreeAsPhyloXML(eteTree, outFile):
 	# 2026-10-09 with real clade colors showing correctly.
 	#
 	# Bio.Phylo's phyloxml writer special-cases a plain .color attribute
-	# (an (R,G,B) 0-255 tuple) on each clade - verified this works even
-	# on a Newick-sourced Clade (not a true PhyloXML.Clade instance).
-	# .properties (phyloXML's generic annotation mechanism, which could
-	# have carried the "cladeName" feature too) is NOT special-cased the
-	# same way - verified it's silently dropped unless the clade is
-	# already a true PhyloXML.Clade - so only color is carried over by
-	# this function, not clade names beyond each node's own real name.
-	#
-	# Round-tripping through a plain Newick string (ete3 can write it,
-	# Bio.Phylo can read it) is simpler than building a Bio.Phylo tree
-	# from ete3's own node objects directly. Walking both trees in the
-	# same preorder then matches every node 1:1 by position, including
-	# unnamed internal nodes that colorNodes() also colors (an ete3 ""
-	# name becomes Bio.Phylo's None, but position in the traversal still
-	# lines them up) - verified this alignment holds across a real
-	# read-write-read round trip.
-	newickStr = eteTree.write(format=1, format_root_node=True)
-	bioTree = Phylo.read(io.StringIO(newickStr), "newick")
+	# (an (R,G,B) 0-255 tuple) on each clade. .properties (phyloXML's
+	# generic annotation mechanism, used below to carry the "cladeName"
+	# feature) needs more than that, though: verified it's silently
+	# dropped by the writer unless the clade is already a true
+	# PhyloXML.Clade instance - round-tripping through a plain Newick
+	# string (which was this function's first version) only ever
+	# produces plain Bio.Phylo.Newick.Clade objects, so cladeName never
+	# made it into that version's output, only color did. Building
+	# PhyloXML.Clade objects directly from ete3's own node objects, as
+	# done below, carries both correctly - verified on a synthetic tree.
+	def buildPhyloXMLClade(eteNode):
+		properties = []
+		cladeName = getattr(eteNode, "cladeName", None)
+		if cladeName:
+			properties.append(PhyloXMLProperty(value=cladeName, ref="PhylogenyPipeline:cladeName", applies_to="clade", datatype="xsd:string"))
 
-	for eteNode, bioClade in zip(eteTree.traverse("preorder"), bioTree.find_clades(order="preorder")):
 		color = getattr(eteNode, "cladeColor", None)
-		if color is not None:
-			bioClade.color = tuple(round(c * 255) for c in mcolors.to_rgb(color))
+		rgb = tuple(round(c * 255) for c in mcolors.to_rgb(color)) if color is not None else None
+
+		phyloXMLClade = PhyloXMLClade(name=(eteNode.name or None), branch_length=eteNode.dist, color=rgb, properties=properties)
+		phyloXMLClade.clades = [buildPhyloXMLClade(child) for child in eteNode.children]
+		return phyloXMLClade
+
+	phylogeny = PhyloXMLPhylogeny(root=buildPhyloXMLClade(eteTree), rooted=True)
 
 	# Bio.Phylo's phyloxml writer never emits an <?xml ...?> declaration,
 	# even writing straight to a real file path (confirmed 2026-10-09) -
@@ -1132,7 +1134,7 @@ def saveFullTreeAsPhyloXML(eteTree, outFile):
 	# in-memory buffer first so the real file can get the declaration
 	# prepended.
 	xmlBuffer = io.StringIO()
-	Phylo.write(bioTree, xmlBuffer, "phyloxml")
+	Phylo.write(phylogeny, xmlBuffer, "phyloxml")
 	with open(outFile, "w") as realOutFile:
 		realOutFile.write('<?xml version="1.0" encoding="UTF-8"?>\n')
 		realOutFile.write(xmlBuffer.getvalue())
