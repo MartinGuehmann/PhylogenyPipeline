@@ -3,9 +3,10 @@
 from ete3 import Tree, NexmlTree, nexml, faces, AttrFace, TextFace, RectFace, SeqMotifFace, PieChartFace, TreeStyle, NodeStyle
 import csv
 from inspect import getmembers
-from Bio import AlignIO, Align
+from Bio import AlignIO, Align, Phylo
 
 import os # Strip extension from file
+import io # In-memory Newick round-trip for saveFullTreeAsPhyloXML
 import sys, getopt # Parse program arguments
 
 # This script's own directory, mirroring the bash scripts' $DIR convention -
@@ -907,17 +908,18 @@ def colorNodes(node, cladeColor, cladeBackgroundTextColor):
 	node.set_style(nodeStyle)
 	# img_style/NodeStyle is only used by ete3's own PyQt rendering and
 	# isn't a plain scalar, so it can't be carried into an exported tree
-	# format directly - mirror it as plain string features too, so the
-	# NHX export further down (search this file for "outFullTreeNHX")
-	# can carry the same colors as NHX tags for Dendroscope.
-	node.add_feature("nhxColor", cladeColor)
-	node.add_feature("nhxBgColor", cladeBackgroundTextColor)
+	# format directly - mirror it as plain string features too, so
+	# saveFullTreeAsPhyloXML further down can carry the same colors into
+	# a phyloXML <color> element (see that function's own comment for
+	# the full story of why phyloXML, not NHX or NeXML).
+	node.add_feature("cladeColor", cladeColor)
+	node.add_feature("cladeBgColor", cladeBackgroundTextColor)
 
 	# Add the style to all descendants
 	for descendant in node.iter_descendants():
 		descendant.img_style = nodeStyle
-		descendant.add_feature("nhxColor", cladeColor)
-		descendant.add_feature("nhxBgColor", cladeBackgroundTextColor)
+		descendant.add_feature("cladeColor", cladeColor)
+		descendant.add_feature("cladeBgColor", cladeBackgroundTextColor)
 
 ###############################################################################
 def colorCollapsedNode(node, cladeColor, cladeBackgroundTextColor):
@@ -1074,6 +1076,66 @@ def colorAndNameClades(tree, clades):
 
 		assignCladeNameToCenterLeaf(clade.rootNode, clade.name)
 		colorNodes(clade.rootNode, clade.forgroundColor, clade.backgroundColor)
+
+###############################################################################
+def saveFullTreeAsPhyloXML(eteTree, outFile):
+	# Dendroscope was the original target for this (see colorNodes()'s
+	# own comment for the full history: NeXML - ete3's own nexml module
+	# - was tried first and abandoned over real bugs in that library;
+	# NHX after that loaded cleanly but Dendroscope only treats a fixed,
+	# known set of NHX tag names specially, so custom ones like the
+	# "cladeColor" feature below just showed up as inert text, not
+	# actual colors). Confirmed 2026-10-09 by reading Dendroscope's own
+	# source (github.com/danielhuson/dendroscope3, checked against its
+	# actual latest commit, not just the installed 2020 release): it has
+	# no phyloXML reader at all - only Newick, NEXUS, its own .dendro
+	# format, and NeXML (whose color support turned out to be a
+	# proprietary round-trip format tied to Dendroscope's own internal
+	# view objects, not something meant for external tools to populate).
+	# phyloXML's actual home is Archaeopteryx
+	# (github.com/cmzmasek/archaeopteryx) - confirmed working there
+	# 2026-10-09 with real clade colors showing correctly.
+	#
+	# Bio.Phylo's phyloxml writer special-cases a plain .color attribute
+	# (an (R,G,B) 0-255 tuple) on each clade - verified this works even
+	# on a Newick-sourced Clade (not a true PhyloXML.Clade instance).
+	# .properties (phyloXML's generic annotation mechanism, which could
+	# have carried the "cladeName" feature too) is NOT special-cased the
+	# same way - verified it's silently dropped unless the clade is
+	# already a true PhyloXML.Clade - so only color is carried over by
+	# this function, not clade names beyond each node's own real name.
+	#
+	# Round-tripping through a plain Newick string (ete3 can write it,
+	# Bio.Phylo can read it) is simpler than building a Bio.Phylo tree
+	# from ete3's own node objects directly. Walking both trees in the
+	# same preorder then matches every node 1:1 by position, including
+	# unnamed internal nodes that colorNodes() also colors (an ete3 ""
+	# name becomes Bio.Phylo's None, but position in the traversal still
+	# lines them up) - verified this alignment holds across a real
+	# read-write-read round trip.
+	newickStr = eteTree.write(format=1, format_root_node=True)
+	bioTree = Phylo.read(io.StringIO(newickStr), "newick")
+
+	for eteNode, bioClade in zip(eteTree.traverse("preorder"), bioTree.find_clades(order="preorder")):
+		color = getattr(eteNode, "cladeColor", None)
+		if color is not None:
+			bioClade.color = tuple(round(c * 255) for c in mcolors.to_rgb(color))
+
+	# Bio.Phylo's phyloxml writer never emits an <?xml ...?> declaration,
+	# even writing straight to a real file path (confirmed 2026-10-09) -
+	# still technically valid XML without one, but worth adding anyway:
+	# a version of this file without it made Dendroscope's own format
+	# auto-detection refuse to open it at all ("Unknown format in file")
+	# before the deeper discovery (see this function's header comment)
+	# that Dendroscope has no phyloXML support regardless. Harmless and
+	# more conventional either way, so left in. Write through an
+	# in-memory buffer first so the real file can get the declaration
+	# prepended.
+	xmlBuffer = io.StringIO()
+	Phylo.write(bioTree, xmlBuffer, "phyloxml")
+	with open(outFile, "w") as realOutFile:
+		realOutFile.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+		realOutFile.write(xmlBuffer.getvalue())
 
 ###############################################################################
 def saveCladesAsTrees(tree, clades, outputFile):
@@ -1456,7 +1518,7 @@ if __name__ == "__main__":
 	outTree                = inputTree + "." + cladeBase + ".tree"
 	logoOutFileBase        = inputTree + "." + cladeBase
 	sortedAlignmentFile    = inputTree + "." + cladeBase + ".treeSorted.fasta"
-	outFullTreeNHX         = inputTree + "." + cladeBase + ".fullTree.nhx"
+	outFullTreePhyloXML    = inputTree + "." + cladeBase + ".fullTree.xml"
 
 	taxonPercentsFile = open(taxonPercents, "w")
 
@@ -1531,22 +1593,13 @@ if __name__ == "__main__":
 	# svg files are not printed correctly, they have duplicated text
 #	fullTree.render(outFullTree + ".svg", dpi=600, w=183, units="mm", tree_style=ts)
 
-	# Tried NeXML (ete3's own nexml module) here previously - abandoned
-	# 2026-10-09: confirmed two separate, real bugs in that library, not
-	# just a Dendroscope-compatibility quirk. (1) Trees.add_tree() needs
-	# a NexmlTree, not a plain Tree - feeding it one crashes outright
-	# with AttributeError: 'TreeNode' object has no attribute 'export'.
-	# (2) Even built correctly via NexmlTree, its generated export code
-	# writes every attribute as a Python bytes repr instead of a decoded
-	# string (e.g. id=b'"node_123"' instead of id="node_123") - not
-	# well-formed XML at all, which is exactly what the old sed command
-	# above was trying to paper over - and even that still only produces
-	# a bare <tree> fragment, not a complete <nexml> document with the
-	# <otus> taxon block Dendroscope needs. NHX avoids all of this: it's
-	# plain Newick with inline [&&NHX:key=value] tags per node, which
-	# ete3 writes natively and Dendroscope has solid native support for.
-	logging.debug("Save full tree as NHX for Dendroscope: " + outFullTreeNHX)
-	fullTree.write(outfile=outFullTreeNHX, format=1, features=["nhxColor", "nhxBgColor", "cladeName"])
+	# NeXML (ete3's own nexml module) and then NHX were both tried here
+	# first and abandoned - see saveFullTreeAsPhyloXML()'s own header
+	# comment for that history and why phyloXML (opened in Archaeopteryx,
+	# not Dendroscope - confirmed 2026-10-09 colors show up correctly
+	# there) is what this actually writes now.
+	logging.debug("Save full tree as phyloXML: " + outFullTreePhyloXML)
+	saveFullTreeAsPhyloXML(fullTree, outFullTreePhyloXML)
 
 	logging.debug("Save full tree without outgroup: " + outTree)
 	collapseOnlyOutgroup(tree, clades) # This will be done on the original tree anyway
