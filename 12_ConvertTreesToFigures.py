@@ -905,10 +905,19 @@ def colorNodes(node, cladeColor, cladeBackgroundTextColor):
 
 	# Add the style to this node
 	node.set_style(nodeStyle)
+	# img_style/NodeStyle is only used by ete3's own PyQt rendering and
+	# isn't a plain scalar, so it can't be carried into an exported tree
+	# format directly - mirror it as plain string features too, so the
+	# NHX export further down (search this file for "outFullTreeNHX")
+	# can carry the same colors as NHX tags for Dendroscope.
+	node.add_feature("nhxColor", cladeColor)
+	node.add_feature("nhxBgColor", cladeBackgroundTextColor)
 
 	# Add the style to all descendants
 	for descendant in node.iter_descendants():
 		descendant.img_style = nodeStyle
+		descendant.add_feature("nhxColor", cladeColor)
+		descendant.add_feature("nhxBgColor", cladeBackgroundTextColor)
 
 ###############################################################################
 def colorCollapsedNode(node, cladeColor, cladeBackgroundTextColor):
@@ -1447,7 +1456,7 @@ if __name__ == "__main__":
 	outTree                = inputTree + "." + cladeBase + ".tree"
 	logoOutFileBase        = inputTree + "." + cladeBase
 	sortedAlignmentFile    = inputTree + "." + cladeBase + ".treeSorted.fasta"
-#	outFullTreeNeXML       = inputTree + "." + cladeBase + ".fullTree.NeXML"
+	outFullTreeNHX         = inputTree + "." + cladeBase + ".fullTree.nhx"
 
 	taxonPercentsFile = open(taxonPercents, "w")
 
@@ -1522,18 +1531,22 @@ if __name__ == "__main__":
 	# svg files are not printed correctly, they have duplicated text
 #	fullTree.render(outFullTree + ".svg", dpi=600, w=183, units="mm", tree_style=ts)
 
-	# Dendroscope cannot load this type of tree
-	#nexml_project = nexml.Nexml()
-	#tree_collection = nexml.Trees()
-	#tree_collection.add_tree(tree)
-	#nexml_project.add_trees(tree_collection)
-
-	#with open(outFullTreeNeXML, "w") as outFile:
-	#	nexml_project.export(outFile)
-	# Even with removing this extra junk Dendroscope cannot load the tree
-	# This may still be code to fix
-	#command = "sed -i -e \"s/b'//g\"  -e \"s/\\\"'/\\\"/g\" " + outFullTreeNeXML
-	#os.system(command)
+	# Tried NeXML (ete3's own nexml module) here previously - abandoned
+	# 2026-10-09: confirmed two separate, real bugs in that library, not
+	# just a Dendroscope-compatibility quirk. (1) Trees.add_tree() needs
+	# a NexmlTree, not a plain Tree - feeding it one crashes outright
+	# with AttributeError: 'TreeNode' object has no attribute 'export'.
+	# (2) Even built correctly via NexmlTree, its generated export code
+	# writes every attribute as a Python bytes repr instead of a decoded
+	# string (e.g. id=b'"node_123"' instead of id="node_123") - not
+	# well-formed XML at all, which is exactly what the old sed command
+	# above was trying to paper over - and even that still only produces
+	# a bare <tree> fragment, not a complete <nexml> document with the
+	# <otus> taxon block Dendroscope needs. NHX avoids all of this: it's
+	# plain Newick with inline [&&NHX:key=value] tags per node, which
+	# ete3 writes natively and Dendroscope has solid native support for.
+	logging.debug("Save full tree as NHX for Dendroscope: " + outFullTreeNHX)
+	fullTree.write(outfile=outFullTreeNHX, format=1, features=["nhxColor", "nhxBgColor", "cladeName"])
 
 	logging.debug("Save full tree without outgroup: " + outTree)
 	collapseOnlyOutgroup(tree, clades) # This will be done on the original tree anyway
