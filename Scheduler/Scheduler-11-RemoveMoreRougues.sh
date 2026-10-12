@@ -143,7 +143,7 @@ droppedFinal="$rogueFreeTreesDir/SequencesOfInterest.dropped.fasta"
 
 if [[ ! -z "$bigTreeIteration" && $bigTreeIteration == $iteration ]]
 then
-	olfSuffix=$suffix
+	oldSuffix=$suffix
 
 	if [ -z "$suffix" ]
 	then
@@ -159,6 +159,13 @@ then
 
 	oldAllSeqs=$allSeqs
 	allSeqs="--allSeqs"
+	# oldSuffix (not olfSuffix - a prior typo here always left this
+	# empty, so the else branch below was dead code) is the suffix the
+	# regular loop was using before switching to BigTree$iteration -
+	# empty for Mas1/PeptideReceptors (no observable effect there, both
+	# names held the same empty value), but matters for a gene whose
+	# regular loop already runs under a non-empty suffix (e.g. the
+	# without-outgroup variant) when it reaches bigTreeIteration.
 	if [ -z "$oldSuffix" ]
 	then
 		previousAligner="-p $aligner"
@@ -169,7 +176,7 @@ then
 	"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
 	    "$DIR/Scheduler-09-RogueOptAlign.sh"
 	allSeqs=$oldAllSeqs
-	suffix=$olfSuffix
+	suffix=$oldSuffix
 fi
 
 # An unset or empty-string numRoundsLeft used to be treated as "no
