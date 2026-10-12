@@ -163,7 +163,7 @@ echo $jobIDs
 
 if [ "$continue" == "--continue" ]
 then
-	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl, useFullDataset=$useFullDataset" -W "depend=afterok$jobIDs" \
+	"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl, useFullDataset=$useFullDataset" -W "depend=afterok$jobIDs" \
 	    "$DIR/Scheduler-13-ExtractSequencePreparation.sh"
 fi
 

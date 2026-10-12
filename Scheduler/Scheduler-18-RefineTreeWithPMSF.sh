@@ -146,7 +146,7 @@ holdJobs=$jobIDs
 # there instead if it hits its walltime.
 if command -v sacct >/dev/null 2>&1
 then
-	"$DIR/Scheduler-Sub.sh" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, suffix=$suffix, previousAligner=$previousAligner, holdJobs=$holdJobs" -W "depend=afterany$holdJobs" \
+	"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, suffix=$suffix, previousAligner=$previousAligner, holdJobs=$holdJobs" -W "depend=afterany$holdJobs" \
 	    "$DIR/Scheduler-18-RefineTreeWithPMSF.sh"
 else
 	echo "sacct not found - cannot tell whether a future timeout happens, so $thisScript will not resubmit itself; resubmit step 18 by hand if it hits its walltime." >&2
