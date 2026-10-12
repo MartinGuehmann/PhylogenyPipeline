@@ -172,10 +172,21 @@ then
 	suffix=$olfSuffix
 fi
 
-if [ -z "$numRoundsLeft" ] # Should be an unset variable or an empty string
+# An unset or empty-string numRoundsLeft used to be treated as "no
+# limit" (continue indefinitely) rather than "stop" - confirmed
+# 2026-10-12 as the real cause of Mas1's FAMSA.BigTree0 overrun: a
+# one-off manual aligner-comparison submission (bypassing
+# Scheduler-16-TreeBuildScheduler.sh, which always passes a literal
+# numeric value) omitted -n/--numRoundsLeft, so it arrived blank and
+# every downstream script faithfully threaded that blank through
+# forever. Pinning it to "0" here instead makes "missing" behave the
+# same as an explicit one-shot snapshot - the safe default.
+if [ -z "$numRoundsLeft" ]
 then
-	numRoundsLeft=""
-elif [[ $numRoundsLeft =~ ^[+-]?[0-9]+$ ]]
+	numRoundsLeft="0"
+fi
+
+if [[ $numRoundsLeft =~ ^[+-]?[0-9]+$ ]]
 then
 	if (( numRoundsLeft <= 0 ))
 	then
@@ -192,16 +203,6 @@ then
 	echo "$droppedFinal does not exist, exiting" >&2
 	# Break if this does not exist
 	exit 1
-fi
-
-numDropped=$(grep -c ">" $droppedFinal)
-
-if (( numDropped == 0 ))
-then
-	if [ -z "$numRoundsLeft" ]
-	then
-		numRoundsLeft="0"
-	fi
 fi
 
 if [[ ! -z $bigTreeIteration ]]
