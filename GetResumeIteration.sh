@@ -23,8 +23,17 @@ thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 # round's input), so its presence in RogueIter_(N+1)/ means iteration N
 # fully completed - see 11b_ExtractNonRogues.sh's own final line. Echoes
 # the first N whose RogueIter_(N+1)/Statistics.txt is missing or empty,
-# checking N from 0 up to --maxIteration inclusive; prints nothing if
-# every round up to that bound is already done.
+# checking N from --startIteration (default 0) up to --maxIteration
+# inclusive; prints nothing if every round in that range is already done.
+#
+# --startIteration exists for a BigTreeN branch (N==bigTreeIteration,
+# not "BigTree0"): Scheduler-11-RemoveMoreRougues.sh's own
+# bigTreeIteration check carries the regular loop's current iteration
+# number straight into that branch instead of resetting it to 0 (e.g.
+# bigTreeIteration=5 means the branch's own rounds are numbered
+# RogueIter_6, RogueIter_7, ... not RogueIter_1, RogueIter_2, ...), so
+# checking it for completeness needs to start at that same known
+# iteration number instead of 0.
 #
 # This can only tell "not yet done" apart from "done" - not "never
 # started" apart from "actively running right now" - so it does not by
@@ -34,6 +43,7 @@ thisScript="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
 
 suffix=""
 previousAligner=""
+startIteration="0"
 maxIteration="0"
 
 # Idiomatic parameter and option handling in sh
@@ -66,6 +76,12 @@ do
             shift
             previousAligner="-p $1"
             ;;
+        --startIteration)
+            ;&
+        -s)
+            shift
+            startIteration="$1"
+            ;;
         --maxIteration)
             ;&
         -m)
@@ -90,12 +106,17 @@ then
 	exit 1
 fi
 
+if [ -z "$startIteration" ] || [[ ! $startIteration =~ ^[0-9]+$ ]]
+then
+	startIteration="0"
+fi
+
 if [ -z "$maxIteration" ] || [[ ! $maxIteration =~ ^[0-9]+$ ]]
 then
 	maxIteration="0"
 fi
 
-for (( i=0; i<=maxIteration; i++ ))
+for (( i=startIteration; i<=maxIteration; i++ ))
 do
 	nextDir=$("$DIR/GetSequencesOfInterestDirectory.sh" -g "$gene" -i "$((i + 1))" -a "$aligner" $suffix $previousAligner)
 	if [ ! -s "$nextDir/Statistics.txt" ]

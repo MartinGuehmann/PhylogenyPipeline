@@ -257,6 +257,57 @@ else
 fi
 suffix=$oldSuffix
 
+# BigTree$bigTreeIteration (when bigTreeIteration != "0") is a
+# completely separate branch from BigTree0 above - it's created by
+# Scheduler-11-RemoveMoreRougues.sh's own bigTreeIteration check once
+# the regular loop below reaches that iteration, carrying the regular
+# loop's current iteration number straight in (so this branch's own
+# rounds are numbered starting at $bigTreeIteration itself, not 0), and
+# every subsequent round is driven entirely by that same recursive
+# chain - this script has never submitted any of it directly. A round
+# that crashes outright (FAILED, not TIMEOUT - e.g. /work/ going down
+# mid-write) is not auto-resubmitted by anything (Scheduler-10's own
+# self-resubmission only fires on a genuine walltime TIMEOUT, by
+# design), so without this check such a crash sits stuck until
+# resubmitted by hand - confirmed 2026-10-12 on Mas1/PeptideReceptors'
+# own FAMSA.BigTree5/RogueIter_8 crashes during a /work/ outage.
+#
+# previousAligner is intentionally omitted below, unlike the
+# transitional round's own submission inside Scheduler-11 (which needs
+# it to find its input in the regular loop's own differently-suffixed
+# output) - every round this check could actually resubmit is strictly
+# after that transitional round (see the resumeIteration check below),
+# so its input already lives under this same BigTree$bigTreeIteration
+# suffix.
+if [ "$bigTreeIteration" != "0" ] && [[ $bigNumRoundsLeft =~ ^[0-9]+$ ]] && (( bigNumRoundsLeft > 0 ))
+then
+	# The matching BigTree0 continuation above checks iterations 0
+	# through bigNumRoundsLeft inclusive (bigTreeMaxCheck="$bigNumRoundsLeft"),
+	# i.e. bigNumRoundsLeft+1 total rounds - this branch's own rounds
+	# are offset by bigTreeIteration (see the -s flag below) but use
+	# the same bigNumRoundsLeft+1 convention, so its last iteration is
+	# bigTreeIteration + bigNumRoundsLeft, not -1.
+	bigTreeLastIteration=$((bigTreeIteration + bigNumRoundsLeft))
+	resumeIteration=$("$DIR/../GetResumeIteration.sh" -g "$gene" -a "$aligner" -x "BigTree$bigTreeIteration" -s "$bigTreeIteration" -m "$bigTreeLastIteration")
+	resumeStatus=$?
+	if [ $resumeStatus -ne 0 ]
+	then
+		echo "GetResumeIteration.sh failed (exit $resumeStatus) for $aligner.BigTree$bigTreeIteration - not submitting" >&2
+		hadError="true"
+	elif [ -n "$resumeIteration" ] && [ "$resumeIteration" != "$bigTreeIteration" ]
+	then
+		# resumeIteration == bigTreeIteration means the transitional
+		# round itself hasn't even completed - that could mean it
+		# hasn't started yet (the regular loop below hasn't reached
+		# bigTreeIteration), not necessarily a crash, and it's created
+		# by that loop reaching it, not resubmitted here, to avoid a
+		# premature/duplicate submission racing against it.
+		remainingBigTreeRounds=$((bigTreeLastIteration - resumeIteration))
+		"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$remainingBigTreeRounds, shuffleSeqs=$shuffleSeqs, allSeqs=--allSeqs, suffix=-x BigTree$bigTreeIteration, extension=$extension, trimAl=$trimAl" \
+		    "$DIR/Scheduler-09-RogueOptAlign.sh"
+	fi
+fi
+
 ### Add check whether Opsins/SequencesOfInterest/Opsins/RogueIter_0
 geneOnlyDataSet=$("$DIR/../GetSequencesOfInterestDirectory.sh" -g "$gene" -p "$(basename $gene)")
 
