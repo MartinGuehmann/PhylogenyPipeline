@@ -100,6 +100,11 @@ do
         -T)
             localTsaNr="--localTsaNr"
             ;;
+        --overwrite)
+            ;&
+        -o)
+            overwrite="--overwrite"
+            ;;
         -*)
             ;&
         --*)
@@ -126,6 +131,7 @@ echo "useFullDataset:   $useFullDataset"   >&2
 echo "localNr:          $localNr"          >&2
 echo "localRefseqProtein: $localRefseqProtein" >&2
 echo "localTsaNr:       $localTsaNr"       >&2
+echo "overwrite:        $overwrite"        >&2
 echo "Note the script is copied to"        >&2
 echo "another place with another name"     >&2
 
@@ -157,7 +163,7 @@ echo $jobIDs
 jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "3" -d "$jobIDs" $localNr $localRefseqProtein $localTsaNr)
 abortIfJobIDsEmpty "$jobIDs" "step 3"
 echo $jobIDs
-jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "4" -d "$jobIDs")
+jobIDs=$($DIR/Scheduler-Call.sh             -g "$gene" -s "4" -d "$jobIDs" $overwrite)
 abortIfJobIDsEmpty "$jobIDs" "step 4"
 echo $jobIDs
 
