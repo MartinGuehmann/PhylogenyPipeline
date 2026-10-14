@@ -93,6 +93,11 @@ do
             shift
             trimAl="-t $1"
             ;;
+        --runPMSF)
+            ;&
+        -P)
+            runPMSF="--runPMSF"
+            ;;
         -*)
             ;&
         --*)
@@ -118,6 +123,7 @@ echo "suffix:           $suffix"           >&2
 echo "extension:        $extension"        >&2
 echo "previousAligner:  $previousAligner"  >&2
 echo "trimAl:           $trimAl"           >&2
+echo "runPMSF:          $runPMSF"          >&2
 echo "Note the script is copied to"        >&2
 echo "another place with another name"     >&2
 
@@ -149,7 +155,7 @@ abortIfJobIDsEmpty "$jobIDs" "step 9"
 echo $jobIDs
 
 # Schedule tree reconstruction, can only run when all alignments are ready
-"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" -W "depend=afterok$jobIDs" \
+"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration, runPMSF=$runPMSF" -W "depend=afterok$jobIDs" \
     "$DIR/Scheduler-10-RogueOptTree.sh"
 
 # Start held jobs

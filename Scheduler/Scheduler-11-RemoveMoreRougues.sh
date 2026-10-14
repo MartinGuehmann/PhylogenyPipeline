@@ -92,6 +92,11 @@ do
             shift
             trimAl="-t $1"
             ;;
+        --runPMSF)
+            ;&
+        -P)
+            runPMSF="--runPMSF"
+            ;;
         -*)
             ;&
         --*)
@@ -117,6 +122,7 @@ echo "suffix:           $suffix"           >&2
 echo "extension:        $extension"        >&2
 echo "previousAligner:  $previousAligner"  >&2
 echo "trimAl:           $trimAl"           >&2
+echo "runPMSF:          $runPMSF"          >&2
 echo "Note the script is copied to"        >&2
 echo "another place with another name"     >&2
 
@@ -173,7 +179,7 @@ then
 		previousAligner="-p $aligner.$oldSuffix"
 	fi
 
-	"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+	"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, numRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, runPMSF=$runPMSF" \
 	    "$DIR/Scheduler-09-RogueOptAlign.sh"
 	allSeqs=$oldAllSeqs
 	suffix=$oldSuffix
@@ -198,6 +204,18 @@ then
 	if (( numRoundsLeft <= 0 ))
 	then
 		echo "Num rounds left at $numRoundsLeft rounds left, in iteration $iteration" >&2
+		# This chain is genuinely done - iteration $iteration is its real,
+		# final round (not nextIteration, which was never built). runPMSF
+		# only ever arrives non-empty here for a gene's real, final branch
+		# - see Scheduler-16-TreeBuildScheduler.sh's own selective seeding
+		# (never threaded into comparison-round/other-aligner/outgroup-free
+		# chains) and the BigTreeN kickoff block above (always the real
+		# branch when it fires at all).
+		if [ -n "$runPMSF" ]
+		then
+			echo "runPMSF is set - launching step 18 (PMSF) on the final round (iteration $iteration)" >&2
+			"$DIR/Scheduler-18-RefineTreeWithPMSF.sh" -g "$gene" -i "$iteration" -a "$aligner" $suffix
+		fi
 		exit 0
 	else
 		echo "$numRoundsLeft more rounds to go, next iteration: $nextIteration" >&2
@@ -225,4 +243,4 @@ fi
 # This seems to be in the environment with Slurm
 # So set it to the empty string, since it should not be passed on
 previousAligner=""
-"$DIR/Scheduler-09-RogueOptAlign.sh" -g "$gene" -i "$nextIteration" -a "$aligner" -n "$numRoundsLeft" $bigTreeIteration $bigNumRoundsLeft $shuffleSeqs $allSeqs $suffix $extension $trimAl
+"$DIR/Scheduler-09-RogueOptAlign.sh" -g "$gene" -i "$nextIteration" -a "$aligner" -n "$numRoundsLeft" $bigTreeIteration $bigNumRoundsLeft $shuffleSeqs $allSeqs $suffix $extension $trimAl $runPMSF

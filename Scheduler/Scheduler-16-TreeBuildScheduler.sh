@@ -70,6 +70,11 @@ do
             shift
             trimAl="-t $1"
             ;;
+        --runPMSF)
+            ;&
+        -P)
+            runPMSF="--runPMSF"
+            ;;
         -*)
             ;&
         --*)
@@ -91,6 +96,7 @@ echo "bigNumRoundsLeft: $bigNumRoundsLeft" >&2
 echo "shuffleSeqs:      $shuffleSeqs"      >&2
 echo "extension:        $extension"        >&2
 echo "trimAl:           $trimAl"           >&2
+echo "runPMSF:          $runPMSF"          >&2
 echo "Note the script is copied to"        >&2
 echo "another place with another name"     >&2
 
@@ -246,11 +252,19 @@ then
 elif [ -n "$resumeIteration" ]
 then
 	remainingBigTreeRounds="$bigTreeNumRounds"
+	# runPMSF only ever applies to this BigTree0 chain when
+	# bigTreeIteration=="0" - that's the only case where BigTree0 *is*
+	# the gene's real, final result (otherwise it's just a one-shot
+	# seed round, superseded later by the real BigTree$bigTreeIteration
+	# branch Scheduler-11-RemoveMoreRougues.sh spins off on its own -
+	# see that script's own runPMSF handling).
+	bigTree0RunPMSF=""
 	if [ "$bigTreeIteration" == "0" ]
 	then
 		remainingBigTreeRounds=$((bigTreeNumRounds - resumeIteration))
+		bigTree0RunPMSF="$runPMSF"
 	fi
-	"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$remainingBigTreeRounds, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+	"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$remainingBigTreeRounds, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, runPMSF=$bigTree0RunPMSF" \
 	    "$DIR/Scheduler-09-RogueOptAlign.sh"
 else
 	echo "$aligner.BigTree0 already has a completed round - skipping" >&2
@@ -303,7 +317,7 @@ then
 		# by that loop reaching it, not resubmitted here, to avoid a
 		# premature/duplicate submission racing against it.
 		remainingBigTreeRounds=$((bigTreeLastIteration - resumeIteration))
-		"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$remainingBigTreeRounds, shuffleSeqs=$shuffleSeqs, allSeqs=--allSeqs, suffix=-x BigTree$bigTreeIteration, extension=$extension, trimAl=$trimAl" \
+		"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$remainingBigTreeRounds, shuffleSeqs=$shuffleSeqs, allSeqs=--allSeqs, suffix=-x BigTree$bigTreeIteration, extension=$extension, trimAl=$trimAl, runPMSF=$runPMSF" \
 		    "$DIR/Scheduler-09-RogueOptAlign.sh"
 	fi
 fi

@@ -105,6 +105,11 @@ do
         -o)
             overwrite="--overwrite"
             ;;
+        --runPMSF)
+            ;&
+        -P)
+            runPMSF="--runPMSF"
+            ;;
         -*)
             ;&
         --*)
@@ -132,6 +137,7 @@ echo "localNr:          $localNr"          >&2
 echo "localRefseqProtein: $localRefseqProtein" >&2
 echo "localTsaNr:       $localTsaNr"       >&2
 echo "overwrite:        $overwrite"        >&2
+echo "runPMSF:          $runPMSF"          >&2
 echo "Note the script is copied to"        >&2
 echo "another place with another name"     >&2
 
@@ -169,7 +175,7 @@ echo $jobIDs
 
 if [ "$continue" == "--continue" ]
 then
-	"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl, useFullDataset=$useFullDataset" -W "depend=afterok$jobIDs" \
+	"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, bigTreeIteration=$bigTreeIteration, aligner=$aligner, continue=$continue, numRoundsLeft=$numRoundsLeft, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, extension=$extension, trimAl=$trimAl, useFullDataset=$useFullDataset, runPMSF=$runPMSF" -W "depend=afterok$jobIDs" \
 	    "$DIR/Scheduler-13-ExtractSequencePreparation.sh"
 fi
 
