@@ -29,11 +29,13 @@ fi
 
 numTreads=$(nproc)
 
-# PMSF (posterior mean site frequency) refinement pass. Meant to be run
-# once, manually, on whichever single alignment+tree the user has
-# decided is a gene's final result (e.g. the last rogue-removal round)
-# - unlike step 10, this is never part of the automatic round-
-# resubmission chain (Scheduler-10-RogueOptTree.sh), see
+# PMSF (posterior mean site frequency) refinement pass. Run once on
+# whichever single alignment+tree is a gene's final result (e.g. the
+# last rogue-removal round) - either by hand, or automatically once a
+# gene's real round-loop chain finishes, gated by Config.sh's runPMSF
+# flag (added 2026-10-14; see Scheduler-11-RemoveMoreRougues.sh). Never
+# part of the automatic step 10/11/12 ROUND-RESUBMISSION chain itself
+# though (no PMSF round feeds back into another round) - see
 # 18_Scheduler-RefineTreeWithPMSF.sh's own header comment.
 #
 # -ft only uses $guideTree to build PMSF's site-frequency profile;
@@ -68,4 +70,21 @@ then
 fi
 
 rm -f "$iqtreeStderr"
+
+# 12_ConvertTreesToFigures.py's AlignmentData reads the tree file's
+# basename (via Python's os.path.splitext, which only strips the LAST
+# dot-extension) as the alignment file to load - for a PMSF tree
+# ("...phy.pmsf.treefile"), that naively resolves to "...phy.pmsf",
+# which never exists as a real file (the actual alignment is
+# "...phy", one extension further back - confirmed 2026-10-14 the hard
+# way, via a manual scratch-directory workaround, before automating
+# this symlink instead). A same-directory symlink with that exact name,
+# pointing at the real alignment, satisfies the lookup with no change
+# needed to the widely-used visualization script itself. Only created
+# on success - never for a failed/incomplete run.
+if [ $status -eq 0 ]
+then
+	ln -sf "$(basename "$inputAlignment")" "$inputAlignment.pmsf"
+fi
+
 exit $status

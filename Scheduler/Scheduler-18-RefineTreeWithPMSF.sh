@@ -133,6 +133,22 @@ abortIfJobIDsEmpty "$jobIDs" "step 18"
 echo $jobIDs
 holdJobs=$jobIDs
 
+# Visualize the PMSF tree once it's actually done - "pmsf.treefile" (not
+# "pmsf.contree", see this pipeline's own established preference) as the
+# -e extension makes 12_ConvertTreesToFigures.sh's own path derivation
+# land on exactly the right file (GetAlignmentBit.sh's alignment suffix
+# + ".pmsf.treefile" == the real filename - confirmed 2026-10-14 against
+# a real PMSF run). An afterok dependency on this specific attempt's
+# jobIDs, same pattern as Scheduler-10-RogueOptTree.sh's own step-12
+# submission: if this PMSF attempt times out and gets resubmitted (see
+# below), this particular step-12 job is auto-cancelled by Slurm
+# (--kill-on-invalid-dep=yes in Scheduler-Sub.sh) rather than running on
+# an incomplete tree - only the resubmission that actually finishes ever
+# lets its own step-12 follow-up through.
+visualizeJobIDs=$($DIR/Scheduler-Call.sh -g "$gene" -s "12" -i "$iteration" -a "$aligner" -d "$jobIDs" $suffix -e "pmsf.treefile" -u -M)
+abortIfJobIDsEmpty "$visualizeJobIDs" "step 12 (PMSF tree)"
+echo $visualizeJobIDs
+
 # Keep resubmitting after ourselves for as long as sacct can tell us the
 # predecessor was killed for walltime specifically (see the check
 # above). IQ-Tree's own checkpoint makes 18_RefineTreeWithPMSF.sh's
