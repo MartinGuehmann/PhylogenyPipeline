@@ -113,6 +113,21 @@ fi
 # PBS/Torque (see Scheduler-GetArrayIndex.sh), which wouldn't set that.
 node=$(hostname)
 
+# raxml-ng's amino-acid alphabet doesn't recognize selenocysteine (U) -
+# confirmed 2026-10-16 on a real NuclearReceptors chunk (KAE8745575.1
+# "Dissatisfaction" [Frankliniella occidentalis], a genuine orphan
+# nuclear receptor ortholog, not an off-target hit), which raxml-ng
+# --check rejected outright ("Invalid character in sequence ...: U")
+# instead of tolerating it the way it tolerates other ambiguous codes
+# (X/B/Z). Unlike the two failure modes in the retry loop below, this
+# isn't transient - the bad character is genuinely in the data every
+# time, so retrying changes nothing. Replace with X (the standard
+# "unknown residue" code) on sequence lines only, before raxml-ng ever
+# sees this file - header lines are left untouched since they can
+# legitimately contain the letter U in ordinary English text (e.g. a
+# species or protein name).
+awk '/^>/ { print; next } { gsub(/U/, "X"); print }' "$alignmentFile" > "$alignmentFile.tmp" && mv "$alignmentFile.tmp" "$alignmentFile"
+
 for attempt in 1 2
 do
 	rm -f "$reducedAlignmentFile" "$alignmentFile.raxml.log"
