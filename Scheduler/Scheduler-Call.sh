@@ -127,6 +127,12 @@ do
             shift
             extension="-e $1"
             ;;
+        --masterExtension)
+            ;&
+        -E)
+            shift
+            masterExtension="-E $1"
+            ;;
         --previousAligner)
             ;&
         -p)
@@ -372,7 +378,7 @@ case $step in
 	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, shuffleSeqs=$shuffleSeqs, suffix=$suffix, previousAligner=$previousAligner, restore=$restore" "$DIR/11_Scheduler-RemoveRogues.sh")
 	;;
 12)
-	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, suffix=$suffix, masterAligner=$masterAligner, masterSuffix=$masterSuffix, extension=$extension, update=$update, updateBig=$updateBig, inputDir=$inputDir, ignoreIfMasterFileDoesNotExist=$ignoreIfMasterFileDoesNotExist" "$DIR/12_Scheduler-ConvertTreesToFigures.sh")
+	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$iteration, aligner=$aligner, suffix=$suffix, masterAligner=$masterAligner, masterSuffix=$masterSuffix, extension=$extension, masterExtension=$masterExtension, update=$update, updateBig=$updateBig, inputDir=$inputDir, ignoreIfMasterFileDoesNotExist=$ignoreIfMasterFileDoesNotExist" "$DIR/12_Scheduler-ConvertTreesToFigures.sh")
 	;;
 13)
 	jobIDs+=:$("$DIR/Scheduler-Sub.sh" $hold $depend $exclude -g "$gene" -v "DIR=$DIR, gene=$gene, overwrite=$overwrite" "$DIR/13_Scheduler-SplitNonRedundantSequences.sh")

@@ -1071,11 +1071,25 @@ def assignCladeNameToCenterLeaf(node, cladeName):
 		counter += 1
 
 ###############################################################################
+# Separate from assignCladeNameToCenterLeaf: that one is for the ete3 PDF
+# rendering, where a single centered label per clade is correct and
+# putting one on every leaf would just be visual clutter. Archaeopteryx
+# is different - its own clade-membership counting only tallies nodes
+# that actually carry the "cladeName" property, so a center-leaf-only
+# annotation makes Archaeopteryx report a clade of size 1 instead of its
+# real size. Kept as a distinct feature name (not overwriting .cladeName)
+# so the two uses never interfere with each other.
+def assignCladeNameToAllLeaves(node, cladeName):
+	for leaf in node.iter_leaves():
+		leaf.archaeopteryxCladeName = cladeName
+
+###############################################################################
 def colorAndNameClades(tree, clades):
 	colorNodes(tree, "Black", "White")
 	for clade in clades:
 
 		assignCladeNameToCenterLeaf(clade.rootNode, clade.name)
+		assignCladeNameToAllLeaves(clade.rootNode, clade.name)
 		colorNodes(clade.rootNode, clade.forgroundColor, clade.backgroundColor)
 
 ###############################################################################
@@ -1110,10 +1124,23 @@ def saveFullTreeAsPhyloXML(eteTree, outFile):
 	# done below, carries both correctly - verified on a synthetic tree.
 	def buildPhyloXMLClade(eteNode):
 		properties = []
-		cladeName = getattr(eteNode, "cladeName", None)
-		if cladeName:
-			properties.append(PhyloXMLProperty(value=cladeName, ref="PhylogenyPipeline:cladeName", applies_to="clade", datatype="xsd:string"))
+		# archaeopteryxCladeName (assignCladeNameToAllLeaves), not .cladeName
+		# (assignCladeNameToCenterLeaf, the ete3-PDF-only single-leaf
+		# label) - Archaeopteryx's own clade-counting feature tallies every
+		# node carrying this property, so every member leaf needs it, not
+		# just one representative.
+		archaeopteryxCladeName = getattr(eteNode, "archaeopteryxCladeName", None)
+		if archaeopteryxCladeName:
+			properties.append(PhyloXMLProperty(value=archaeopteryxCladeName, ref="PhylogenyPipeline:cladeName", applies_to="clade", datatype="xsd:string"))
 
+		# A matching "PhylogenyPipeline:cladeColor" property was tried
+		# here too (2026-10-16) but removed the same day: confirmed
+		# against real Archaeopteryx that its "color by annotation"
+		# feature always auto-assigns colors per distinct group from its
+		# own palette - it never reads a color value out of a property,
+		# so the property was inert data with no actual effect. The
+		# native color= below (branch color) is unaffected and already
+		# confirmed working correctly.
 		color = getattr(eteNode, "cladeColor", None)
 		rgb = tuple(round(c * 255) for c in mcolors.to_rgb(color)) if color is not None else None
 

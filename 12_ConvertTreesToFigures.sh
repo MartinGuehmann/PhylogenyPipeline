@@ -17,6 +17,17 @@
 #     The extension of the Newick tree files, for instance
 #     "tre", which is used by PASTA, alternatives
 #     are "contree" (default) and "treefile", which are used by IQ-Tree
+#  --masterExtension (-E) <TreeFileExtension>
+#     Like --masterAligner/--masterSuffix, but for the master tree's own
+#     extension - defaults to whatever --extension is given. Needed
+#     whenever the current round's tree extension genuinely doesn't
+#     exist for the master (baseIteration) round too, e.g. step 18's
+#     PMSF refinement: only one specific already-final round ever gets a
+#     ".pmsf.treefile", never baseIteration, so the master lookup needs
+#     its own ordinary ".treefile" instead (confirmed 2026-10-16 -
+#     without this, the master-tree existence check always fails for a
+#     PMSF-refined round, exiting before producing any output at all,
+#     even with --ignoreIfMasterFileDoesNotExist silently "succeeding").
 #  --suffix (-x) <SuffixForAlignmentDirectory>
 #     The suffix use for alignment and sequence directories,
 #     this allows to rerun the data processing, without having
@@ -134,6 +145,12 @@ do
             shift
             extension="$1"
             ;;
+        --masterExtension)
+            ;&
+        -E)
+            shift
+            masterExtension="$1"
+            ;;
         --suffix)
             ;&
         -x)
@@ -207,6 +224,11 @@ then
 	masterSuffix="$suffix"
 fi
 
+if [[ -z "$masterExtension" ]]
+then
+	masterExtension="$extension"
+fi
+
 # Get the names of the input files, first for the master tree
 
 # Use the input directory if supplied
@@ -231,6 +253,9 @@ masterAlignmentExtension=""
 if [ "$extension" != "tre" ]
 then
 	alignmentExtension=$("$DIR/GetAlignmentBit.sh" -a "$aligner")
+fi
+if [ "$masterExtension" != "tre" ]
+then
 	masterAlignmentExtension=$("$DIR/GetAlignmentBit.sh" -a "$masterAligner")
 fi
 
@@ -244,11 +269,11 @@ fi
 
 cladeBase=$(basename "$cladeFile" ".csv")
 
-inputTree="$firstAlignmentDir/SequencesOfInterest$masterAlignmentExtension.$extension"
-inputTreeBase=$(basename "$inputTree" ".$extension")
+inputTree="$firstAlignmentDir/SequencesOfInterest$masterAlignmentExtension.$masterExtension"
+inputTreeBase=$(basename "$inputTree" ".$masterExtension")
 inputTreeDir=$(dirname "$inputTree")
 
-cladeTreeFile="$inputTreeDir/$inputTreeBase.$extension.$cladeBase.cladeTrees"
+cladeTreeFile="$inputTreeDir/$inputTreeBase.$masterExtension.$cladeBase.cladeTrees"
 
 # Check whether the master tree file already exists, if not fail
 # Fail gracefully if the according option is set, this might
@@ -267,6 +292,7 @@ then
 		echo "--aliner $aligner" >&2
 		echo "--masterAliner $masterAligner" >&2
 		echo "--extension $extension" >&2
+		echo "--masterExtension $masterExtension" >&2
 		echo "--suffix $suffix" >&2
 		echo "--masterSuffix $masterSuffix" >&2
 		echo "--cladeFile $cladeFile" >&2
@@ -315,7 +341,7 @@ then
 	python3 "$DIR/12_ConvertTreesToFigures.py" -m -i "$inputTree" -c "$cladeFile" -f "$seqConfigFile" "$interestingTaxaArg" "$interestingTaxa" "$aaFileArg" "$aaFile" "$additionalTaxaArg" "$additionalTaxa"
 
 	# Make a png version of the full tree
-	pdf2png "$inputTreeDir/$inputTreeBase.$extension.$cladeBase.fullTree"
+	pdf2png "$inputTreeDir/$inputTreeBase.$masterExtension.$cladeBase.fullTree"
 else
 	echo "Skipping $inputTree - $cladeTreeFile already exists (pass -U/--updateBig to force)." >&2
 fi

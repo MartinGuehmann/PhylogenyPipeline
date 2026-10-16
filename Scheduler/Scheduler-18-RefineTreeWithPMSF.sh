@@ -136,16 +136,26 @@ holdJobs=$jobIDs
 # Visualize the PMSF tree once it's actually done - "pmsf.treefile" (not
 # "pmsf.contree", see this pipeline's own established preference) as the
 # -e extension makes 12_ConvertTreesToFigures.sh's own path derivation
-# land on exactly the right file (GetAlignmentBit.sh's alignment suffix
-# + ".pmsf.treefile" == the real filename - confirmed 2026-10-14 against
-# a real PMSF run). An afterok dependency on this specific attempt's
-# jobIDs, same pattern as Scheduler-10-RogueOptTree.sh's own step-12
-# submission: if this PMSF attempt times out and gets resubmitted (see
-# below), this particular step-12 job is auto-cancelled by Slurm
-# (--kill-on-invalid-dep=yes in Scheduler-Sub.sh) rather than running on
-# an incomplete tree - only the resubmission that actually finishes ever
-# lets its own step-12 follow-up through.
-visualizeJobIDs=$($DIR/Scheduler-Call.sh -g "$gene" -s "12" -i "$iteration" -a "$aligner" -d "$jobIDs" $suffix -e "pmsf.treefile" -u -M)
+# land on exactly the right file for the CURRENT round (GetAlignmentBit.sh's
+# alignment suffix + ".pmsf.treefile" == the real filename - confirmed
+# 2026-10-14 against a real PMSF run). That alone isn't enough, though:
+# this script's own "-e" also used to control the MASTER (baseIteration)
+# tree lookup, which PMSF never touches - no gene ever builds a
+# ".pmsf.treefile" at baseIteration, so that lookup always failed and,
+# with -M silently swallowing the failure, step 12 quietly produced
+# nothing at all for a PMSF round until this was caught and fixed
+# 2026-10-16. -E pins the master lookup back to the ordinary
+# ".treefile" (the one baseIteration really has) while -e stays on the
+# current round's real ".pmsf.treefile".
+#
+# An afterok dependency on this specific attempt's jobIDs, same pattern
+# as Scheduler-10-RogueOptTree.sh's own step-12 submission: if this PMSF
+# attempt times out and gets resubmitted (see below), this particular
+# step-12 job is auto-cancelled by Slurm (--kill-on-invalid-dep=yes in
+# Scheduler-Sub.sh) rather than running on an incomplete tree - only the
+# resubmission that actually finishes ever lets its own step-12
+# follow-up through.
+visualizeJobIDs=$($DIR/Scheduler-Call.sh -g "$gene" -s "12" -i "$iteration" -a "$aligner" -d "$jobIDs" $suffix -e "pmsf.treefile" -E "treefile" -u -M)
 abortIfJobIDsEmpty "$visualizeJobIDs" "step 12 (PMSF tree)"
 echo $visualizeJobIDs
 

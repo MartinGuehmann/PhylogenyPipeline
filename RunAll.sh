@@ -87,6 +87,12 @@ do
             shift
             extension="-e $1"
             ;;
+        --masterExtension)
+            ;&
+        -E)
+            shift
+            masterExtension="-E $1"
+            ;;
         --previousAligner)
             ;&
         -p)
@@ -403,7 +409,7 @@ case $step in
 	;;
 12)
 	echo "12. Visualise trees." >&2
-	if ! "$DIR/12a_ConvertTreesToFiguresForAllClades.sh" -g "$gene" -i "$iteration" -a "$aligner" $baseIteration $masterAligner $inputDir $suffix $masterSuffix $extension $update $updateBig $ignoreIfMasterFileDoesNotExist
+	if ! "$DIR/12a_ConvertTreesToFiguresForAllClades.sh" -g "$gene" -i "$iteration" -a "$aligner" $baseIteration $masterAligner $inputDir $suffix $masterSuffix $extension $masterExtension $update $updateBig $ignoreIfMasterFileDoesNotExist
 	then
 		echo "12. Failed to visualise trees." >&2
 		exit 1

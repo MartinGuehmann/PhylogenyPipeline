@@ -17,6 +17,10 @@
 #     The extension of the Newick tree files, for instance
 #     "tre", which is used by PASTA, alternatives
 #     are "contree" (default) and "treefile", which are used by IQ-Tree
+#  --masterExtension (-E) <TreeFileExtension>
+#     Like --masterAligner/--masterSuffix, but for the master tree's own
+#     extension - see 12_ConvertTreesToFigures.sh's own comment on this
+#     flag for why it can differ from --extension.
 #  --suffix (-x) <SuffixForAlignmentDirectory>
 #     The suffix use for alignment and sequence directories,
 #     this allows to rerun the data processing, without having
@@ -104,6 +108,12 @@ do
             shift
             extension="-e $1"
             ;;
+        --masterExtension)
+            ;&
+        -E)
+            shift
+            masterExtension="-E $1"
+            ;;
         --suffix)
             ;&
         -x)
@@ -152,5 +162,5 @@ fi
 
 for cladeFile in "$DIR/$gene/"*"Clades.csv"
 do
-	"$DIR/12_ConvertTreesToFigures.sh" -g "$gene" -c "$cladeFile" $iteration $aligner $baseIteration $masterAligner $inputDir $suffix $masterSuffix $extension $update $updateBig $ignoreIfMasterFileDoesNotExist
+	"$DIR/12_ConvertTreesToFigures.sh" -g "$gene" -c "$cladeFile" $iteration $aligner $baseIteration $masterAligner $inputDir $suffix $masterSuffix $extension $masterExtension $update $updateBig $ignoreIfMasterFileDoesNotExist
 done
