@@ -57,7 +57,16 @@ mkdir -p $workDir
 # Let's see whether J-replacement is needed MAGUS
 #sed -e '/^>/!s/J/L/g' \
 #    -e '/^>/!s/j/l/g' \
-sed -e 's/[],[]//g' \
+# {}: confirmed 2026-10-19 on a real Renins header ("pepsinogen III
+# {N-terminal}") - MAGUS's own internal Newick parser (dendropy) chokes
+# on a literal '{' in a label ("Expecting ':', ')', ',' or ';' ... but
+# found '{'"), aborting that chunk's alignment entirely. Only MAGUS has
+# this problem (it's the only aligner that builds its own internal
+# guide tree from these raw headers before this pipeline's own
+# post-alignment sanitization in 09a_PostProcessAlignment.sh ever runs),
+# so fixed narrowly here rather than earlier in the pipeline for every
+# aligner.
+sed -e 's/[],[{}]//g' \
     -e 's/[);(]//g' \
     -e "s/[']//g" \
     -e "s/[&]//g" \
