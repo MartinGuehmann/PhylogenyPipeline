@@ -207,8 +207,13 @@ do
 				hadError="true"
 			elif [ -n "$resumeIteration" ]
 			then
-				"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$usedAligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$otherAlignerAllSeqs, suffix=$otherAlignerSuffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
-				    "$DIR/Scheduler-09-RogueOptAlign.sh"
+				if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$usedAligner" $otherAlignerResumeSuffixArg
+				then
+					echo "$usedAligner's matching round is already running on the cluster - not submitting a duplicate" >&2
+				else
+					"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$usedAligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$otherAlignerAllSeqs, suffix=$otherAlignerSuffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+					    "$DIR/Scheduler-09-RogueOptAlign.sh"
+				fi
 			else
 				echo "$usedAligner already has a completed round - skipping" >&2
 			fi
@@ -264,8 +269,13 @@ then
 		remainingBigTreeRounds=$((bigTreeNumRounds - resumeIteration))
 		bigTree0RunPMSF="$runPMSF"
 	fi
-	"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$remainingBigTreeRounds, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, runPMSF=$bigTree0RunPMSF" \
-	    "$DIR/Scheduler-09-RogueOptAlign.sh"
+	if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner" -x "BigTree0"
+	then
+		echo "$aligner.BigTree0 is already running on the cluster - not submitting a duplicate" >&2
+	else
+		"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$remainingBigTreeRounds, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, runPMSF=$bigTree0RunPMSF" \
+		    "$DIR/Scheduler-09-RogueOptAlign.sh"
+	fi
 else
 	echo "$aligner.BigTree0 already has a completed round - skipping" >&2
 fi
@@ -317,8 +327,13 @@ then
 		# by that loop reaching it, not resubmitted here, to avoid a
 		# premature/duplicate submission racing against it.
 		remainingBigTreeRounds=$((bigTreeLastIteration - resumeIteration))
-		"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$remainingBigTreeRounds, shuffleSeqs=$shuffleSeqs, allSeqs=--allSeqs, suffix=-x BigTree$bigTreeIteration, extension=$extension, trimAl=$trimAl, runPMSF=$runPMSF" \
-		    "$DIR/Scheduler-09-RogueOptAlign.sh"
+		if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner" -x "BigTree$bigTreeIteration"
+		then
+			echo "$aligner.BigTree$bigTreeIteration is already running on the cluster - not submitting a duplicate" >&2
+		else
+			"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$remainingBigTreeRounds, shuffleSeqs=$shuffleSeqs, allSeqs=--allSeqs, suffix=-x BigTree$bigTreeIteration, extension=$extension, trimAl=$trimAl, runPMSF=$runPMSF" \
+			    "$DIR/Scheduler-09-RogueOptAlign.sh"
+		fi
 	fi
 fi
 
@@ -349,15 +364,27 @@ then
 	# Not covered by the resume-check above: GetSequencesOfInterestDirectory.sh
 	# resolves the path from previousAligner alone once it's set, ignoring
 	# aligner/suffix entirely - left as an unconditional restart rather than
-	# risk an unverified resume check here.
-	"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=0, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
-	    "$DIR/Scheduler-09-RogueOptAlign.sh"
+	# risk an unverified resume check here. IsRoundRunning.sh is still
+	# worth checking even without that filesystem-based resume check, to
+	# avoid colliding with this exact round if it's already live.
+	if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner" -x "${suffix#-x }"
+	then
+		echo "$aligner.${suffix#-x } is already running on the cluster - not submitting a duplicate" >&2
+	else
+		"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=0, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+		    "$DIR/Scheduler-09-RogueOptAlign.sh"
+	fi
 
 	allSeqs=""
 	suffix="-x $(basename $gene)"
 	# Make also small trees with the main aligner and without outgroup
-	"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=0, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
-	    "$DIR/Scheduler-09-RogueOptAlign.sh"
+	if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner" -x "${suffix#-x }"
+	then
+		echo "$aligner.${suffix#-x } is already running on the cluster - not submitting a duplicate" >&2
+	else
+		"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=0, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+		    "$DIR/Scheduler-09-RogueOptAlign.sh"
+	fi
 else
 	echo "No reduced dataset in $geneOnlyDataSet" >&2
 	echo "Skipping" >&2
@@ -393,8 +420,13 @@ else
 	elif [ -n "$resumeIteration" ]
 	then
 		remainingRounds=$((numRoundsLeft - resumeIteration))
-		"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$remainingRounds, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" \
-		    "$DIR/Scheduler-09-RogueOptAlign.sh"
+		if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner"
+		then
+			echo "$aligner's regular loop is already running on the cluster - not submitting a duplicate" >&2
+		else
+			"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$remainingRounds, bigNumRoundsLeft=$bigNumRoundsLeft, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl, bigTreeIteration=$bigTreeIteration" \
+			    "$DIR/Scheduler-09-RogueOptAlign.sh"
+		fi
 	else
 		echo "$aligner's regular loop already completed all $numRoundsLeft rounds - skipping" >&2
 	fi
@@ -432,8 +464,13 @@ then
 	hadError="true"
 elif [ -n "$resumeIteration" ]
 then
-	"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
-	    "$DIR/Scheduler-09-RogueOptAlign.sh"
+	if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner" -x "${suffix#-x }"
+	then
+		echo "$aligner.${suffix#-x } is already running on the cluster - not submitting a duplicate" >&2
+	else
+		"$DIR/Scheduler-Sub.sh" -g "$gene" -v "DIR=$DIR, gene=$gene, iteration=$resumeIteration, aligner=$aligner, numRoundsLeft=$numRoundsLeftZero, shuffleSeqs=$shuffleSeqs, allSeqs=$allSeqs, suffix=$suffix, extension=$extension, previousAligner=$previousAligner, trimAl=$trimAl" \
+		    "$DIR/Scheduler-09-RogueOptAlign.sh"
+	fi
 else
 	echo "$aligner.${suffix#-x } already has a completed round - skipping" >&2
 fi
