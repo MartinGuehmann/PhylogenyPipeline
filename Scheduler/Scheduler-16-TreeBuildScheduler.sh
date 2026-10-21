@@ -361,13 +361,31 @@ then
 	# correctly used the basename.
 	previousAligner="-p $(basename $gene)"
 	# Make a big tree with the main aligner and without outgroup
-	# Not covered by the resume-check above: GetSequencesOfInterestDirectory.sh
-	# resolves the path from previousAligner alone once it's set, ignoring
-	# aligner/suffix entirely - left as an unconditional restart rather than
-	# risk an unverified resume check here. IsRoundRunning.sh is still
-	# worth checking even without that filesystem-based resume check, to
-	# avoid colliding with this exact round if it's already live.
-	if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner" -x "${suffix#-x }" >/dev/null
+	#
+	# The resume check below deliberately omits previousAligner (unlike
+	# the submission itself, right above, which needs it to find this
+	# round's special iteration-0 input): GetResumeIteration.sh only ever
+	# asks GetSequencesOfInterestDirectory.sh for iteration 1's own
+	# output marker here (-m 0), and that always lives under
+	# "$aligner$suffix" regardless of where iteration 0's input came from
+	# - previousAligner only overrides that path (ignoring aligner/suffix
+	# entirely) when it's actually passed through, so simply not passing
+	# it here sidesteps the quirk instead of tripping over it. Confirmed
+	# 2026-10-21 against a real completed round
+	# (SequencesOfInterest/FAMSA.PeptideReceptors/RogueIter_1/Statistics.txt)
+	# - this branch used to unconditionally redo both of its rounds on
+	# every restart regardless of completion, overwriting already-
+	# finished output (with shuffleSeqs on, not even reproducibly).
+	resumeIteration=$("$DIR/../GetResumeIteration.sh" -g "$gene" -a "$aligner" -x "${suffix#-x }" -m 0)
+	resumeStatus=$?
+	if [ $resumeStatus -ne 0 ]
+	then
+		echo "GetResumeIteration.sh failed (exit $resumeStatus) for $aligner.${suffix#-x } - not submitting" >&2
+		hadError="true"
+	elif [ -z "$resumeIteration" ]
+	then
+		echo "$aligner.${suffix#-x } already has a completed round - skipping" >&2
+	elif "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner" -x "${suffix#-x }" >/dev/null
 	then
 		echo "$aligner.${suffix#-x } is already running on the cluster - not submitting a duplicate" >&2
 	else
@@ -377,8 +395,18 @@ then
 
 	allSeqs=""
 	suffix="-x $(basename $gene)"
-	# Make also small trees with the main aligner and without outgroup
-	if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner" -x "${suffix#-x }" >/dev/null
+	# Make also small trees with the main aligner and without outgroup -
+	# same resume-check reasoning as just above.
+	resumeIteration=$("$DIR/../GetResumeIteration.sh" -g "$gene" -a "$aligner" -x "${suffix#-x }" -m 0)
+	resumeStatus=$?
+	if [ $resumeStatus -ne 0 ]
+	then
+		echo "GetResumeIteration.sh failed (exit $resumeStatus) for $aligner.${suffix#-x } - not submitting" >&2
+		hadError="true"
+	elif [ -z "$resumeIteration" ]
+	then
+		echo "$aligner.${suffix#-x } already has a completed round - skipping" >&2
+	elif "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner" -x "${suffix#-x }" >/dev/null
 	then
 		echo "$aligner.${suffix#-x } is already running on the cluster - not submitting a duplicate" >&2
 	else
