@@ -207,7 +207,7 @@ do
 				hadError="true"
 			elif [ -n "$resumeIteration" ]
 			then
-				if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$usedAligner" $otherAlignerResumeSuffixArg
+				if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$usedAligner" $otherAlignerResumeSuffixArg >/dev/null
 				then
 					echo "$usedAligner's matching round is already running on the cluster - not submitting a duplicate" >&2
 				else
@@ -269,7 +269,7 @@ then
 		remainingBigTreeRounds=$((bigTreeNumRounds - resumeIteration))
 		bigTree0RunPMSF="$runPMSF"
 	fi
-	if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner" -x "BigTree0"
+	if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner" -x "BigTree0" >/dev/null
 	then
 		echo "$aligner.BigTree0 is already running on the cluster - not submitting a duplicate" >&2
 	else
@@ -327,7 +327,7 @@ then
 		# by that loop reaching it, not resubmitted here, to avoid a
 		# premature/duplicate submission racing against it.
 		remainingBigTreeRounds=$((bigTreeLastIteration - resumeIteration))
-		if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner" -x "BigTree$bigTreeIteration"
+		if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner" -x "BigTree$bigTreeIteration" >/dev/null
 		then
 			echo "$aligner.BigTree$bigTreeIteration is already running on the cluster - not submitting a duplicate" >&2
 		else
@@ -367,7 +367,7 @@ then
 	# risk an unverified resume check here. IsRoundRunning.sh is still
 	# worth checking even without that filesystem-based resume check, to
 	# avoid colliding with this exact round if it's already live.
-	if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner" -x "${suffix#-x }"
+	if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner" -x "${suffix#-x }" >/dev/null
 	then
 		echo "$aligner.${suffix#-x } is already running on the cluster - not submitting a duplicate" >&2
 	else
@@ -378,7 +378,7 @@ then
 	allSeqs=""
 	suffix="-x $(basename $gene)"
 	# Make also small trees with the main aligner and without outgroup
-	if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner" -x "${suffix#-x }"
+	if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner" -x "${suffix#-x }" >/dev/null
 	then
 		echo "$aligner.${suffix#-x } is already running on the cluster - not submitting a duplicate" >&2
 	else
@@ -420,7 +420,7 @@ else
 	elif [ -n "$resumeIteration" ]
 	then
 		remainingRounds=$((numRoundsLeft - resumeIteration))
-		if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner"
+		if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner" >/dev/null
 		then
 			echo "$aligner's regular loop is already running on the cluster - not submitting a duplicate" >&2
 		else
@@ -464,7 +464,7 @@ then
 	hadError="true"
 elif [ -n "$resumeIteration" ]
 then
-	if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner" -x "${suffix#-x }"
+	if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner" -x "${suffix#-x }" >/dev/null
 	then
 		echo "$aligner.${suffix#-x } is already running on the cluster - not submitting a duplicate" >&2
 	else
