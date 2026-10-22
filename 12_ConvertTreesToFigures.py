@@ -1187,6 +1187,22 @@ def saveFullTreeAsPhyloXML(eteTree, outFile):
 # leaves/page this pipeline's own pruning chunks use) - per-page load
 # time turned out not to scale down with fewer leaves/page the way
 # tested, so more pages was a pure loss, not a tradeoff.
+#
+# An alternative was tried and rejected 2026-10-22: rasterizing each
+# paginated page to PNG (needed anyway for pdf2png()'s own existing
+# >2-billion-pixel failure on one giant page - this DOES fix that, each
+# page converts cleanly at a real, correctly-sized resolution instead of
+# a degenerate 1x1 PNG) and then re-merging those 30 PNGs back into a
+# single PDF. Real-world tested (not just measured): the merged file was
+# 2.27 GB for the same 30-page, 24156-leaf tree, Okular was noticeably
+# slower at high magnification than the vector version (expected -
+# zooming a raster image means re-rendering a huge bitmap, not just
+# re-scaling vector paths), and 600 DPI still wasn't even high enough
+# resolution to be genuinely usable at that zoom level - fixing that
+# would only make the file larger still. Not worth it: keep PDF pages as
+# real vector content (this function) wherever possible: only rasterize
+# (pdf2png(), called separately, once per paginated page) where a
+# non-PDF image format is specifically required downstream.
 def paginatePDF(pdfPath, numPages=30):
 	paginatedPath = pdfPath[:-4] + ".paginated.pdf" if pdfPath.endswith(".pdf") else pdfPath + ".paginated.pdf"
 	src = fitz.open(pdfPath)
