@@ -948,10 +948,16 @@
           # A python3 with ete3 and 12_ConvertTreesToFigures.py's other
           # non-stdlib deps merged into its own site-packages, so that a
           # bare `python3 script.py` - not just ete3's own console script
-          # - can `import ete3` (and Bio, pandas, matplotlib, logomaker).
-          # This, not the `ete3` package above directly, is what goes
-          # into the devShell.
-          pythonWithEte3 = pkgs.python3.withPackages (ps: [ ete3 py.biopython py.pandas py.matplotlib logomaker ]);
+          # - can `import ete3` (and Bio, pandas, matplotlib, logomaker,
+          # fitz). This, not the `ete3` package above directly, is what
+          # goes into the devShell.
+          #
+          # py.pymupdf (imported as `fitz`, its old/still-current import
+          # name) added 2026-10-22 for paginatePDF() - a standard
+          # nixpkgs package, confirmed present via `nix eval
+          # nixpkgs#python3Packages.pymupdf.pname`, no custom derivation
+          # needed the way ete3/logomaker above required.
+          pythonWithEte3 = pkgs.python3.withPackages (ps: [ ete3 py.biopython py.pandas py.matplotlib logomaker py.pymupdf ]);
 
           # NCBI's BLAST+ 2.10.0 introduced a network-service "dispatcher"
           # (Service/dispd.cgi) for -remote queries that does not work
