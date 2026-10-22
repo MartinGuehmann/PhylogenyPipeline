@@ -1,7 +1,7 @@
 #!/bin/python3
 
 from ete3 import Tree, NexmlTree, nexml, faces, AttrFace, TextFace, RectFace, SeqMotifFace, PieChartFace, TreeStyle, NodeStyle
-import fitz  # PyMuPDF - only used to paginate the full-detail tree PDF, see paginatePDF()
+from PdfPagination import paginatePDF
 import csv
 from inspect import getmembers
 from Bio import AlignIO, Align, Phylo
@@ -1166,61 +1166,6 @@ def saveFullTreeAsPhyloXML(eteTree, outFile):
 	with open(outFile, "w") as realOutFile:
 		realOutFile.write('<?xml version="1.0" encoding="UTF-8"?>\n')
 		realOutFile.write(xmlBuffer.getvalue())
-
-###############################################################################
-# The full-detail tree PDF is one giant single page (ete3/Qt has no
-# pagination of its own) - for a gene with thousands of leaves this is
-# valid and has real searchable text (confirmed 2026-10-22), but slow
-# for a PDF viewer to open/navigate: Okular took 16.4s just to rasterize
-# a 24156-leaf, 9.25MB real example, and scrolling/zooming a single huge
-# page is noticeably worse than flipping between pages.
-#
-# This slices that already-rendered PDF into a fixed number of pages as
-# pure post-processing - no changes to ete3's own rendering, no need to
-# re-run anything upstream. show_pdf_page(..., clip=...) copies the
-# ORIGINAL page's real vector content for just that clipped region, so
-# pagination does not rasterize anything or lose the real/searchable
-# text. A fixed PAGE COUNT (not a fixed leaves-per-page) is used
-# deliberately: tested both against a real 24156-leaf tree and a fixed,
-# coarser page count (30) measured faster per-page load in both Okular
-# and MuPDF than a finer one (162, approximating the same ~150
-# leaves/page this pipeline's own pruning chunks use) - per-page load
-# time turned out not to scale down with fewer leaves/page the way
-# tested, so more pages was a pure loss, not a tradeoff.
-#
-# An alternative was tried and rejected 2026-10-22: rasterizing each
-# paginated page to PNG (needed anyway for pdf2png()'s own existing
-# >2-billion-pixel failure on one giant page - this DOES fix that, each
-# page converts cleanly at a real, correctly-sized resolution instead of
-# a degenerate 1x1 PNG) and then re-merging those 30 PNGs back into a
-# single PDF. Real-world tested (not just measured): the merged file was
-# 2.27 GB for the same 30-page, 24156-leaf tree, Okular was noticeably
-# slower at high magnification than the vector version (expected -
-# zooming a raster image means re-rendering a huge bitmap, not just
-# re-scaling vector paths), and 600 DPI still wasn't even high enough
-# resolution to be genuinely usable at that zoom level - fixing that
-# would only make the file larger still. Not worth it: keep PDF pages as
-# real vector content (this function) wherever possible: only rasterize
-# (pdf2png(), called separately, once per paginated page) where a
-# non-PDF image format is specifically required downstream.
-def paginatePDF(pdfPath, numPages=30):
-	paginatedPath = pdfPath[:-4] + ".paginated.pdf" if pdfPath.endswith(".pdf") else pdfPath + ".paginated.pdf"
-	src = fitz.open(pdfPath)
-	page = src[0]
-	rect = page.rect
-	sliceHeight = rect.height / numPages
-
-	out = fitz.open()
-	for i in range(numPages):
-		y0 = i * sliceHeight
-		y1 = min((i + 1) * sliceHeight, rect.height)
-		clip = fitz.Rect(rect.x0, y0, rect.x1, y1)
-		newPage = out.new_page(width=rect.width, height=y1 - y0)
-		newPage.show_pdf_page(newPage.rect, src, 0, clip=clip)
-
-	out.save(paginatedPath)
-	out.close()
-	src.close()
 
 ###############################################################################
 def saveCladesAsTrees(tree, clades, outputFile):
