@@ -244,6 +244,38 @@ importable package and merged into its own `python3` via
 they resolve through the Nix devShell (or `module load`/base-folder
 installs, if you're not using the flake).
 
+## Tree visualization utilities
+
+`12_ConvertTreesToFigures.py`'s full-detail tree PDF is one giant single
+page (ete3/Qt has no pagination of its own), which is valid and has real
+searchable text but is slow for a PDF viewer to open/navigate once a
+gene's tree has thousands of leaves. For any tree with >=200 leaves, step
+12 automatically also writes a second file next to the usual
+`*.fullTree.pdf`: `*.fullTree.paginated.pdf`, sliced into a fixed number
+of pages (`PdfPagination.py`'s `paginatePDF()`) as pure post-processing -
+the original PDF's real vector content is copied into page-sized clips,
+nothing is re-rendered or rasterized. This also fixes a real, separate
+bug: `pdf2png()`'s PNG conversion of one of these giant single-page PDFs
+can silently fail to a degenerate 1x1 PNG once a page needs more than
+~2 billion pixels at the target DPI - converting the paginated pages
+individually avoids that.
+
+Generating PNGs from these trees at a resolution high enough to actually
+be useful (confirmed 2026-10-22: ~221MB for one 24156-leaf tree's 30
+pages at 1200 DPI) is deliberately *not* part of the automatic pipeline -
+every gene repo auto-commits its own output, and that much data per tree,
+across 8 gene repos with multiple rounds/aligners/comparison trees each,
+adds up fast against GitHub's 10GB-per-repo limit. `GenerateHighResTreePNGs.py`
+does this instead as a manual, local-only tool, never invoked by any
+Scheduler/step script - run it by hand against a `*.fullTree.pdf` you've
+pulled onto your own machine, pointing `--out-dir` somewhere outside any
+git-tracked repo:
+
+	python3 GenerateHighResTreePNGs.py <fullTree.pdf> [--pages N] [--dpi N] --out-dir DIR
+
+See that script's own header comment, and `PdfPagination.py`'s, for the
+full reasoning and the numbers behind the defaults (30 pages, 1200 DPI).
+
 ## Gene Data Repositories
 
 The pipeline scripts build paths as `$DIR/$gene/...`, where `$DIR` is this
