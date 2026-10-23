@@ -256,6 +256,38 @@ practical shared data source for ggtree at real scale - just not via
 `treeio::read.phyloxml()`. "One export feeds both Archaeopteryx and
 ggtree" is viable after all, using this hybrid reader.
 
+## Wired in cladeColor + tested at Mas1's full scale (2026-10-23)
+
+`cladeColor` (added to `buildPhyloXMLClade()` the same day, as a second
+`<property>` alongside `cladeName` - safe for this directory's own xml2
+reader even though a second `<property>` is exactly what made treeio's
+reader hang, see above) is now read the same way as `cladeName` and
+used directly via `scale_color_identity()` - the render uses the
+pipeline's own already-chosen curated colors, not a separately
+re-derived ggplot palette, matching the real production PDF's own
+palette exactly.
+
+Mas1 had no phyloXML export yet (predates the feature) - generated a
+real one locally by importing `12_ConvertTreesToFigures.py` and calling
+its actual pre-render functions directly (`loadTaxa`, `loadCladeInfo`,
+`initialReroot`, `cladifyNodes`, `nameCladeRoots`, `colorAndNameClades`,
+`saveFullTreeAsPhyloXML`), skipping only the Qt-dependent PDF rendering
+and alignment-sorting steps - same technique used for earlier synthetic
+test files, just now against Mas1's real 24156-leaf tree and real
+61-clade `Clades.csv`, not synthetic data.
+
+**Full Mas1 scale (24156 leaves, the largest real completed tree in
+this pipeline): 0.28s Newick parse + 1.7s XML extraction + 113.7s
+render = ~116s total.** Matches the very first ggtree prototype's
+original "well under 2 minutes" benchmark from before any of the
+treeio complications - now achieved reading the pipeline's own real
+exported data, not a separate taxonomy-reclassification step. Visual
+result confirmed correct: real curated clade colors from Mas1's own
+`Clades.csv`, with large black regions being the pipeline's own genuine
+"no clade defined yet" background color (not a fallback artifact) -
+exactly the diagnostic view useful for deciding where to carve out new
+clades.
+
 ## Known rough edges
 
 - `na.value = NA` (as opposed to a real color like `"grey70"`) crashes
