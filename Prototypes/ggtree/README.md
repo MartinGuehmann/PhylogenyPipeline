@@ -288,6 +288,166 @@ result confirmed correct: real curated clade colors from Mas1's own
 exactly the diagnostic view useful for deciding where to carve out new
 clades.
 
+**Clade labels added same day, placed to match
+`assignCladeNameToCenterLeaf()` exactly** (confirmed by reading its
+source, not guessed): that function labels the leaf at position
+floor(n/2) in ete3's `iter_leaves()` order, not the clade's MRCA/root.
+First version used `tidytree::MRCA()` (an internal node) - user caught
+that this didn't match the pipeline's own convention. Fixed by sorting
+each clade's member tips by their plotted `y` position (ggtree's tip
+order follows the same left-to-right traversal as ete3's, same source
+topology) and picking the middle one - a real leaf, not an internal
+node. Also turned out faster: 108.8s vs 195s at full Mas1 scale (61
+labels) - `MRCA()` was apparently the slow part, not
+`geom_text_repel()`.
+
+**Labels moved outside the tree entirely, same day** - user feedback:
+labels anchored right at the center leaf's own position still
+overlapped tree branches. In this circular layout `x` is literally the
+radial distance from center and `y` is the angular/tip-index position -
+not Cartesian coordinates (confirmed directly: a test tree's `p$data$x`
+ranged 0-42, i.e. tree depth, and `y` ranged 1-Ntip; the depth->radius /
+index->angle transform happens at render time via ggtree's own
+coordinate system, shared by every layer on the plot). So pushing a
+label outward is just a larger `x` at the same `y` - no trigonometry
+needed. Each label now sits at a fixed outer radius
+(`max(x) * 1.1`), connected back to its real center-leaf anchor by a
+straight radial `geom_segment`. Confirmed clean at full Mas1 scale (61
+labels, ~112s total) - no overlap with the tree, only minor leader-line
+crossing in the single densest region (the MRGPRX cluster).
+
+**Still crossed into the tree in some spots - fixed properly, same day.**
+User kept catching real remaining cases. Root causes, found by actually
+checking the data rather than guessing twice more:
+
+1. First attempt added `xlim = c(outerX, NA)` to `geom_text_repel()`
+   alone - verified numerically (via `ggplot_build()`) that this
+   correctly clamps the label's data-space x (radius) to never go below
+   `outerX`, so the ANCHOR point is always genuinely outside the tree.
+   But `geom_text_repel` renders text horizontally regardless of where
+   around the circle it sits - on the left half of the circle, text
+   growing rightward from a correctly-outside anchor still grows back
+   toward the center. ggtree's own `geom_tiplab_circular()` (read its
+   source directly) already solves exactly this: flip `hjust` to 1
+   whenever `angle` (a column ggtree already computes in `p$data`, 0-360
+   degrees) is in `[90, 270]`.
+2. hjust-only still weren't enough - confirmed on real labels sitting at
+   ~220-245 degrees (diagonal, not purely leftward/rightward): even
+   correctly-leftward-growing horizontal text still has a vertical
+   extent that crosses into the tree at angles far from exactly 180.
+   `geom_tiplab_circular()`'s full convention also rotates the text
+   itself to the local radial angle (`angle` as-is on the right half,
+   `angle + 180` on the left half, so it stays upright) - confirmed
+   `geom_text_repel` actually supports a rotated `angle` aesthetic via
+   an isolated test first, then applied the same full rotation + hjust
+   combination here.
+
+Confirmed clean at full Mas1 scale after both fixes: every one of the
+61 labels reads radially outward, correctly oriented, with no crossing
+into the tree anywhere around the full circle - residual overlap is
+now only label-vs-label text crowding in the single densest cluster
+(a much smaller, separate problem from labels entering the tree).
+
+**Still one label visibly wrong (Somatostatin receptor 1/SSTR1) - fixed
+for real this time, with the actual root cause identified precisely by
+the user rather than more guessing.** Isolated testing of SSTR1's exact
+real data (angle, hjust, rotation - all directly from the production
+pipeline) confirmed the rotation FORMULA itself was correct even for
+this specific clade; the bug was elsewhere. User's own diagnosis,
+verified directly against the code, was exactly right: "There is a kink
+in the connecting line inward... The rotation would be right if it were
+at its intended place. One other thing is that the connecting line goes
+to the top of the label box, instead to the front or to the back
+depending on rotation." Root cause: `geom_text_repel()`'s own
+auto-drawn connector always reaches a fixed point on the text's
+UNROTATED bounding box - it ignores the `angle` aesthetic entirely, so
+once text is rotated that auto-segment reaches the wrong corner,
+producing a visible kink. The same rotation-blindness also affects
+ggrepel's internal collision/placement math, letting a label's anchor
+drift inward from `outerX` even under `xlim = c(outerX, NA)` (a
+constraint, not an exact value). Fixed two ways: `segment.color = NA`
+suppresses ggrepel's own broken connector entirely (the `geom_segment()`
+drawn separately, a plain point-to-point line, is immune to this since
+it never needs to find a "side" of a box), and `xlim = c(outerX,
+outerX)` (both bounds the same exact value, not just a minimum) removes
+any room for radial drift - only the tangential/angular position is
+ever adjusted to declutter now. Confirmed clean on the real SSTR1 clade
+and the full Mas1 render afterward.
+
+**One more real issue found after that, with the connector itself, not
+the label position.** User's own precise diagnosis: "the connecting
+line goes to the top of the label box, instead to the front or to the
+back depending on rotation" - and read `ggrepel::makeTextRepelGrobs()`'s
+actual source directly to understand it precisely rather than guessing
+a third time. Confirmed: the text's own position/rotation (`x_adj`/
+`y_adj` in that function) DOES correctly account for hjust/vjust/angle
+- that part was never broken. The connector is separate: it picks the
+nearest point on the text's AXIS-ALIGNED bounding box (`grobX`/`grobY`
+"west"/"east"/"south"/"north" - literal compass directions, not "front"/
+"back" of the reading direction) to the label's ORIGINAL, pre-repel
+anchor - no public parameter lets you override which side gets chosen.
+Tried letting ggrepel's own connector draw anyway (removing
+`segment.color = NA`): confirmed worse, not better - a heavily-repelled
+label's connector could pick a far corner and draw a long diagonal line
+straight across several unrelated labels' text (seen on the real Mas1
+render, "Kappa opioid receptor" cutting across "Somatostatin receptor
+1" and others).
+
+Fixed properly with a two-pass build: suppress ggrepel's own connector
+(`segment.color = NA`) and manually draw a clean point-to-point
+`geom_segment()` instead - but using each label's REAL final (post-
+repel) position, not its original pre-repel anchor (a plain manually-
+drawn segment at the original position was the earlier, previously-
+reported "not connected... quite off" symptom, since repel is still
+free to move labels tangentially to declutter and a static segment
+doesn't track that). Extracted the real final positions via one extra
+`ggplot_build()` call before adding that segment layer and saving -
+confirmed row order stays stable against `geom_text_repel()`'s own
+position adjustment (checked a known label's row against its expected
+values). Surprisingly cheap in practice: ~113s total at full Mas1
+scale, barely more than the single-pass version, not the roughly-double
+time a second full build might suggest. Confirmed clean on the real
+SSTR1 region and the full circle: every connector is now a straight
+line from the real leaf to its label, correctly tracking repel's
+tangential adjustments, with no kinks and no stray diagonals crossing
+through unrelated labels anywhere.
+
+**That still wasn't the end of it - user caught "half inside the tree"
+on the same label, a real bug in a different layer entirely.** Traced
+to `ggplot_build()` only reporting `geom_text_repel()`'s position/repel
+ALGORITHM output (confirmed unchanged, exactly `outerX`) - the actual
+RENDERED glyphs get shifted again, later, inside
+`makeTextRepelGrobs()`'s own grob-building step, by roughly half the
+string's rendered width (implementing hjust). That later shift never
+goes through `ggplot_build()`, so the two-pass connector fix above never
+saw it and never respected the locked radius. First attempt: calibrate
+real native-units-per-point empirically (render two tiny reference
+labels at known radii on the bare tree, read back their true printed
+position via `pdftotext -bbox`), then compute each label's own
+`grid::stringWidth()`-based half-width and shift its anchor outward to
+compensate - technically sound, but overly complex. A direct side-by-side
+test (same string, same `x`/`y`/`hjust`/`angle`/locked radius) isolated
+the real cause more precisely: plain `geom_text()` rendered entirely
+outside the tree with NO compensation needed at all; `geom_text_repel()`
+visibly bled into it. So the width-offset is not a general hjust/rotation
+property to correct for - it's specific to `geom_text_repel()`'s own
+drawing step.
+
+**Final, much simpler architecture**: stop asking `geom_text_repel()` to
+draw anything at all (`color = NA`). Only use it for what it's genuinely
+good at - finding good angular (y) spacing to declutter dense clusters,
+with the radius locked via `xlim = c(outerX, outerX)` as before. Extract
+the repelled y via one `ggplot_build()` call, then draw the actual
+visible text with plain `geom_text()` at a fixed radius/hjust/angle - no
+per-label width compensation needed, deterministic, immune to whatever
+`geom_text_repel()`'s internal grob-drawing math does. Confirmed clean
+on the real SSTR1 clade and the full Mas1 render: no labels crossing
+into the tree anywhere around the full circle. Remaining text-on-text
+crowding in the one or two densest clusters (e.g. "Complement C3a
+receptor" overlapping its neighbor) is the separate, already-accepted
+label-density limitation from earlier in this section - not the same
+bug.
+
 ## Known rough edges
 
 - `na.value = NA` (as opposed to a real color like `"grey70"`) crashes

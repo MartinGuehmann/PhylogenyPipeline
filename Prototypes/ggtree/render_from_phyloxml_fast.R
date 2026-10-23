@@ -35,6 +35,8 @@ library(ape)
 library(ggtree)
 library(ggplot2)
 library(dplyr)
+library(ggrepel)
+library(tidytree)
 
 args <- commandArgs(trailingOnly = TRUE)
 treefilePath <- args[1]
@@ -78,6 +80,109 @@ phyGrouped <- groupOTU(phy, groups)
 
 p <- ggtree(phyGrouped, layout = "circular", branch.length = "none", size = 0.3, aes(color = group)) +
 	scale_color_identity()
+
+# Label each curated clade at its CENTER LEAF's plotted position, matching
+# 12_ConvertTreesToFigures.py's own assignCladeNameToCenterLeaf() exactly
+# (confirmed by reading its source, not guessed): that function places the
+# label on the leaf at position floor(n/2) in ete3's iter_leaves() order,
+# not the clade's MRCA/root. ggtree's plotted tip "y" position follows the
+# same left-to-right leaf order as ete3's traversal (same source topology),
+# so sorting a clade's member tips by "y" and picking the middle one is the
+# exact R equivalent - not an MRCA (an internal node, which for a
+# non-monophyletic or lopsided clade can land visually off-center from
+# where the clade's own leaves actually sit, unlike a real member leaf).
+cladeNameGroups <- split(leafData$label, leafData$cladeName)
+cladeNameGroups[["Unclassified"]] <- NULL
+
+treeData <- p$data
+centerLeafRows <- lapply(names(cladeNameGroups), function(g) {
+	tips <- cladeNameGroups[[g]]
+	tipRows <- treeData[treeData$label %in% tips, c("y", "x", "angle")]
+	tipRows <- tipRows[order(tipRows$y), ]
+	centerRow <- tipRows[floor(nrow(tipRows) / 2) + 1, ]
+	if (nrow(centerRow) == 1) data.frame(cladeName = g, xAnchor = centerRow$x, y = centerRow$y, angle = centerRow$angle) else NULL
+})
+labelPoints <- do.call(rbind, centerLeafRows)
+
+# geom_text_repel draws text horizontally by default, so on the LEFT
+# half of the circle text growing rightward from its anchor grows back
+# toward the center, straight into the tree, even though the anchor
+# itself is safely outside it (user feedback 2026-10-23). hjust alone
+# (flipping growth direction left/right) isn't enough either - confirmed
+# on real labels at ~220-245 degrees (diagonal, not purely leftward):
+# horizontal text still has a vertical extent that crosses into the tree
+# at angles far from exactly 180. The real fix needs actual rotation too
+# - same full convention ggtree:::geom_tiplab_circular() uses internally
+# for its own circular tip labels (confirmed by reading its source, and
+# confirmed geom_text_repel does support a rotated "angle" aesthetic via
+# an isolated test): rotate text to the local radial angle (+180 on the
+# left half, so it stays upright and readable instead of upside-down),
+# combined with the same hjust flip.
+labelPoints$textAngle <- ifelse(labelPoints$angle >= 90 & labelPoints$angle <= 270, labelPoints$angle + 180, labelPoints$angle)
+labelPoints$hjust <- ifelse(labelPoints$angle >= 90 & labelPoints$angle <= 270, 1, 0)
+
+# Push labels to a fixed radius outside the tree entirely, rather than
+# right at the center leaf's own position (user feedback 2026-10-23:
+# labels were overlapping tree branches). In this circular layout "x" IS
+# the radial distance from center and "y" IS the angular/tip-index
+# position - not literal Cartesian coordinates (confirmed by checking
+# p$data directly: x ranges 0-42 for a tree with ~42 depth units, y
+# ranges 1-Ntip; the depth->radius / index->angle transform happens at
+# render time via ggtree's own coordinate system, shared by every layer
+# on this plot) - so moving a label outward is just a larger x at the
+# SAME y, no trigonometry needed. A straight radial segment (same y,
+# different x) connects each label back to its real center-leaf anchor.
+outerX <- max(treeData$x, na.rm = TRUE) * 1.1
+labelPoints$x <- outerX
+
+# geom_text_repel's OWN drawing step (not its position/repel algorithm,
+# which is fine) applies an internal hjust/angle-based offset that
+# shifts the ACTUAL rendered glyphs away from the point ggplot_build()
+# reports - confirmed directly 2026-10-23 with a side-by-side test:
+# plain geom_text() and geom_text_repel(), same string, same (x,y),
+# same hjust/angle, same xlim-locked radius - geom_text() rendered
+# entirely outside the tree, geom_text_repel() visibly bled into it
+# ("half inside the tree" per direct user report). This isn't a
+# per-label width problem to compensate for (an earlier, more
+# complicated attempt computed each label's own half-width via
+# grid::stringWidth() and a calibrated native-units-per-point factor -
+# unnecessary once this was isolated directly to geom_text_repel()
+# itself, not a general hjust/rotation property).
+#
+# Fix: stop using geom_text_repel() to draw anything at all. Only use
+# it to find good ANGULAR (y) spacing between labels - genuinely useful
+# for that - then draw the actual VISIBLE text with plain geom_text()
+# at a fixed radius, hjust, and angle: deterministic, and immune to
+# whatever geom_text_repel()'s own drawing step does internally.
+repelLayer <- geom_text_repel(
+	data = labelPoints,
+	aes(x = x, y = y, label = cladeName, hjust = hjust, angle = textAngle),
+	color = NA, size = 2.2, fontface = "bold", max.overlaps = Inf,
+	segment.color = NA, min.segment.length = 0, box.padding = 0.5,
+	# Defaults (force=1, force_pull=1, max.time=0.5s) left some real
+	# overlap unresolved in the densest cluster - stronger push-apart
+	# force, weaker pull back toward the original anchor, and more
+	# time/iterations to actually converge.
+	force = 4, force_pull = 0.5, max.iter = 10000, max.time = 10,
+	# Locks the radius exactly (not just a minimum) so repel's only
+	# remaining freedom is the angular/y position - the one thing it's
+	# actually needed for here.
+	xlim = c(outerX, outerX)
+)
+builtForY <- ggplot_build(p + repelLayer)
+labelPoints$yFinal <- builtForY$data[[length(builtForY$data)]]$y
+
+p <- p +
+	geom_segment(
+		data = labelPoints,
+		aes(x = xAnchor, y = y, xend = x, yend = yFinal), color = "grey50",
+		linewidth = 0.2, inherit.aes = FALSE
+	) +
+	geom_text(
+		data = labelPoints,
+		aes(x = x, y = yFinal, label = cladeName, hjust = hjust, angle = textAngle),
+		color = "black", size = 2.2, fontface = "bold", inherit.aes = FALSE
+	)
 
 ggsave(outFile, p, width = 25, height = 25, units = "cm", limitsize = FALSE)
 cat("  ", as.numeric(Sys.time() - t0, units = "secs"), "s\n")
