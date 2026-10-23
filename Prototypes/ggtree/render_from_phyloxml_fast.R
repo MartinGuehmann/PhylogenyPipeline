@@ -234,10 +234,18 @@ for (i in seq_len(nrow(labelPoints))[-1]) {
 	}
 }
 
+# A few points of visual gap between the connector's end and the text's
+# own start/end - without this the line runs right up to the first/last
+# glyph (user feedback 2026-10-23). Native-unit equivalent of a few
+# points, using the already-calibrated pointsPerNativeUnit - the segment
+# stops this much short of outerX; the text itself still anchors exactly
+# at outerX, same for every label regardless of hjust direction.
+segmentGapNative <- 3 / pointsPerNativeUnit
+
 p <- p +
 	geom_segment(
 		data = labelPoints,
-		aes(x = xAnchor, y = y, xend = x, yend = yFinal), color = "grey50",
+		aes(x = xAnchor, y = y, xend = x - segmentGapNative, yend = yFinal), color = "grey50",
 		linewidth = 0.2, inherit.aes = FALSE
 	) +
 	geom_text(

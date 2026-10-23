@@ -512,6 +512,14 @@ MRGPRX1/X3/X4, GPER1/Apelin/GPR15, the P2RY12/GPR18/CLTR1/CLTR2 run)
 plus no page-edge clipping. No known remaining issues as of this
 writing. Now three full tree renders total (~210s at Mas1 scale).
 
+**Minor polish, same day:** the connector line ran right up to a
+label's first/last glyph with no visual gap - `segmentGapNative` (a few
+points, converted via the same `pointsPerNativeUnit` calibration) pulls
+the line's end back slightly short of `outerX` while the text itself
+still anchors exactly at `outerX`, same for every label regardless of
+`hjust` direction. Confirmed at full Mas1 scale: a clear, modest gap
+everywhere, no regressions elsewhere.
+
 ## Known rough edges
 
 - `na.value = NA` (as opposed to a real color like `"grey70"`) crashes
