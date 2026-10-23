@@ -57,6 +57,10 @@ aminoAcidColorMap       = {}
 aminoAcidTreeColorMap   = {}
 taxonColorMap           = {}
 genusInterestingTaxaMap = {}
+# Only for genera 12b_InstallSpeciesDatabase.sh found ambiguous (a real
+# animal/plant/etc. homonym - same genus name, different kingdom) - see
+# addHigherTaxaOfInterest()'s own comment for why this exists.
+speciesInterestingTaxaMap = {}
 
 # Global variable (not nice, but the easy way)
 taxonPercentsFile = None
@@ -1139,11 +1143,34 @@ def saveFullTreeAsPhyloXML(eteTree, outFile):
 		# against real Archaeopteryx that its "color by annotation"
 		# feature always auto-assigns colors per distinct group from its
 		# own palette - it never reads a color value out of a property,
-		# so the property was inert data with no actual effect. The
-		# native color= below (branch color) is unaffected and already
-		# confirmed working correctly.
+		# so the property was inert data with no actual effect there.
+		# The native color= below (branch color) is unaffected and
+		# already confirmed working correctly in Archaeopteryx.
+		#
+		# Re-added 2026-10-22 for a different consumer: R/ggtree (via
+		# treeio::read.phyloxml()) is a second real use for this same
+		# phyloXML file (see Prototypes/ggtree/README.md), and treeio's
+		# own color parsing has a confirmed bug - its internal
+		# extract_another() deduplicates a <color> element's red/green/
+		# blue children BY VALUE, not by name (res[!duplicated(res)]),
+		# silently dropping any channel whose number matches an earlier
+		# one on the same node. Verified: cyan (0,255,255) loses blue,
+		# reads back as green (0,255,0) - confirmed on the real PRRs
+		# fullTree.xml, where this hits 665 of 2200 colored nodes (any
+		# color with two matching channels - common: cyan, pure red/
+		# green/blue, darkgreen, limegreen, brown, ...). A second,
+		# single-valued <property> sibling doesn't hit this bug (each
+		# <property> is parsed independently via its own lapply() call,
+		# never combined with color's three values before the
+		# duplicated() check) - confirmed via an isolated two-property
+		# test file. So this property is inert for Archaeopteryx (same
+		# as before) but is the real, bug-free color source for R/
+		# ggtree, which should read this instead of reconstructing color
+		# from the native <color> element's red/green/blue.
 		color = getattr(eteNode, "cladeColor", None)
 		rgb = tuple(round(c * 255) for c in mcolors.to_rgb(color)) if color is not None else None
+		if color is not None:
+			properties.append(PhyloXMLProperty(value=mcolors.to_hex(color), ref="PhylogenyPipeline:cladeColor", applies_to="clade", datatype="xsd:string"))
 
 		phyloXMLClade = PhyloXMLClade(name=(eteNode.name or None), branch_length=eteNode.dist, color=rgb, properties=properties)
 		phyloXMLClade.clades = [buildPhyloXMLClade(child) for child in eteNode.children]
@@ -1494,6 +1521,33 @@ def loadTaxa(iterestingTaxa, additionalTaxa):
 				if checkString in splitLine[2]:
 					genusInterestingTaxaMap[splitLine[1]] = taxon
 
+	# Genus names are not unique across kingdoms (confirmed 2026-10-23: real
+	# vertebrates like Echinops telfairi, a tenrec, and Morus bassanus, a
+	# gannet, were misclassified as Viridiplantae purely because "Echinops"
+	# and "Morus" are also plant genera) - genusInterestingTaxaMap above has
+	# no collision handling, so on a true homonym whichever GenusLinage.csv
+	# row happens to be read last silently wins. SpeciesLinage.csv (built by
+	# 12b_InstallSpeciesDatabase.sh, same source data as GenusLinage.csv,
+	# just not excluding multi-word names) only covers the genera that
+	# actually need disambiguating, so this load is the same shape/cost as
+	# the genus one above, not a full species database.
+	speciesDatabase = os.path.join(SCRIPT_DIR, "SpeciesDatabase", "SpeciesLinage.csv")
+	if os.path.isfile(speciesDatabase):
+		f = open(speciesDatabase, 'rt')
+
+		while True:
+			line = f.readline()
+			if not line:
+				break
+
+			splitLine = line.split("\t")
+
+			for taxon in taxonColorMap:
+				if taxonColorMap[taxon].entryType == type_regular:
+					checkString = " " + taxon + ";"
+					if checkString in splitLine[2]:
+						speciesInterestingTaxaMap[splitLine[1]] = taxon
+
 	if additionalTaxa == "":
 		return
 
@@ -1520,6 +1574,24 @@ def addHigherTaxaOfInterest(tree):
 
 	for leaf in tree.iter_leaves():
 		nameSplit = leaf.name.split("_")
+
+		# Species-level check first, tried at every adjacent token pair (not
+		# a fixed position) so it still finds the real binomial regardless of
+		# where qualifiers like "LOW_QUALITY_PROTEIN" or "isoform_X2" sit in
+		# the header. speciesInterestingTaxaMap only has entries for genera
+		# 12b_InstallSpeciesDatabase.sh found ambiguous, so this is a no-op
+		# lookup (empty dict, or key not present) for the vast majority of
+		# leaves - same genus-only result and cost as before.
+		foundSpeciesMatch = False
+		for i in range(len(nameSplit) - 1):
+			binomial = nameSplit[i] + " " + nameSplit[i + 1]
+			if binomial in speciesInterestingTaxaMap:
+				leaf.taxonOfInterest = speciesInterestingTaxaMap[binomial]
+				foundSpeciesMatch = True
+				break
+		if foundSpeciesMatch:
+			continue
+
 		for string in nameSplit:
 			if string in genusInterestingTaxaMap:
 				leaf.taxonOfInterest = genusInterestingTaxaMap[string]

@@ -17,6 +17,8 @@ speciesDatabase="$DIR/SpeciesDatabase"
 genusLinagesRaw="$speciesDatabase/rankedlineage.dmp"
 genusLinagesFull="$speciesDatabase/fullnamelineage.dmp"
 genusLinages="$speciesDatabase/GenusLinage.csv"
+speciesLinages="$speciesDatabase/SpeciesLinage.csv"
+ambiguousGenera="$speciesDatabase/AmbiguousGenera.txt"
 taxonIDs="$speciesDatabase/TaxonIds.txt"
 
 mkdir -p "$speciesDatabase"
@@ -43,4 +45,40 @@ then
 	sed -E "/^[0-9]+	\|	[a-zA-Z]+ .*$/d" $genusLinagesFull | \
 	sed -E "s/	\|//g" | \
 	sed -E "s/ $//g" > "$genusLinages"
+fi
+
+# Genus names are not unique across kingdoms (botanical and zoological
+# nomenclature codes are independent, so e.g. "Morus" is both a bird genus
+# and the mulberry genus) - genusInterestingTaxaMap in
+# 12_ConvertTreesToFigures.py only keys by genus, so on a collision whichever
+# row happens to be read last from this file silently wins. Confirmed
+# 2026-10-23 against a real tree: real vertebrates (a tenrec, a gannet, a
+# night monkey, ...) were misclassified as Viridiplantae this way.
+#
+# Fix: also keep full binomial (genus+species) entries from the SAME
+# already-downloaded fullnamelineage.dmp - normally excluded by the sed
+# above - but ONLY for genera that are actually ambiguous (>1 distinct taxID
+# row in GenusLinage.csv). This targets just the ~1355 genera that need it
+# instead of keeping all ~2.7M species-level rows, so the result
+# (SpeciesLinage.csv) stays about the same size as GenusLinage.csv itself
+# (confirmed 2026-10-23: 131,222 lines vs GenusLinage.csv's 169,519) rather
+# than the 872MB fullnamelineage.dmp this is drawn from.
+if [[ ! -f "$ambiguousGenera" ]]
+then
+	awk -F'\t' '{print $2}' "$genusLinages" | sort | uniq -d > "$ambiguousGenera"
+fi
+
+if [[ ! -f "$speciesLinages" ]]
+then
+	awk -F'\t' '
+		NR==FNR { ambiguous[$1] = 1; next }
+		{
+			split($3, words, " ")
+			if (words[1] in ambiguous && words[2] != "") {
+				print
+			}
+		}
+	' "$ambiguousGenera" "$genusLinagesFull" | \
+	sed -E "s/	\|//g" | \
+	sed -E "s/ $//g" > "$speciesLinages"
 fi
