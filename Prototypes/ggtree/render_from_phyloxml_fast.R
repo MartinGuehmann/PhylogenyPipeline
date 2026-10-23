@@ -35,8 +35,6 @@ library(ape)
 library(ggtree)
 library(ggplot2)
 library(dplyr)
-library(ggrepel)
-library(tidytree)
 
 args <- commandArgs(trailingOnly = TRUE)
 treefilePath <- args[1]
@@ -149,28 +147,67 @@ labelPoints$x <- outerX
 # unnecessary once this was isolated directly to geom_text_repel()
 # itself, not a general hjust/rotation property).
 #
-# Fix: stop using geom_text_repel() to draw anything at all. Only use
-# it to find good ANGULAR (y) spacing between labels - genuinely useful
-# for that - then draw the actual VISIBLE text with plain geom_text()
-# at a fixed radius, hjust, and angle: deterministic, and immune to
-# whatever geom_text_repel()'s own drawing step does internally.
-repelLayer <- geom_text_repel(
-	data = labelPoints,
-	aes(x = x, y = y, label = cladeName, hjust = hjust, angle = textAngle),
-	color = NA, size = 2.2, fontface = "bold", max.overlaps = Inf,
-	segment.color = NA, min.segment.length = 0, box.padding = 0.5,
-	# Defaults (force=1, force_pull=1, max.time=0.5s) left some real
-	# overlap unresolved in the densest cluster - stronger push-apart
-	# force, weaker pull back toward the original anchor, and more
-	# time/iterations to actually converge.
-	force = 4, force_pull = 0.5, max.iter = 10000, max.time = 10,
-	# Locks the radius exactly (not just a minimum) so repel's only
-	# remaining freedom is the angular/y position - the one thing it's
-	# actually needed for here.
-	xlim = c(outerX, outerX)
-)
-builtForY <- ggplot_build(p + repelLayer)
-labelPoints$yFinal <- builtForY$data[[length(builtForY$data)]]$y
+# geom_text_repel's own COLLISION DETECTION also turned out unreliable
+# here, not just its drawing: confirmed directly on a real pair of
+# single-leaf clades (adjacent tips, y 1 apart out of 24156 total) that
+# were still fully overlapping after this fix - geom_text_repel left
+# their y completely unchanged (converged in 0.18s, having apparently
+# decided - wrongly - that nothing needed to move). Root cause is
+# consistent with everything else found in this section: its
+# axis-aligned, rotation-blind bounding-box math, applied inside this
+# extreme-aspect-ratio (radius ~0-110 vs angle ~1-24156) coordinate
+# system, doesn't reliably detect true overlap of rotated text either.
+#
+# Fix: stop relying on geom_text_repel for y-spacing too - compute it
+# directly instead. Labels are rotated to read radially, so the
+# dimension that matters for two ADJACENT labels (different y, same
+# radius) not overlapping is each label's own FONT HEIGHT in the
+# angular/y direction, not its string length (which only matters
+# radially, already handled by pushing every label to the same fixed
+# outerX). Font height is the same constant for every label here (one
+# fixed font size), so the fix is a simple, deterministic sweep: sort by
+# y, and whenever two consecutive labels are closer than one
+# font-height's worth of arc length, push the later one out by the
+# shortfall - a standard, reliable technique for circular label
+# placement, not dependent on force-simulation convergence at all.
+#
+# "One font-height's worth of arc length", in y-units, needs: (a) the
+# true physical radius of outerX in points - calibrated empirically via
+# two tiny reference labels at known radii on the bare tree, read back
+# via pdftotext -bbox (same technique tried earlier for the width
+# problem - confirmed accurate there, and confirmed thrown off if any
+# oversized/overflowing text is in the SAME calibration plot, so this
+# stays a separate, tree-only render); and (b) degrees-per-y-unit,
+# computed directly from this tree's own real angle/y data rather than
+# assumed, in case of any "open angle" gap in the circular layout.
+calibTip <- treeData[!is.na(treeData$label) & !is.na(treeData$angle), ]
+calibTip <- calibTip[which.min(abs(calibTip$angle - 0)), ]
+calibData <- data.frame(x = c(1, max(treeData$x, na.rm = TRUE)), y = calibTip$y, label = c("A", "B"))
+calibPlot <- p + geom_text(data = calibData, aes(x = x, y = y, label = label), hjust = 0.5, angle = 0, size = 2.2, fontface = "bold", inherit.aes = FALSE)
+calibFile <- tempfile(fileext = ".pdf")
+ggsave(calibFile, calibPlot, width = 25, height = 25, units = "cm")
+calibText <- system2("pdftotext", c("-bbox", calibFile, "-"), stdout = TRUE)
+calibRows <- grep(">A<|>B<", calibText, value = TRUE)
+extractCenter <- function(row) {
+	nums <- as.numeric(regmatches(row, gregexpr("[0-9.]+", row))[[1]])
+	mean(c(nums[1], nums[3]))
+}
+pointsPerNativeUnit <- (extractCenter(calibRows[2]) - extractCenter(calibRows[1])) / (max(treeData$x, na.rm = TRUE) - 1)
+unlink(calibFile)
+physicalRadiusPoints <- outerX * pointsPerNativeUnit
+
+fontSizePoints <- 2.2 * (72.27 / 25.4) # ggplot2's own mm-to-points "size" convention
+fontHeightPoints <- grid::convertHeight(grid::stringHeight("Mg"), "points", valueOnly = TRUE) * fontSizePoints / 12 * 1.4 # +40% line-height-style margin so labels aren't touching
+neededYSeparation <- (fontHeightPoints / physicalRadiusPoints) * (180 / pi) / (diff(range(treeData$angle, na.rm = TRUE)) / diff(range(treeData$y, na.rm = TRUE)))
+cat("calibration: needed y-separation between labels =", neededYSeparation, "\n")
+
+labelPoints <- labelPoints[order(labelPoints$y), ]
+labelPoints$yFinal <- labelPoints$y
+for (i in seq_len(nrow(labelPoints))[-1]) {
+	if (labelPoints$yFinal[i] - labelPoints$yFinal[i - 1] < neededYSeparation) {
+		labelPoints$yFinal[i] <- labelPoints$yFinal[i - 1] + neededYSeparation
+	}
+}
 
 p <- p +
 	geom_segment(

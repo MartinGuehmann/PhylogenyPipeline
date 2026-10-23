@@ -448,6 +448,40 @@ receptor" overlapping its neighbor) is the separate, already-accepted
 label-density limitation from earlier in this section - not the same
 bug.
 
+**That remaining crowding turned out fixable too - confirmed
+geom_text_repel's own collision DETECTION is unreliable here, not just
+its drawing.** Direct test on the real worst case (two adjacent
+single-leaf clades, "C5AR1-like" and "Complement C3a receptor", y 1
+apart out of 24156 total): `geom_text_repel()` left their y completely
+unchanged (converged in 0.18s, having concluded - wrongly - that
+nothing needed to move). Consistent with the same axis-aligned,
+rotation-blind bounding-box math found everywhere else in this
+investigation, now confirmed to affect overlap detection too, not just
+drawing and raw positioning.
+
+Replaced with a direct, deterministic calculation instead of trying to
+tune `geom_text_repel()` further. Labels are rotated to read radially,
+so the dimension that matters for two ADJACENT labels not overlapping
+is each one's own font HEIGHT in the angular/y direction (not string
+length, which only matters radially and is already handled by the
+fixed outerX radius) - the same constant for every label here, since
+they all share one font size. That reduces the whole problem to: sort
+labels by y, and whenever two consecutive ones are closer than one
+font-height's worth of arc length, push the later one out by the
+shortfall. Needed two real calibrated quantities, not assumed values:
+the true physical radius of outerX in points (two tiny reference labels
+at known radii on the bare tree, read back via `pdftotext -bbox` - same
+technique as the earlier width investigation) and degrees-per-y-unit
+computed directly from the tree's own real angle/y data (in case of any
+"open angle" gap in the circular layout, rather than assuming a clean
+360/Ntip). Confirmed clean on the real worst cases at full Mas1 scale:
+the previously-overlapping pair, and the three tightly-packed
+MAS-related GPR X1/X3/X4 labels, are all now cleanly separated and
+legible. No known remaining overlap issues as of this writing. Costs
+one extra full tree render for the calibration step (~160s total at
+Mas1 scale now, up from ~110s), a real but bounded trade-off for
+getting this right rather than leaving it as an accepted limitation.
+
 ## Known rough edges
 
 - `na.value = NA` (as opposed to a real color like `"grey70"`) crashes
