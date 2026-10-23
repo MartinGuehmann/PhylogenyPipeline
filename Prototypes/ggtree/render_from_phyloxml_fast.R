@@ -174,31 +174,56 @@ labelPoints$x <- outerX
 # "One font-height's worth of arc length", in y-units, needs: (a) the
 # true physical radius of outerX in points - calibrated empirically via
 # two tiny reference labels at known radii on the bare tree, read back
-# via pdftotext -bbox (same technique tried earlier for the width
-# problem - confirmed accurate there, and confirmed thrown off if any
-# oversized/overflowing text is in the SAME calibration plot, so this
-# stays a separate, tree-only render); and (b) degrees-per-y-unit,
+# via pdftotext -bbox (confirmed thrown off if any oversized/overflowing
+# text is in the SAME calibration plot, so this stays a separate render
+# each time, not reused from the real one); and (b) degrees-per-y-unit,
 # computed directly from this tree's own real angle/y data rather than
 # assumed, in case of any "open angle" gap in the circular layout.
 calibTip <- treeData[!is.na(treeData$label) & !is.na(treeData$angle), ]
 calibTip <- calibTip[which.min(abs(calibTip$angle - 0)), ]
 calibData <- data.frame(x = c(1, max(treeData$x, na.rm = TRUE)), y = calibTip$y, label = c("A", "B"))
-calibPlot <- p + geom_text(data = calibData, aes(x = x, y = y, label = label), hjust = 0.5, angle = 0, size = 2.2, fontface = "bold", inherit.aes = FALSE)
-calibFile <- tempfile(fileext = ".pdf")
-ggsave(calibFile, calibPlot, width = 25, height = 25, units = "cm")
-calibText <- system2("pdftotext", c("-bbox", calibFile, "-"), stdout = TRUE)
-calibRows <- grep(">A<|>B<", calibText, value = TRUE)
-extractCenter <- function(row) {
-	nums <- as.numeric(regmatches(row, gregexpr("[0-9.]+", row))[[1]])
-	mean(c(nums[1], nums[3]))
-}
-pointsPerNativeUnit <- (extractCenter(calibRows[2]) - extractCenter(calibRows[1])) / (max(treeData$x, na.rm = TRUE) - 1)
-unlink(calibFile)
-physicalRadiusPoints <- outerX * pointsPerNativeUnit
-
+degreesPerYUnit <- diff(range(treeData$angle, na.rm = TRUE)) / diff(range(treeData$y, na.rm = TRUE))
 fontSizePoints <- 2.2 * (72.27 / 25.4) # ggplot2's own mm-to-points "size" convention
-fontHeightPoints <- grid::convertHeight(grid::stringHeight("Mg"), "points", valueOnly = TRUE) * fontSizePoints / 12 * 1.4 # +40% line-height-style margin so labels aren't touching
-neededYSeparation <- (fontHeightPoints / physicalRadiusPoints) * (180 / pi) / (diff(range(treeData$angle, na.rm = TRUE)) / diff(range(treeData$y, na.rm = TRUE)))
+
+measurePointsPerNativeUnit <- function(plot) {
+	calibPlot <- plot + geom_text(data = calibData, aes(x = x, y = y, label = label), hjust = 0.5, angle = 0, size = 2.2, fontface = "bold", inherit.aes = FALSE)
+	calibFile <- tempfile(fileext = ".pdf")
+	ggsave(calibFile, calibPlot, width = 25, height = 25, units = "cm")
+	calibText <- system2("pdftotext", c("-bbox", calibFile, "-"), stdout = TRUE)
+	calibRows <- grep(">A<|>B<", calibText, value = TRUE)
+	extractCenter <- function(row) {
+		nums <- as.numeric(regmatches(row, gregexpr("[0-9.]+", row))[[1]])
+		mean(c(nums[1], nums[3]))
+	}
+	unlink(calibFile)
+	(extractCenter(calibRows[2]) - extractCenter(calibRows[1])) / (max(treeData$x, na.rm = TRUE) - 1)
+}
+
+maxLabelWidthPoints <- max(sapply(labelPoints$cladeName, function(lbl) {
+	grid::convertWidth(grid::stringWidth(lbl), "points", valueOnly = TRUE) * fontSizePoints / 12
+}))
+
+# Two calibration passes, not one: expand_limits() below (needed so the
+# longest label doesn't get clipped at the real page edge - user
+# feedback 2026-10-23, confirmed genuine clipping at the actual PDF
+# boundary, not a crop artifact) widens the plot's own data range, which
+# SHRINKS the rendered circle to fit the same fixed page size - changing
+# the true points-per-native-unit scale. Computing declutter spacing
+# from a calibration done BEFORE that expansion was applied used a
+# stale, too-generous scale, so the same overlaps that were just fixed
+# came right back once the margin was added. First pass gets a rough
+# scale to size the expansion; second pass re-measures with that same
+# expansion already applied, so the scale used for real is the one the
+# final render will actually use.
+pointsPerNativeUnitRough <- measurePointsPerNativeUnit(p)
+maxLabelWidthNativeRough <- maxLabelWidthPoints / pointsPerNativeUnitRough
+expandedXLimit <- outerX + maxLabelWidthNativeRough * 1.1
+pointsPerNativeUnit <- measurePointsPerNativeUnit(p + expand_limits(x = expandedXLimit))
+cat("calibration: points per native-x-unit (rough, final) =", pointsPerNativeUnitRough, pointsPerNativeUnit, "\n")
+
+physicalRadiusPoints <- outerX * pointsPerNativeUnit
+fontHeightPoints <- grid::convertHeight(grid::stringHeight("Mg"), "points", valueOnly = TRUE) * fontSizePoints / 12 * 2.2 # margin - 1.4x still left a confirmed real touching case (CMKLR1/MRGPRD) at full Mas1 scale
+neededYSeparation <- (fontHeightPoints / physicalRadiusPoints) * (180 / pi) / degreesPerYUnit
 cat("calibration: needed y-separation between labels =", neededYSeparation, "\n")
 
 labelPoints <- labelPoints[order(labelPoints$y), ]
@@ -220,6 +245,20 @@ p <- p +
 		aes(x = x, y = yFinal, label = cladeName, hjust = hjust, angle = textAngle),
 		color = "black", size = 2.2, fontface = "bold", inherit.aes = FALSE
 	)
+
+# ggsave()'s automatic panel sizing only accounts for the DATA point
+# itself (x=outerX, a single value per label) - not the rendered text
+# extending beyond it via hjust, since ggplot2's default scale expansion
+# only looks at numeric data values, not a geom's visual footprint. User
+# feedback 2026-10-23: several labels were genuinely cut off at the real
+# page edge (confirmed directly - not a crop artifact, the real PDF's
+# own boundary). expandedXLimit (computed above, before the declutter
+# calibration, since it has to exist before that second calibration pass
+# can measure the scale it actually produces) reserves room for the
+# single longest label on both sides (right-half labels extend further
+# right past outerX; left-half labels extend further left - same margin
+# covers both by symmetry).
+p <- p + expand_limits(x = expandedXLimit)
 
 ggsave(outFile, p, width = 25, height = 25, units = "cm", limitsize = FALSE)
 cat("  ", as.numeric(Sys.time() - t0, units = "secs"), "s\n")

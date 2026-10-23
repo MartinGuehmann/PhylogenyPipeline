@@ -477,10 +477,40 @@ computed directly from the tree's own real angle/y data (in case of any
 360/Ntip). Confirmed clean on the real worst cases at full Mas1 scale:
 the previously-overlapping pair, and the three tightly-packed
 MAS-related GPR X1/X3/X4 labels, are all now cleanly separated and
-legible. No known remaining overlap issues as of this writing. Costs
-one extra full tree render for the calibration step (~160s total at
-Mas1 scale now, up from ~110s), a real but bounded trade-off for
-getting this right rather than leaving it as an accepted limitation.
+legible. Costs one extra full tree render for the calibration step
+(~160s total at Mas1 scale now, up from ~110s), a real but bounded
+trade-off for getting this right rather than leaving it as an accepted
+limitation.
+
+**Two more real issues found after that, both confirmed and fixed at
+full Mas1 scale.**
+
+1. Several labels were genuinely clipped at the real PDF page edge
+   (confirmed directly, not a crop artifact) - `ggsave()`'s automatic
+   panel sizing only accounts for each label's DATA point (`x = outerX`,
+   a single value), not the rendered text extending beyond it via
+   `hjust`. Fixed with `expand_limits(x = outerX + maxLabelWidthNative *
+   1.1)`, using the same `stringWidth()`-based technique as elsewhere in
+   this section to find the single longest label's own width.
+2. That fix reintroduced the exact overlaps just fixed above - a real
+   circular dependency: widening the data range via `expand_limits()`
+   shrinks the rendered circle to fit the same fixed page size, which
+   changes the true points-per-native-unit scale the declutter spacing
+   was computed from. Fixed with two calibration passes instead of one:
+   a rough pass (no expansion) sizes how much expansion is needed: a
+   second pass re-measures the actual resulting scale with that same
+   expansion already applied, so the declutter spacing uses the scale
+   the final render actually produces, not a stale pre-expansion one.
+
+Separately, a still-real but different-feeling case (CMKLR1/MRGPRD,
+touching at their far ends despite the declutter sweep applying its
+*exact* intended spacing - confirmed directly, not a sweep bug) showed
+the font-height margin itself was just too tight in practice; raised
+from +40% to +120% and confirmed clean afterward, including every
+previously-flagged cluster (C3AR1/C5AR2, CMKLR1/MRGPRD, FMLP I/II,
+MRGPRX1/X3/X4, GPER1/Apelin/GPR15, the P2RY12/GPR18/CLTR1/CLTR2 run)
+plus no page-edge clipping. No known remaining issues as of this
+writing. Now three full tree renders total (~210s at Mas1 scale).
 
 ## Known rough edges
 
