@@ -28,7 +28,19 @@
 # C-side traversal, no R-level recursion, nothing like treeio's
 # bind_rows-at-every-recursion-level pattern.
 #
-# Usage: Rscript render_from_phyloxml_fast.R <treefile> <fullTree.xml> <out.pdf>
+# Usage: Rscript render_from_phyloxml_fast.R <treefile> <fullTree.xml> <out.pdf> [colorBy]
+#
+# colorBy selects which pair of per-leaf phyloXML <property> elements to
+# color/group by (both pairs are written by buildPhyloXMLClade(), see
+# 12_ConvertTreesToFigures.py):
+#   "clade" (default) - PhylogenyPipeline:cladeName/cladeColor, the curated
+#       clade assignment - and draws the full clade-label-placement machinery
+#       below (outside-tree labels, declutter, connectors).
+#   "taxon" - PhylogenyPipeline:taxonOfInterest/taxonColor, the real per-leaf
+#       NCBI taxonomy classification - no labels (2026-10-23 user feedback:
+#       "I just don't think that this tree needs lables, at least not for
+#       now"), just the colored tree, since there isn't a small curated list
+#       of named groups to label the way Clades.csv's ~61 clades are.
 
 library(xml2)
 library(ape)
@@ -40,22 +52,27 @@ args <- commandArgs(trailingOnly = TRUE)
 treefilePath <- args[1]
 xmlPath <- args[2]
 outFile <- args[3]
+colorBy <- ifelse(length(args) >= 4, args[4], "clade")
+stopifnot(colorBy %in% c("clade", "taxon"))
+addLabels <- colorBy == "clade"
+nameRef <- if (colorBy == "clade") "PhylogenyPipeline:cladeName" else "PhylogenyPipeline:taxonOfInterest"
+colorRef <- if (colorBy == "clade") "PhylogenyPipeline:cladeColor" else "PhylogenyPipeline:taxonColor"
 
 cat("reading topology from Newick...\n"); t0 <- Sys.time()
 phy <- read.tree(treefilePath)
 cat("  ", as.numeric(Sys.time() - t0, units = "secs"), "s -", Ntip(phy), "tips\n")
 
-cat("extracting leaf cladeName + cladeColor from phyloXML (xml2, single pass)...\n"); t0 <- Sys.time()
+cat("extracting leaf", nameRef, "+", colorRef, "from phyloXML (xml2, single pass)...\n"); t0 <- Sys.time()
 doc <- read_xml(xmlPath)
 ns <- xml_ns(doc)
 leafClades <- xml_find_all(doc, ".//d1:clade[not(d1:clade)]", ns)
 leafNames <- xml_text(xml_find_first(leafClades, "./d1:name", ns))
-cladeNames <- xml_text(xml_find_first(leafClades, "./d1:property[@ref='PhylogenyPipeline:cladeName']", ns))
+cladeNames <- xml_text(xml_find_first(leafClades, paste0("./d1:property[@ref='", nameRef, "']"), ns))
 # Separate <property> element from cladeName's, not pipe-delimited - fine
 # for our own xml2-based reader (each <property> parsed independently),
 # unlike treeio's tibble pivot, which is what made two properties blow up
 # there (see this directory's README).
-cladeColors <- xml_text(xml_find_first(leafClades, "./d1:property[@ref='PhylogenyPipeline:cladeColor']", ns))
+cladeColors <- xml_text(xml_find_first(leafClades, paste0("./d1:property[@ref='", colorRef, "']"), ns))
 cat("  ", as.numeric(Sys.time() - t0, units = "secs"), "s -", length(leafNames), "leaf clades found\n")
 
 leafData <- tibble(
@@ -79,6 +96,8 @@ phyGrouped <- groupOTU(phy, groups)
 p <- ggtree(phyGrouped, layout = "circular", branch.length = "none", size = 0.3, aes(color = group)) +
 	scale_color_identity()
 
+if (addLabels) {
+
 # Label each curated clade at its CENTER LEAF's plotted position, matching
 # 12_ConvertTreesToFigures.py's own assignCladeNameToCenterLeaf() exactly
 # (confirmed by reading its source, not guessed): that function places the
@@ -89,6 +108,13 @@ p <- ggtree(phyGrouped, layout = "circular", branch.length = "none", size = 0.3,
 # exact R equivalent - not an MRCA (an internal node, which for a
 # non-monophyletic or lopsided clade can land visually off-center from
 # where the clade's own leaves actually sit, unlike a real member leaf).
+#
+# Only meaningful for colorBy="clade" (Clades.csv's ~61 named, curated
+# groups) - skipped entirely for colorBy="taxon" (2026-10-23 user
+# feedback: "I just don't think that this tree needs lables, at least not
+# for now" - the by-taxon view is for a quick visual taxonomic-composition
+# check, not a labeled publication figure, and real NCBI taxonomy doesn't
+# come in a small curated list the way Clades.csv's clades do).
 cladeNameGroups <- split(leafData$label, leafData$cladeName)
 cladeNameGroups[["Unclassified"]] <- NULL
 
@@ -267,6 +293,8 @@ p <- p +
 # right past outerX; left-half labels extend further left - same margin
 # covers both by symmetry).
 p <- p + expand_limits(x = expandedXLimit)
+
+}
 
 ggsave(outFile, p, width = 25, height = 25, units = "cm", limitsize = FALSE)
 cat("  ", as.numeric(Sys.time() - t0, units = "secs"), "s\n")

@@ -1172,6 +1172,19 @@ def saveFullTreeAsPhyloXML(eteTree, outFile):
 		if color is not None:
 			properties.append(PhyloXMLProperty(value=mcolors.to_hex(color), ref="PhylogenyPipeline:cladeColor", applies_to="clade", datatype="xsd:string"))
 
+		# Real per-leaf NCBI-taxonomy classification (addHigherTaxaOfInterest(),
+		# only ever set on leaves, never internal nodes) - a second, independent
+		# coloring to carry alongside the curated cladeName/cladeColor above, for
+		# the ggtree prototype's by-taxon render (Prototypes/ggtree/README.md).
+		# Same single-property-per-value approach as cladeColor above, for the
+		# same reason (no column-collision risk for this project's own xml2
+		# reader, unlike treeio's reader, which is why this is two separate
+		# <property> elements rather than packed into one).
+		taxonOfInterest = getattr(eteNode, "taxonOfInterest", None)
+		if taxonOfInterest:
+			properties.append(PhyloXMLProperty(value=taxonOfInterest, ref="PhylogenyPipeline:taxonOfInterest", applies_to="clade", datatype="xsd:string"))
+			properties.append(PhyloXMLProperty(value=taxonColorMap[taxonOfInterest].getRGBColor(), ref="PhylogenyPipeline:taxonColor", applies_to="clade", datatype="xsd:string"))
+
 		phyloXMLClade = PhyloXMLClade(name=(eteNode.name or None), branch_length=eteNode.dist, color=rgb, properties=properties)
 		phyloXMLClade.clades = [buildPhyloXMLClade(child) for child in eteNode.children]
 		return phyloXMLClade

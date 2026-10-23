@@ -520,6 +520,37 @@ still anchors exactly at `outerX`, same for every label regardless of
 `hjust` direction. Confirmed at full Mas1 scale: a clear, modest gap
 everywhere, no regressions elsewhere.
 
+## By-taxon coloring (no labels)
+
+`12_ConvertTreesToFigures.py`'s `buildPhyloXMLClade()` now also writes each
+leaf's real per-leaf NCBI-taxonomy classification (`addHigherTaxaOfInterest()`,
+the same mechanism behind the existing PDF's own taxon-of-interest faces) as
+two more `<property>` elements, `PhylogenyPipeline:taxonOfInterest` and
+`PhylogenyPipeline:taxonColor` - independent of, and alongside, the curated
+`cladeName`/`cladeColor` pair above. Same reasoning as that pair for keeping
+them as separate sibling `<property>` elements rather than packed into one
+(no column-collision risk for this project's own `xml2`-based reader, unlike
+treeio's).
+
+`render_from_phyloxml_fast.R` takes a 4th, optional CLI argument, `colorBy`,
+to pick which property pair to color/group by:
+
+```
+Rscript render_from_phyloxml_fast.R <treefile> <fullTree.xml> <out.pdf> [clade|taxon]
+```
+
+- `clade` (default, unchanged behavior) - curated `Clades.csv` assignment,
+  with the full outside-tree label-placement machinery (calibration,
+  declutter, connectors) described above.
+- `taxon` - real NCBI taxonomy instead, with the entire label block skipped
+  (user feedback 2026-10-23: "I just don't think that this tree needs lables,
+  at least not for now" - real taxonomy isn't a small curated list the way
+  Clades.csv's ~61 clades are, so there's no natural small label set here
+  the way there is for `clade` mode). Confirmed working at full Mas1 scale:
+  ~106s (vs ~209s for `clade` mode, which does three full tree renders for
+  its two calibration passes - `taxon` mode only ever renders once), no
+  clipping, no stray label artifacts.
+
 ## Known rough edges
 
 - `na.value = NA` (as opposed to a real color like `"grey70"`) crashes
