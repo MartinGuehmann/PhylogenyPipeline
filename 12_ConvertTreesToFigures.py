@@ -76,13 +76,14 @@ class ColorData:
 
 ###############################################################################
 class Clade:
-	def __init__(self, typeSeqID, name, forgroundColor, backgroundColor, typeNode):
+	def __init__(self, typeSeqID, name, forgroundColor, backgroundColor, typeNode, isOutgroup=False):
 		self.typeSeqID       = typeSeqID
 		self.name            = name
 		self.forgroundColor  = forgroundColor
 		self.backgroundColor = backgroundColor
 		self.typeNode        = typeNode
 		self.rootNode        = None
+		self.isOutgroup      = isOutgroup
 
 	def print(self):
 		print("SeqID:", self.typeSeqID)
@@ -970,9 +971,27 @@ def loadCladeInfo(tree, fileName, cladeTreeFile):
 			if not leafNode:
 				continue
 
-			clade = Clade(row[0], row[1], row[2], row[3], leafNode)
+			# Column 5 (optional): the literal tag "Outgroup" marks this
+			# clade as part of the outgroup used for rooting the tree -
+			# see getOutgroupClades()'s own comment for why any number of
+			# clades can carry this tag, and what happens when none do.
+			isOutgroup = len(row) >= 5 and row[4].strip() == "Outgroup"
+
+			clade = Clade(row[0], row[1], row[2], row[3], leafNode, isOutgroup)
 			clades.append(clade)
 	return clades
+
+###############################################################################
+# Which clades should be treated as the outgroup for rooting purposes.
+# Normally this is every clade explicitly tagged "Outgroup" in Clades.csv
+# (column 5) - that lets more than one clade act as outgroup together,
+# unlike the single designated clade the pipeline used to support. If no
+# clade carries that tag at all, fall back to the original convention
+# (the last clade listed in the file), so existing Clades.csv files with
+# no column 5 keep behaving exactly as before.
+def getOutgroupClades(clades):
+	tagged = [clade for clade in clades if clade.isOutgroup]
+	return tagged if tagged else [clades[-1]]
 
 ###############################################################################
 def cladifyNodes(tree, clades):
@@ -1025,30 +1044,40 @@ def initialReroot(tree, clades):
 	if not clades:
 		print("No defined clades have a representative in this tree, rendering it as a plain tree without clade-based rerooting.", file=sys.stderr)
 		return
-	clade = clades[-1] # Use the last clade for rooting
+	# Any one outgroup-tagged clade (or the fallback single clade) is fine
+	# here - this is only a rough pass so cladifyNodes() has some stable
+	# root to work from; rerootToOutgroup() does the real, final rerooting.
+	clade = getOutgroupClades(clades)[0]
 	tree.set_outgroup(clade.typeNode)
 
 ###############################################################################
 def rerootToOutgroup(tree, clades):
+	outgroupClades = getOutgroupClades(clades)
+	outgroupNames = {clade.name for clade in outgroupClades}
+	ingroupClades = [clade for clade in clades if clade.name not in outgroupNames]
 
-	cladesNum = tree.clades - 1
-	for clade in clades:
-		# Browse the tree from the clade defining leaf to the root
-		node = clade.typeNode
+	if not ingroupClades:
+		# Degenerate Clades.csv (every clade tagged Outgroup, or only one
+		# clade total) - nothing to root the outgroup against.
+		return
 
-		if clade.name == clades[-1].name:
-			continue
-
-		while node:
-			if node.up and node.up.clades < cladesNum:
+	# Walking up from any single ingroup clade reaches the same boundary
+	# node regardless of which one we start from, as long as the outgroup
+	# clades together sit cleanly on one side of a single bipartition -
+	# same reasoning as the original single-outgroup version of this
+	# function, just generalized from "all clades but the last one" to
+	# "all clades but however many are tagged Outgroup".
+	cladesNum = tree.clades - len(outgroupClades)
+	node = ingroupClades[0].typeNode
+	while node:
+		if node.up and node.up.clades < cladesNum:
+			node = node.up
+		else:
+			if node.up:
 				node = node.up
-			else:
-				if node.up:
-					node = node.up
 
-				tree.set_outgroup(node)
-				break
-		break
+			tree.set_outgroup(node)
+			break
 
 ###############################################################################
 def getCladeRootNode(node):
@@ -1246,12 +1275,12 @@ def collapseTree(tree, clades):
 def collapseOnlyOutgroup(tree, clades):
 	if not clades:
 		return
-	clade = clades[-1]
 
-	clade.rootNode.cladeName = clade.name
-	colorCollapsedNode(clade.rootNode, clade.forgroundColor, clade.backgroundColor)
+	for clade in getOutgroupClades(clades):
+		clade.rootNode.cladeName = clade.name
+		colorCollapsedNode(clade.rootNode, clade.forgroundColor, clade.backgroundColor)
 
-	clade.rootNode.img_style["draw_descendants"] = False
+		clade.rootNode.img_style["draw_descendants"] = False
 
 ###############################################################################
 def getFullTreeStyle():
