@@ -3,32 +3,64 @@
 # project_treeio_phyloxml_quadratic_scaling memory / this directory's
 # README) instead of trying to patch around it.
 #
-# Key realization (2026-10-23): we don't actually need treeio to parse the
-# tree TOPOLOGY out of the phyloXML at all - the phyloXML's topology is
-# identical to its companion Newick *.treefile (same source ete3 Tree
-# object, serialized twice), and Newick parsing was never the slow part -
-# only treeio's phyloxml-specific parser (parser_clade()) is O(n^2).
-# ape/treeio's Newick reader is already fast and already trusted elsewhere
-# in this pipeline.
+# Topology now comes from the phyloXML itself, not a companion Newick
+# *.treefile (changed 2026-10-26 - see "Why not just read the companion
+# Newick file?" below for why that was abandoned). Internal node labels
+# (support-value strings like "100/1/100") are NOT unique - confirmed on
+# the real PRRs file, that exact string alone appears 170 times - so a
+# label-based join only works for LEAVES (real accession IDs, guaranteed
+# unique), not internal nodes. That's fine: we don't need per-internal-node
+# color from the XML at all. The same monophyletic-propagation trick the
+# original ggtree prototype (render_colored_tree.R) already used -
+# groupOTU() coloring a whole subtree from its member leaves' group
+# membership - handles internal branches correctly from leaf-level data
+# alone, and was already proven fast at full Mas1 scale (24156 leaves,
+# well under 2 minutes total).
 #
-# Also: internal node labels (support-value strings like "100/1/100") are
-# NOT unique - confirmed on the real PRRs file, that exact string alone
-# appears 170 times - so a label-based join only works for LEAVES (real
-# accession IDs, guaranteed unique), not internal nodes. That's fine: we
-# don't need per-internal-node color from the XML at all. The same
-# monophyletic-propagation trick the original ggtree prototype
-# (render_colored_tree.R) already used - groupOTU() coloring a whole
-# subtree from its member leaves' group membership - handles internal
-# branches correctly from leaf-level data alone, and was already proven
-# fast at full Mas1 scale (24156 leaves, well under 2 minutes total).
+# Why not just read the companion Newick file? (the original 2026-10-23
+# design, abandoned 2026-10-26) Initially this script read topology from
+# the companion Newick *.treefile instead, reasoning that phyloXML's
+# topology is "the same tree, serialized twice" so the much simpler/faster
+# ape::read.tree() could stand in for it. That reasoning turned out to be
+# wrong in one important case: 12_ConvertTreesToFigures.py's own
+# initialReroot()/rerootToOutgroup() (rooting on whichever Clades.csv
+# clade is listed last) run on ETE'S OWN IN-MEMORY COPY of the tree, AFTER
+# it was already loaded from the *.treefile - so this reroot is baked into
+# both ete's PDF render and the phyloXML export (confirmed 2026-10-26: the
+# phyloXML's own root <clade> has exactly 2 children), but the *.treefile
+# on disk is never rewritten and keeps IQ-Tree's own original, typically
+# unrooted/trifurcating root. Confirmed concretely on Renins'
+# FAMSA.BigTree5/RogueIter_5 (a real, no-outgroup round): the *.treefile's
+# root has 3 children (ape::is.rooted() == FALSE), while the very same
+# tree's phyloXML root has 2. Reading topology from the *.treefile meant
+# this script's circular layout showed a different, biologically-arbitrary
+# root than ete's own rendering of "the same" tree - a real discrepancy,
+# not a cosmetic one. No faster existing R package than treeio turned up
+# for reading phyloXML directly either (checked 2026-10-26 - RNeXML is a
+# different format, NeXML, and nothing else current turned up), so
+# readPhyloXMLTopology() below is a second from-scratch linear reader,
+# alongside the existing leaf-property one, rather than a web find.
 #
-# So this script only needs the phyloXML for one thing: each LEAF's
-# cladeName property. That's a single XPath selecting leaf <clade>
-# elements (no nested <clade> child) in one linear pass - pure libxml2
-# C-side traversal, no R-level recursion, nothing like treeio's
-# bind_rows-at-every-recursion-level pattern.
+# readPhyloXMLTopology()'s approach: xml_find_all(doc, ".//d1:clade")
+# returns every <clade> element in a single linear, pre-order, libxml2
+# C-side traversal (document order) - this part costs the same as the
+# leaf-only XPath already used elsewhere in this script (benchmarked:
+# 0.03-0.08s even at Mas1's 48311 total clades). Resolving each clade's
+# PARENT needs more care: xml_parent() on an entire nodeset does NOT
+# vectorize 1:1 (confirmed directly 2026-10-26 - called on a 2-element
+# nodeset sharing one parent, it returned a nodeset of length 1, i.e. it
+# deduplicates rather than mapping element-by-element), so each node's
+# parent has to be resolved individually via xml_parent() on that one
+# node. A single-node xml_parent() call is backed by libxml2's native
+# parent pointer (a true O(1) dereference, not a search), so doing this
+# once per clade is still genuinely O(n) overall - confirmed via direct
+# benchmark on real data: ~0.5s for the parent-resolution loop alone at
+# Mas1's 48311-clade scale (vs treeio's own ~7.2h estimate for parsing
+# that same file). A synthetic "data-idx" attribute, written once per
+# clade in the same single pass, turns "which clade is this node's
+# parent" into an O(1) attribute lookup instead of a second tree search.
 #
-# Usage: Rscript render_from_phyloxml_fast.R <treefile> <fullTree.xml> <out.pdf> [colorBy]
+# Usage: Rscript render_from_phyloxml_fast.R <fullTree.xml> <out.pdf> [colorBy]
 #
 # colorBy selects which pair of per-leaf phyloXML <property> elements to
 # color/group by (both pairs are written by buildPhyloXMLClade(), see
@@ -48,25 +80,70 @@ library(ggtree)
 library(ggplot2)
 library(dplyr)
 
+# Builds an ape `phylo` object directly from the phyloXML's own nested
+# <clade> structure - see this file's header comment for why (topology
+# must match ete's own reroot, which a companion Newick *.treefile does
+# not always reflect) and for the linear-time approach used here. Returns
+# the tree plus the leaf <clade> nodeset (document order, aligned with
+# tip 1..Ntip) so callers can pull per-leaf properties without a second
+# full-document XPath pass.
+readPhyloXMLTopology <- function(doc, ns) {
+	allClades <- xml_find_all(doc, ".//d1:clade", ns)
+	n <- length(allClades)
+
+	for (i in seq_len(n)) xml_set_attr(allClades[[i]], "data-idx", i)
+
+	parentIdx <- integer(n)
+	for (i in seq_len(n)) {
+		p <- xml_parent(allClades[[i]])
+		pidx <- xml_attr(p, "data-idx")
+		parentIdx[i] <- if (is.na(pidx)) NA_integer_ else as.integer(pidx)
+	}
+
+	# A clade is a leaf iff no other clade lists it as a parent - avoids a
+	# second, separate "no nested <clade> child" XPath pass.
+	isLeaf <- !(seq_len(n) %in% parentIdx)
+	nTip <- sum(isLeaf)
+	nNode <- n - nTip
+
+	# ape-convention numbering (tips 1..nTip, internal (nTip+1)..(nTip+nNode)),
+	# assigned in the same pre-order the clades were found in - the root
+	# (the first clade found, parentIdx NA) is therefore the first internal
+	# node encountered and lands on nTip+1, matching ape's own root
+	# convention, with no separate special-casing needed.
+	newId <- integer(n)
+	newId[isLeaf] <- seq_len(nTip)
+	newId[!isLeaf] <- nTip + seq_len(nNode)
+
+	hasParent <- !is.na(parentIdx)
+	edge <- cbind(newId[parentIdx[hasParent]], newId[which(hasParent)])
+
+	leafClades <- allClades[isLeaf]
+	# tip.label's order already matches newId's tip assignment above (both
+	# walk isLeaf's TRUE positions in the same pre-order), so no separate
+	# reordering is needed here.
+	tipLabel <- xml_text(xml_find_first(leafClades, "./d1:name", ns))
+
+	phy <- structure(list(edge = edge, tip.label = tipLabel, Nnode = nNode), class = "phylo")
+	list(phy = reorder(phy, "cladewise"), leafClades = leafClades)
+}
+
 args <- commandArgs(trailingOnly = TRUE)
-treefilePath <- args[1]
-xmlPath <- args[2]
-outFile <- args[3]
-colorBy <- ifelse(length(args) >= 4, args[4], "clade")
+xmlPath <- args[1]
+outFile <- args[2]
+colorBy <- ifelse(length(args) >= 3, args[3], "clade")
 stopifnot(colorBy %in% c("clade", "taxon"))
 addLabels <- colorBy == "clade"
 nameRef <- if (colorBy == "clade") "PhylogenyPipeline:cladeName" else "PhylogenyPipeline:taxonOfInterest"
 colorRef <- if (colorBy == "clade") "PhylogenyPipeline:cladeColor" else "PhylogenyPipeline:taxonColor"
 
-cat("reading topology from Newick...\n"); t0 <- Sys.time()
-phy <- read.tree(treefilePath)
-cat("  ", as.numeric(Sys.time() - t0, units = "secs"), "s -", Ntip(phy), "tips\n")
-
-cat("extracting leaf", nameRef, "+", colorRef, "from phyloXML (xml2, single pass)...\n"); t0 <- Sys.time()
+cat("reading topology + leaf", nameRef, "+", colorRef, "from phyloXML (xml2, single linear pass)...\n"); t0 <- Sys.time()
 doc <- read_xml(xmlPath)
 ns <- xml_ns(doc)
-leafClades <- xml_find_all(doc, ".//d1:clade[not(d1:clade)]", ns)
-leafNames <- xml_text(xml_find_first(leafClades, "./d1:name", ns))
+topo <- readPhyloXMLTopology(doc, ns)
+phy <- topo$phy
+leafClades <- topo$leafClades
+leafNames <- phy$tip.label
 cladeNames <- xml_text(xml_find_first(leafClades, paste0("./d1:property[@ref='", nameRef, "']"), ns))
 # Separate <property> element from cladeName's, not pipe-delimited - fine
 # for our own xml2-based reader (each <property> parsed independently),

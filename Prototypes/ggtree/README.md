@@ -532,11 +532,11 @@ them as separate sibling `<property>` elements rather than packed into one
 (no column-collision risk for this project's own `xml2`-based reader, unlike
 treeio's).
 
-`render_from_phyloxml_fast.R` takes a 4th, optional CLI argument, `colorBy`,
+`render_from_phyloxml_fast.R` takes a 3rd, optional CLI argument, `colorBy`,
 to pick which property pair to color/group by:
 
 ```
-Rscript render_from_phyloxml_fast.R <treefile> <fullTree.xml> <out.pdf> [clade|taxon]
+Rscript render_from_phyloxml_fast.R <fullTree.xml> <out.pdf> [clade|taxon]
 ```
 
 - `clade` (default, unchanged behavior) - curated `Clades.csv` assignment,
@@ -550,6 +550,50 @@ Rscript render_from_phyloxml_fast.R <treefile> <fullTree.xml> <out.pdf> [clade|t
   ~106s (vs ~209s for `clade` mode, which does three full tree renders for
   its two calibration passes - `taxon` mode only ever renders once), no
   clipping, no stray label artifacts.
+
+## Topology now read from the phyloXML itself, not a companion Newick file
+
+The original design (above) read tree topology from the companion Newick
+`*.treefile` and used the phyloXML only for per-leaf properties, reasoning
+that both files serialize "the same tree." That turned out to be wrong in
+one real, confirmed case (2026-10-26, found while reviewing a fresh Renins
+render): `12_ConvertTreesToFigures.py`'s `initialReroot()`/
+`rerootToOutgroup()` (rooting on whichever `Clades.csv` clade is listed
+last) run on ete's own in-memory copy of the tree *after* it's loaded from
+the `*.treefile`, and that reroot is baked into both ete's own PDF and the
+phyloXML export - but the `*.treefile` on disk is never rewritten, so it
+keeps IQ-Tree's own original root (frequently an arbitrary, biologically
+meaningless trifurcation for a round with no outgroup). Confirmed directly
+on Renins' `FAMSA.BigTree5/RogueIter_5` (a real no-outgroup round): the
+`*.treefile`'s root has 3 children (`ape::is.rooted() == FALSE`), while
+that same tree's phyloXML root has 2. Reading topology from the
+`*.treefile` meant this script's own circular layout showed a different,
+arbitrary root than ete's rendering of "the same" tree.
+
+No existing R package reads phyloXML faster than `treeio` either (checked
+2026-10-26 - `RNeXML` is a different format, NeXML; nothing else current
+turned up), so `readPhyloXMLTopology()` is a second from-scratch linear
+reader, parallel to the existing leaf-property one: `xml_find_all(doc,
+".//d1:clade")` gets every `<clade>` in one linear pre-order pass, then
+each node's parent is resolved individually via `xml_parent()` on that one
+node (confirmed `xml_parent()` does NOT vectorize 1:1 over a whole
+nodeset - called on a 2-element nodeset sharing one parent, it returned a
+nodeset of length 1, i.e. it deduplicates rather than mapping
+element-by-element). A single-node `xml_parent()` call is backed by
+libxml2's native parent pointer (true O(1), not a search), so resolving
+all n parents individually is still genuinely O(n) - confirmed via direct
+benchmark on real data: ~0.5s for the parent-resolution loop alone at
+Mas1's 48311-clade scale (vs treeio's own ~7.2h estimate for parsing that
+file). A synthetic `data-idx` attribute, written once per clade in the
+same pass, turns "which clade is this node's parent" into an O(1)
+attribute lookup. Confirmed working end-to-end: Renins' real
+`FAMSA.BigTree5/RogueIter_5` now renders with `is.rooted() == TRUE` and a
+2-child root, matching ete's phyloXML exactly; full Mas1-scale regression
+(24156 leaves) confirmed clean (~3s topology+property read, same visual
+output as before, no timing regression vs. the old Newick-based read).
+
+The companion Newick `*.treefile` is no longer read by this script at
+all - the CLI dropped its first argument accordingly.
 
 ## Known rough edges
 
