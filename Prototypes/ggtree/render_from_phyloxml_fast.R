@@ -170,6 +170,17 @@ cat("rendering...\n"); t0 <- Sys.time()
 groups <- split(leafData$label, leafData$cladeColor)
 phyGrouped <- groupOTU(phy, groups)
 
+# groupOTU() assigns its own reserved "0" level (a literal string, not a
+# hex color) to any branch whose descendant leaves span more than one
+# input group - e.g. the tree's own "spine" branches connecting separate
+# curated clades together. scale_color_identity() can't resolve "0" as a
+# color, so those branches rendered completely invisible/white - confirmed
+# 2026-10-26 (user noticed the Renin clade's own connecting branch to the
+# rest of the tree was missing). Recode that level to a real color before
+# plotting; black matches how the rest of this pipeline already renders
+# unresolved/connecting branches (e.g. ete3's own fullTree.pdf).
+levels(attr(phyGrouped, "group"))[levels(attr(phyGrouped, "group")) == "0"] <- "#000000"
+
 p <- ggtree(phyGrouped, layout = "circular", branch.length = "none", size = 0.3, aes(color = group)) +
 	scale_color_identity()
 
