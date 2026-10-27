@@ -672,6 +672,29 @@ of how the wrong number got there in the first place (a concrete
 instance of a number getting corrupted across a compaction boundary,
 not an independent error).
 
+**"2of3" criterion, same day.** After the threshold correction still
+left the combined view looking about as red as before (expected - the
+correction only moved a narrow band of nodes, not the overall picture),
+user conclusion: the combined criterion's strictness itself, not any
+specific number, is what mainly drives the ~50% fail rate - deliberate
+per the paper's own stated reasoning (the three metrics "compensate for
+each other's failures"), but a genuinely different point on the
+sensitivity/specificity tradeoff than "how many splits pass at least 2
+of 3". Added `supportMetric = "2of3"`: same black/red/grey coloring as
+"combined", but passes if at least two of the three clear their own
+threshold rather than requiring all three. Uses a pairwise OR-of-AND
+construction (`(shPass&aPass)|(shPass&uPass)|(aPass&uPass)`) rather than
+`rowSums(...)>=2`, so NA (unparseable) propagates exactly as
+principled as plain `&` already does for "combined" - two known passes
+make a node pass regardless of whether the third metric was even
+parseable, while a single known pass plus two unparseable stays
+correctly NA (genuinely ambiguous) rather than guessing.
+
+Confirmed on Renins: 6622 pass, 2623 fail, 4 unparseable (71.6% pass,
+vs. 52.8% for "combined" on the same tree) - visually a substantially
+less-red circle, as expected. Regression-tested at full Mas1 scale:
+17414 pass, 6737 fail, 4 unparseable (72.1%), no errors.
+
 ## Known rough edges
 
 - `na.value = NA` (as opposed to a real color like `"grey70"`) crashes

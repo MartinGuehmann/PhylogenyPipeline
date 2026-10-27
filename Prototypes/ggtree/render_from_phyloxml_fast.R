@@ -91,6 +91,10 @@
 #       "taxon". Takes a 4th, optional CLI argument, supportMetric, to
 #       pick which view of "support" to render:
 #         "combined" (default) - the pass/fail coloring described above.
+#         "2of3" - looser pass/fail: at least two of the three metrics
+#             individually clear their own threshold, not necessarily all
+#             three - see the inline comment further down for why this
+#             was added and how its NA-handling stays principled.
 #         "shalrt" / "abayes" / "ufboot" - a continuous red-to-black
 #             gradient of that ONE metric's own raw value instead, on its
 #             natural scale (0-100 for SH-aLRT/UFBoot, 0-1 for aBayes) -
@@ -250,6 +254,16 @@ ufBoot <- getPart(3)
 #       why ete3's own .support attribute can't be trusted for this - it
 #       silently defaults to 1.0 for composite labels like these; reading
 #       the raw text ourselves, like here, is the only reliable way).
+#   "2of3" - looser: passes if at least two of the three individually
+#       clear their own threshold, not necessarily all three. Added
+#       2026-10-27 after the combined criterion's strictness turned out
+#       to be driving most of its ~50% fail rate (on Renins' real tree)
+#       by itself - most individual metrics pass 63-75% of the time on
+#       their own, but requiring unanimous agreement compounds that into
+#       a much lower combined rate, largely via near-misses on just one
+#       metric rather than genuinely contested splits. Still a real
+#       safeguard (not just a majority vote of 1), just a different
+#       point on the sensitivity/specificity tradeoff than "combined".
 #   "shalrt" / "abayes" / "ufboot" - a continuous gradient of that ONE
 #       metric's own raw value, red (low) to black (high) - lets you see
 #       which of the three is actually driving a given failure, since a
@@ -258,17 +272,35 @@ ufBoot <- getPart(3)
 #       2026-10-27 on Renins' own REN/CTSD/NAPSA clades: e.g. "87.6/0.997/85"
 #       fails only because UFBoot is 85 vs the 95 threshold).
 supportMetric <- ifelse(length(args) >= 4, args[4], "combined")
-stopifnot(supportMetric %in% c("combined", "shalrt", "abayes", "ufboot"))
+stopifnot(supportMetric %in% c("combined", "2of3", "shalrt", "abayes", "ufboot"))
 
-if (supportMetric == "combined") {
+if (supportMetric %in% c("combined", "2of3")) {
 
-	passes <- shALRT >= 80 & aBayes >= 0.95 & ufBoot >= 95
+	shPass <- shALRT >= 80
+	aPass <- aBayes >= 0.95
+	uPass <- ufBoot >= 95
+
+	if (supportMetric == "combined") {
+		passes <- shPass & aPass & uPass
+		criterionLabel <- "SH-aLRT>=80, aBayes>=0.95, UFBoot>=95, all three"
+	} else {
+		# "At least 2 of 3" via pairwise OR-of-AND rather than
+		# rowSums(...)>=2 - this keeps the same principled NA propagation
+		# base R's & already gives "combined" above for free: e.g. two
+		# known passes make this TRUE regardless of whether the third
+		# metric's label was even parseable, while one known pass plus
+		# two unparseable metrics correctly stays NA (genuinely
+		# ambiguous - could still reach 2 if both unknowns turned out to
+		# pass), rather than guessing either way.
+		passes <- (shPass & aPass) | (shPass & uPass) | (aPass & uPass)
+		criterionLabel <- "at least 2 of SH-aLRT>=80 / aBayes>=0.95 / UFBoot>=95"
+	}
 
 	branchColor <- character(nTip + nNode)
 	branchColor[seq_len(nTip)] <- "#000000" # leaf branches - the criterion doesn't apply to these at all
 	branchColor[internalIds] <- ifelse(is.na(passes), "#B3B3B3", ifelse(passes, "#000000", "#FF0000"))
 
-	cat("support check (SH-aLRT>=80, aBayes>=0.95, UFBoot>=95, all three): ",
+	cat("support check (", criterionLabel, "): ",
 		sum(passes, na.rm = TRUE), "pass,", sum(!passes, na.rm = TRUE), "fail,",
 		sum(is.na(passes)), "no parseable label (out of", nNode, "internal nodes)\n")
 
