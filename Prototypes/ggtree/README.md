@@ -643,6 +643,22 @@ region. Regression-tested at full Mas1 scale (24156 leaves, whose test
 fixture's phyloXML was already treefile-based): 12625 pass, 11526 fail,
 4 unparseable, ~87s total, no errors.
 
+**Per-metric gradients, same day.** User follow-up after seeing the
+combined view: checking just Renin/Cathepsin D/Napsin A (the three
+clades already confirmed solid by E-value and topology, see the main
+session's investigation) still showed ~50% "fail" each (391/405/488
+internal nodes, 48.8%/41.2%/48.2% pass) - but inspecting the actual
+failing labels showed many are a near-miss on just ONE of the three
+metrics (e.g. `87.6/0.997/85` fails only because UFBoot is 85 vs the 95
+threshold), not uniformly weak. A 4th CLI argument, `supportMetric`,
+was added to see this directly: `"shalrt"`/`"abayes"`/`"ufboot"` render
+a continuous red (low) to black (high) gradient of that one metric's
+own raw value (0-100 for SH-aLRT/UFBoot, 0-1 for aBayes - each kept on
+its own natural scale rather than normalized), instead of the combined
+pass/fail view (still the default, `"combined"`). Confirmed working on
+Renins at full scale, visually a sensible, legend-labeled gradient (not
+just binary red/black).
+
 ## Known rough edges
 
 - `na.value = NA` (as opposed to a real color like `"grey70"`) crashes

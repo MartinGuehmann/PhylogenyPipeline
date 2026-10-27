@@ -60,7 +60,7 @@
 # clade in the same single pass, turns "which clade is this node's
 # parent" into an O(1) attribute lookup instead of a second tree search.
 #
-# Usage: Rscript render_from_phyloxml_fast.R <fullTree.xml> <out.pdf> [colorBy]
+# Usage: Rscript render_from_phyloxml_fast.R <fullTree.xml> <out.pdf> [colorBy] [supportMetric]
 #
 # colorBy selects what the circular layout actually shows:
 #   "clade" (default) - colors/groups by the curated PhylogenyPipeline:
@@ -88,7 +88,16 @@
 #       project_renins_support_value_tree_source memory for the full
 #       writeup and how to rebuild a round's phyloXML with the right
 #       source if it's still contree-based). No labels, same reasoning as
-#       "taxon".
+#       "taxon". Takes a 4th, optional CLI argument, supportMetric, to
+#       pick which view of "support" to render:
+#         "combined" (default) - the pass/fail coloring described above.
+#         "shalrt" / "abayes" / "ufboot" - a continuous red-to-black
+#             gradient of that ONE metric's own raw value instead, on its
+#             natural scale (0-100 for SH-aLRT/UFBoot, 0-1 for aBayes) -
+#             useful since a lot of "combined" failures turn out to be a
+#             near-miss on just one metric, not uniformly weak across all
+#             three (confirmed 2026-10-27 on Renins' REN/CTSD/NAPSA
+#             clades).
 
 library(xml2)
 library(ape)
@@ -218,12 +227,12 @@ p <- ggtree(phyGrouped, layout = "circular", branch.length = "none", size = 0.3,
 } else {
 
 # "support" mode: no leaf grouping at all - color each internal branch by
-# whether ITS OWN node passes the strict support criterion. A node's
-# composite label describes the branch leading to it (standard
-# convention), so this is a per-node, not per-leaf-group, coloring -
-# ggtree's %<+% (join extra data onto the tree by node id) is the right
-# tool, not groupOTU (which is about propagating LEAF group membership
-# down through monophyletic subtrees, a different problem).
+# ITS OWN node's support. A node's composite label describes the branch
+# leading to it (standard convention), so this is a per-node, not
+# per-leaf-group, coloring - ggtree's %<+% (join extra data onto the tree
+# by node id) is the right tool, not groupOTU (which is about propagating
+# LEAF group membership down through monophyletic subtrees, a different
+# problem).
 nTip <- Ntip(phy)
 nNode <- phy$Nnode
 internalIds <- seq(nTip + 1, nTip + nNode)
@@ -233,24 +242,67 @@ shALRT <- getPart(1)
 aBayes <- getPart(2)
 ufBoot <- getPart(3)
 
-# All three thresholds individually, not an average or a majority vote -
-# see feedback_support_value_acceptance_criterion memory for why (and
-# why ete3's own .support attribute can't be trusted for this - it
-# silently defaults to 1.0 for composite labels like these; reading the
-# raw text ourselves, like here, is the only reliable way).
-passes <- shALRT >= 85 & aBayes >= 0.95 & ufBoot >= 95
+# A 4th CLI argument picks which view of "support" to render:
+#   "combined" (default) - pass/fail against the full strict criterion,
+#       all three of SH-aLRT>=85, aBayes>=0.95, UFBoot>=95 individually,
+#       not an average or a majority vote - see
+#       feedback_support_value_acceptance_criterion memory for why (and
+#       why ete3's own .support attribute can't be trusted for this - it
+#       silently defaults to 1.0 for composite labels like these; reading
+#       the raw text ourselves, like here, is the only reliable way).
+#   "shalrt" / "abayes" / "ufboot" - a continuous gradient of that ONE
+#       metric's own raw value, red (low) to black (high) - lets you see
+#       which of the three is actually driving a given failure, since a
+#       lot of "combined" failures turn out to be a near-miss on just one
+#       metric rather than uniformly weak across all three (confirmed
+#       2026-10-27 on Renins' own REN/CTSD/NAPSA clades: e.g. "87.6/0.997/85"
+#       fails only because UFBoot is 85 vs the 95 threshold).
+supportMetric <- ifelse(length(args) >= 4, args[4], "combined")
+stopifnot(supportMetric %in% c("combined", "shalrt", "abayes", "ufboot"))
 
-branchColor <- character(nTip + nNode)
-branchColor[seq_len(nTip)] <- "#000000" # leaf branches - the criterion doesn't apply to these at all
-branchColor[internalIds] <- ifelse(is.na(passes), "#B3B3B3", ifelse(passes, "#000000", "#FF0000"))
+if (supportMetric == "combined") {
 
-cat("support check (SH-aLRT>=85, aBayes>=0.95, UFBoot>=95, all three): ",
-	sum(passes, na.rm = TRUE), "pass,", sum(!passes, na.rm = TRUE), "fail,",
-	sum(is.na(passes)), "no parseable label (out of", nNode, "internal nodes)\n")
+	passes <- shALRT >= 85 & aBayes >= 0.95 & ufBoot >= 95
 
-nodeColorDf <- data.frame(node = seq_len(nTip + nNode), branchColor = branchColor)
-p <- ggtree(phy, layout = "circular", branch.length = "none", size = 0.3) %<+% nodeColorDf +
-	aes(color = branchColor) + scale_color_identity()
+	branchColor <- character(nTip + nNode)
+	branchColor[seq_len(nTip)] <- "#000000" # leaf branches - the criterion doesn't apply to these at all
+	branchColor[internalIds] <- ifelse(is.na(passes), "#B3B3B3", ifelse(passes, "#000000", "#FF0000"))
+
+	cat("support check (SH-aLRT>=85, aBayes>=0.95, UFBoot>=95, all three): ",
+		sum(passes, na.rm = TRUE), "pass,", sum(!passes, na.rm = TRUE), "fail,",
+		sum(is.na(passes)), "no parseable label (out of", nNode, "internal nodes)\n")
+
+	nodeColorDf <- data.frame(node = seq_len(nTip + nNode), branchColor = branchColor)
+	p <- ggtree(phy, layout = "circular", branch.length = "none", size = 0.3) %<+% nodeColorDf +
+		aes(color = branchColor) + scale_color_identity()
+
+} else {
+
+	metricValue <- switch(supportMetric, shalrt = shALRT, abayes = aBayes, ufboot = ufBoot)
+	# SH-aLRT/UFBoot are percentages (0-100), aBayes is a probability
+	# (0-1) - keep each on its own natural scale rather than normalizing,
+	# so the legend shows the metric's real units.
+	metricLimits <- if (supportMetric == "abayes") c(0, 1) else c(0, 100)
+
+	nodeValue <- rep(NA_real_, nTip + nNode)
+	nodeValue[internalIds] <- metricValue
+	# Leaf branches: the criterion doesn't apply to these at all - give
+	# them the scale's own max so they render identically to a perfect
+	# score (matching "combined" mode's leaf handling: always shown as
+	# good, never flagged), rather than leaving them NA (grey, which here
+	# is reserved for genuinely unparseable internal labels only).
+	nodeValue[seq_len(nTip)] <- metricLimits[2]
+
+	cat(supportMetric, "- range:", round(range(metricValue, na.rm = TRUE), 3),
+		" median:", round(median(metricValue, na.rm = TRUE), 3),
+		" unparseable:", sum(is.na(metricValue)), "/", nNode, "internal nodes\n")
+
+	nodeValueDf <- data.frame(node = seq_len(nTip + nNode), metricValue = nodeValue)
+	p <- ggtree(phy, layout = "circular", branch.length = "none", size = 0.3) %<+% nodeValueDf +
+		aes(color = metricValue) +
+		scale_color_gradient(low = "red", high = "black", limits = metricLimits, na.value = "#B3B3B3")
+
+}
 
 }
 
