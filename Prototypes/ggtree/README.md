@@ -595,6 +595,54 @@ output as before, no timing regression vs. the old Newick-based read).
 The companion Newick `*.treefile` is no longer read by this script at
 all - the CLI dropped its first argument accordingly.
 
+## Support-value coloring (2026-10-27)
+
+A third `colorBy` mode, `support`, colors each internal branch by whether
+it passes the strict acceptance criterion from
+`feedback_support_value_acceptance_criterion` memory: all three of
+SH-aLRT>=85, aBayes>=0.95, UFBoot>=95 individually, not an average or
+majority vote. Black = passes (or is a leaf branch, which the criterion
+doesn't apply to), red = fails, grey = no parseable composite label at
+all (e.g. the root). No leaf grouping/coloring and no labels - this mode
+ignores `cladeName`/`cladeColor`/`taxonOfInterest`/`taxonColor` entirely
+and only reads each internal `<clade>`'s own `<name>`.
+
+This surfaced a real, easy-to-miss gotcha: a round's phyloXML only
+carries genuine composite support values if it was built from the
+source tree's `*.treefile` (IQ-Tree's own ML best tree). `*.contree`
+(the consensus tree) only carries plain consensus-percentage integers at
+internal nodes (e.g. `34`, `100`) - no SH-aLRT/aBayes/UFBoot at all.
+`buildPhyloXMLClade()` just writes whatever `eteNode.name` the fed-in
+tree happened to have, so this isn't a bug in the exporter - it's
+entirely about which extension gets passed to step 12's `-m` master
+render. Renins' `FAMSA.BigTree5/RogueIter_5` had to be rebuilt with
+`-e treefile -E treefile` (previously built with `-e contree`, matching
+`Config.sh`'s `extension="contree"` - which is step 16's extraction
+setting, not step 12's) before this mode had real data to show -
+confirmed directly: the old contree-based phyloXML's internal names were
+all plain integers, the treefile-based rebuild's were all genuine
+`SH-aLRT/aBayes/UFBoot` strings. See
+`project_renins_support_value_tree_source` memory for the full
+investigation.
+
+Implementation: `readPhyloXMLTopology()` now also returns every clade's
+own `<name>` text (not just leaves'), indexed by the same ape node
+numbering as `phy` itself, from the same single linear pass (no second
+XML traversal). Support mode parses each internal node's `/`-delimited
+label into its three numbers and joins the resulting pass/fail color
+onto the tree via `%<+%` (ggtree's own node-indexed data join) -
+`groupOTU()`'s leaf-group propagation (used for `clade`/`taxon` mode)
+doesn't apply here, since this is a direct per-node property, not
+something to propagate down from leaf membership.
+
+Confirmed on Renins' real tree (`FAMSA.BigTree5/RogueIter_5`, rebuilt
+with `.treefile`): 4670 pass, 4575 fail, 4 unparseable out of 9249
+internal nodes - visually a believable scattered mix of red/black
+throughout the circular layout, not concentrated in one obviously-wrong
+region. Regression-tested at full Mas1 scale (24156 leaves, whose test
+fixture's phyloXML was already treefile-based): 12625 pass, 11526 fail,
+4 unparseable, ~87s total, no errors.
+
 ## Known rough edges
 
 - `na.value = NA` (as opposed to a real color like `"grey70"`) crashes

@@ -62,17 +62,33 @@
 #
 # Usage: Rscript render_from_phyloxml_fast.R <fullTree.xml> <out.pdf> [colorBy]
 #
-# colorBy selects which pair of per-leaf phyloXML <property> elements to
-# color/group by (both pairs are written by buildPhyloXMLClade(), see
-# 12_ConvertTreesToFigures.py):
-#   "clade" (default) - PhylogenyPipeline:cladeName/cladeColor, the curated
-#       clade assignment - and draws the full clade-label-placement machinery
-#       below (outside-tree labels, declutter, connectors).
-#   "taxon" - PhylogenyPipeline:taxonOfInterest/taxonColor, the real per-leaf
-#       NCBI taxonomy classification - no labels (2026-10-23 user feedback:
-#       "I just don't think that this tree needs lables, at least not for
-#       now"), just the colored tree, since there isn't a small curated list
-#       of named groups to label the way Clades.csv's ~61 clades are.
+# colorBy selects what the circular layout actually shows:
+#   "clade" (default) - colors/groups by the curated PhylogenyPipeline:
+#       cladeName/cladeColor leaf properties, and draws the full
+#       clade-label-placement machinery below (outside-tree labels,
+#       declutter, connectors).
+#   "taxon" - colors/groups by the real per-leaf NCBI taxonomy
+#       (PhylogenyPipeline:taxonOfInterest/taxonColor) instead - no labels
+#       (2026-10-23 user feedback: "I just don't think that this tree needs
+#       lables, at least not for now"), just the colored tree, since there
+#       isn't a small curated list of named groups to label the way
+#       Clades.csv's ~61 clades are.
+#   "support" - ignores leaf properties entirely and colors each internal
+#       BRANCH by whether it passes the strict support criterion (all
+#       three of SH-aLRT>=85, aBayes>=0.95, UFBoot>=95 individually - see
+#       feedback_support_value_acceptance_criterion memory): black if it
+#       passes (or is a leaf branch, which this criterion doesn't apply
+#       to), red if it fails, grey if no parseable support label exists
+#       (e.g. the root). Needs the phyloXML's internal <clade> <name>
+#       values to actually be IQ-Tree's own composite support string,
+#       which only happens if the phyloXML's source tree was the real
+#       *.treefile - *.contree (IQ-Tree's consensus tree) only carries
+#       plain consensus-percentage integers, no SH-aLRT/aBayes/UFBoot at
+#       all (confirmed 2026-10-27 on Renins' real fullTree.xml - see
+#       project_renins_support_value_tree_source memory for the full
+#       writeup and how to rebuild a round's phyloXML with the right
+#       source if it's still contree-based). No labels, same reasoning as
+#       "taxon".
 
 library(xml2)
 library(ape)
@@ -124,33 +140,49 @@ readPhyloXMLTopology <- function(doc, ns) {
 	# reordering is needed here.
 	tipLabel <- xml_text(xml_find_first(leafClades, "./d1:name", ns))
 
+	# Every clade's own <name> - for leaves this duplicates tipLabel; for
+	# internal nodes this is whatever IQ-Tree wrote as that node's own
+	# label in the source tree the phyloXML was built from (the composite
+	# "SH-aLRT/aBayes/UFBoot" string when that source was *.treefile - see
+	# the "support" colorBy mode above). Indexed by NEW ape node id
+	# (1..nTip+nNode), same numbering as phy's own nodes, so callers can
+	# use it directly without redoing the newId remapping.
+	nodeName <- character(n)
+	nodeName[newId] <- xml_text(xml_find_first(allClades, "./d1:name", ns))
+
 	phy <- structure(list(edge = edge, tip.label = tipLabel, Nnode = nNode), class = "phylo")
-	list(phy = reorder(phy, "cladewise"), leafClades = leafClades)
+	list(phy = reorder(phy, "cladewise"), leafClades = leafClades, nodeName = nodeName)
 }
 
 args <- commandArgs(trailingOnly = TRUE)
 xmlPath <- args[1]
 outFile <- args[2]
 colorBy <- ifelse(length(args) >= 3, args[3], "clade")
-stopifnot(colorBy %in% c("clade", "taxon"))
+stopifnot(colorBy %in% c("clade", "taxon", "support"))
 addLabels <- colorBy == "clade"
-nameRef <- if (colorBy == "clade") "PhylogenyPipeline:cladeName" else "PhylogenyPipeline:taxonOfInterest"
-colorRef <- if (colorBy == "clade") "PhylogenyPipeline:cladeColor" else "PhylogenyPipeline:taxonColor"
 
-cat("reading topology + leaf", nameRef, "+", colorRef, "from phyloXML (xml2, single linear pass)...\n"); t0 <- Sys.time()
+cat("reading topology from phyloXML (xml2, single linear pass)...\n"); t0 <- Sys.time()
 doc <- read_xml(xmlPath)
 ns <- xml_ns(doc)
 topo <- readPhyloXMLTopology(doc, ns)
 phy <- topo$phy
 leafClades <- topo$leafClades
 leafNames <- phy$tip.label
+cat("  ", as.numeric(Sys.time() - t0, units = "secs"), "s -", length(leafNames), "tips\n")
+
+cat("rendering...\n"); t0 <- Sys.time()
+
+if (colorBy %in% c("clade", "taxon")) {
+
+nameRef <- if (colorBy == "clade") "PhylogenyPipeline:cladeName" else "PhylogenyPipeline:taxonOfInterest"
+colorRef <- if (colorBy == "clade") "PhylogenyPipeline:cladeColor" else "PhylogenyPipeline:taxonColor"
+
 cladeNames <- xml_text(xml_find_first(leafClades, paste0("./d1:property[@ref='", nameRef, "']"), ns))
 # Separate <property> element from cladeName's, not pipe-delimited - fine
 # for our own xml2-based reader (each <property> parsed independently),
 # unlike treeio's tibble pivot, which is what made two properties blow up
 # there (see this directory's README).
 cladeColors <- xml_text(xml_find_first(leafClades, paste0("./d1:property[@ref='", colorRef, "']"), ns))
-cat("  ", as.numeric(Sys.time() - t0, units = "secs"), "s -", length(leafNames), "leaf clades found\n")
 
 leafData <- tibble(
 	label = leafNames,
@@ -160,7 +192,6 @@ leafData <- tibble(
 	cladeColor = ifelse(is.na(cladeColors) | cladeColors == "", "#B3B3B3", cladeColors)
 )
 
-cat("rendering...\n"); t0 <- Sys.time()
 # Group by the clade's own curated hex color (not cladeName) so the
 # render uses the pipeline's real, already-chosen colors directly via
 # scale_color_identity() - the same palette the production PDF already
@@ -183,6 +214,45 @@ levels(attr(phyGrouped, "group"))[levels(attr(phyGrouped, "group")) == "0"] <- "
 
 p <- ggtree(phyGrouped, layout = "circular", branch.length = "none", size = 0.3, aes(color = group)) +
 	scale_color_identity()
+
+} else {
+
+# "support" mode: no leaf grouping at all - color each internal branch by
+# whether ITS OWN node passes the strict support criterion. A node's
+# composite label describes the branch leading to it (standard
+# convention), so this is a per-node, not per-leaf-group, coloring -
+# ggtree's %<+% (join extra data onto the tree by node id) is the right
+# tool, not groupOTU (which is about propagating LEAF group membership
+# down through monophyletic subtrees, a different problem).
+nTip <- Ntip(phy)
+nNode <- phy$Nnode
+internalIds <- seq(nTip + 1, nTip + nNode)
+supportParts <- strsplit(topo$nodeName[internalIds], "/")
+getPart <- function(i) suppressWarnings(as.numeric(vapply(supportParts, function(p) if (length(p) == 3) p[i] else NA_character_, character(1))))
+shALRT <- getPart(1)
+aBayes <- getPart(2)
+ufBoot <- getPart(3)
+
+# All three thresholds individually, not an average or a majority vote -
+# see feedback_support_value_acceptance_criterion memory for why (and
+# why ete3's own .support attribute can't be trusted for this - it
+# silently defaults to 1.0 for composite labels like these; reading the
+# raw text ourselves, like here, is the only reliable way).
+passes <- shALRT >= 85 & aBayes >= 0.95 & ufBoot >= 95
+
+branchColor <- character(nTip + nNode)
+branchColor[seq_len(nTip)] <- "#000000" # leaf branches - the criterion doesn't apply to these at all
+branchColor[internalIds] <- ifelse(is.na(passes), "#B3B3B3", ifelse(passes, "#000000", "#FF0000"))
+
+cat("support check (SH-aLRT>=85, aBayes>=0.95, UFBoot>=95, all three): ",
+	sum(passes, na.rm = TRUE), "pass,", sum(!passes, na.rm = TRUE), "fail,",
+	sum(is.na(passes)), "no parseable label (out of", nNode, "internal nodes)\n")
+
+nodeColorDf <- data.frame(node = seq_len(nTip + nNode), branchColor = branchColor)
+p <- ggtree(phy, layout = "circular", branch.length = "none", size = 0.3) %<+% nodeColorDf +
+	aes(color = branchColor) + scale_color_identity()
+
+}
 
 if (addLabels) {
 
