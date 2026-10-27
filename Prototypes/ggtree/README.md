@@ -600,7 +600,7 @@ all - the CLI dropped its first argument accordingly.
 A third `colorBy` mode, `support`, colors each internal branch by whether
 it passes the strict acceptance criterion from
 `feedback_support_value_acceptance_criterion` memory: all three of
-SH-aLRT>=85, aBayes>=0.95, UFBoot>=95 individually, not an average or
+SH-aLRT>=80, aBayes>=0.95, UFBoot>=95 individually, not an average or
 majority vote. Black = passes (or is a leaf branch, which the criterion
 doesn't apply to), red = fails, grey = no parseable composite label at
 all (e.g. the root). No leaf grouping/coloring and no labels - this mode
@@ -636,18 +636,18 @@ doesn't apply here, since this is a direct per-node property, not
 something to propagate down from leaf membership.
 
 Confirmed on Renins' real tree (`FAMSA.BigTree5/RogueIter_5`, rebuilt
-with `.treefile`): 4670 pass, 4575 fail, 4 unparseable out of 9249
+with `.treefile`): 4882 pass, 4363 fail, 4 unparseable out of 9249
 internal nodes - visually a believable scattered mix of red/black
 throughout the circular layout, not concentrated in one obviously-wrong
 region. Regression-tested at full Mas1 scale (24156 leaves, whose test
-fixture's phyloXML was already treefile-based): 12625 pass, 11526 fail,
+fixture's phyloXML was already treefile-based): 13166 pass, 10985 fail,
 4 unparseable, ~87s total, no errors.
 
 **Per-metric gradients, same day.** User follow-up after seeing the
 combined view: checking just Renin/Cathepsin D/Napsin A (the three
 clades already confirmed solid by E-value and topology, see the main
 session's investigation) still showed ~50% "fail" each (391/405/488
-internal nodes, 48.8%/41.2%/48.2% pass) - but inspecting the actual
+internal nodes, 51.4%/42.7%/50.2% pass) - but inspecting the actual
 failing labels showed many are a near-miss on just ONE of the three
 metrics (e.g. `87.6/0.997/85` fails only because UFBoot is 85 vs the 95
 threshold), not uniformly weak. A 4th CLI argument, `supportMetric`,
@@ -658,6 +658,19 @@ its own natural scale rather than normalized), instead of the combined
 pass/fail view (still the default, `"combined"`). Confirmed working on
 Renins at full scale, visually a sensible, legend-labeled gradient (not
 just binary red/black).
+
+**SH-aLRT threshold correction, same day.** This script (and the memory
+this whole criterion came from) briefly used 85 as the SH-aLRT cutoff.
+That was wrong - confirmed 80 from two independent sources: the actual
+published methods section (Gühmann, Porter & Bok 2022, *Cells* 11:2441,
+Section 2.4) and, independently, the production pipeline's own
+`12_ConvertTreesToFigures.py` (`SHaLRTThresholds[0] = 80.0`, checked
+against in `getSupportOverThresholdColor()`). All numbers in this
+section were recomputed with the corrected 80 after this surfaced - see
+`feedback_support_value_acceptance_criterion` memory for the full story
+of how the wrong number got there in the first place (a concrete
+instance of a number getting corrupted across a compaction boundary,
+not an independent error).
 
 ## Known rough edges
 

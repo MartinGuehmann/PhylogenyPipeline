@@ -75,7 +75,7 @@
 #       Clades.csv's ~61 clades are.
 #   "support" - ignores leaf properties entirely and colors each internal
 #       BRANCH by whether it passes the strict support criterion (all
-#       three of SH-aLRT>=85, aBayes>=0.95, UFBoot>=95 individually - see
+#       three of SH-aLRT>=80, aBayes>=0.95, UFBoot>=95 individually - see
 #       feedback_support_value_acceptance_criterion memory): black if it
 #       passes (or is a leaf branch, which this criterion doesn't apply
 #       to), red if it fails, grey if no parseable support label exists
@@ -244,7 +244,7 @@ ufBoot <- getPart(3)
 
 # A 4th CLI argument picks which view of "support" to render:
 #   "combined" (default) - pass/fail against the full strict criterion,
-#       all three of SH-aLRT>=85, aBayes>=0.95, UFBoot>=95 individually,
+#       all three of SH-aLRT>=80, aBayes>=0.95, UFBoot>=95 individually,
 #       not an average or a majority vote - see
 #       feedback_support_value_acceptance_criterion memory for why (and
 #       why ete3's own .support attribute can't be trusted for this - it
@@ -262,13 +262,13 @@ stopifnot(supportMetric %in% c("combined", "shalrt", "abayes", "ufboot"))
 
 if (supportMetric == "combined") {
 
-	passes <- shALRT >= 85 & aBayes >= 0.95 & ufBoot >= 95
+	passes <- shALRT >= 80 & aBayes >= 0.95 & ufBoot >= 95
 
 	branchColor <- character(nTip + nNode)
 	branchColor[seq_len(nTip)] <- "#000000" # leaf branches - the criterion doesn't apply to these at all
 	branchColor[internalIds] <- ifelse(is.na(passes), "#B3B3B3", ifelse(passes, "#000000", "#FF0000"))
 
-	cat("support check (SH-aLRT>=85, aBayes>=0.95, UFBoot>=95, all three): ",
+	cat("support check (SH-aLRT>=80, aBayes>=0.95, UFBoot>=95, all three): ",
 		sum(passes, na.rm = TRUE), "pass,", sum(!passes, na.rm = TRUE), "fail,",
 		sum(is.na(passes)), "no parseable label (out of", nNode, "internal nodes)\n")
 
