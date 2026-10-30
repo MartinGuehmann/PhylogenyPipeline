@@ -320,14 +320,29 @@ then
 	then
 		echo "GetResumeIteration.sh failed (exit $resumeStatus) for $aligner.BigTree$bigTreeIteration - not submitting" >&2
 		hadError="true"
-	elif [ -n "$resumeIteration" ] && [ "$resumeIteration" != "$bigTreeIteration" ]
+	elif [ -z "$resumeIteration" ]
 	then
-		# resumeIteration == bigTreeIteration means the transitional
-		# round itself hasn't even completed - that could mean it
-		# hasn't started yet (the regular loop below hasn't reached
-		# bigTreeIteration), not necessarily a crash, and it's created
-		# by that loop reaching it, not resubmitted here, to avoid a
-		# premature/duplicate submission racing against it.
+		echo "$aligner.BigTree$bigTreeIteration already has a completed round - skipping" >&2
+	elif [ "$resumeIteration" == "$bigTreeIteration" ]
+	then
+		# The transitional round itself (iteration == bigTreeIteration)
+		# hasn't completed yet - it's created by the regular loop
+		# reaching this iteration, not resubmitted here, to avoid a
+		# premature/duplicate submission racing against it. That could
+		# mean it hasn't started yet OR it's actively running OR it
+		# crashed - previously left silent (no message in any of these
+		# three cases), which looked indistinguishable from "this branch
+		# wasn't even checked" from the printed output alone. Now at
+		# least reports which of the three, same IsRoundRunning.sh check
+		# already used for every other branch here - still never
+		# submits anything itself either way.
+		if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner" -x "BigTree$bigTreeIteration" >/dev/null
+		then
+			echo "$aligner.BigTree$bigTreeIteration's transitional round (iteration $bigTreeIteration) is running on the cluster" >&2
+		else
+			echo "$aligner.BigTree$bigTreeIteration's transitional round (iteration $bigTreeIteration) hasn't completed and isn't running on the cluster - not submitting (only the regular loop reaching this iteration creates it)" >&2
+		fi
+	else
 		remainingBigTreeRounds=$((bigTreeLastIteration - resumeIteration))
 		if "$DIR/../IsRoundRunning.sh" -g "$gene" -a "$aligner" -x "BigTree$bigTreeIteration" >/dev/null
 		then
