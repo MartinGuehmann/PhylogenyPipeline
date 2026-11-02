@@ -21,6 +21,21 @@ fi
 
 numTreads=$(nproc)
 
+# IQ-Tree truncates "$inputAlignment.log" the moment it starts, before it
+# even checks its own checkpoint - so a resubmit of an already-finished
+# alignment (e.g. this array task got resubmitted after a sibling task in
+# the same job array failed) clobbers the real, complete log with just a
+# few startup lines before IQ-Tree notices the checkpoint and bails out.
+# Back it up first and restore it in that case so the original run's full
+# log (model selection, bootstrap summary, timing, etc.) survives.
+logFile="$inputAlignment.log"
+logBackup=""
+if [ -f "$logFile" ]
+then
+	logBackup=$(mktemp)
+	cp "$logFile" "$logBackup"
+fi
+
 # Capture stderr separately (without disturbing stdout, which Slurm
 # still streams straight to the job's .out log) so a resubmit of an
 # already-finished alignment can be told apart from a real failure.
@@ -39,7 +54,12 @@ if [ $status -ne 0 ] && grep -q "indicates that a previous run successfully fini
 then
 	echo "$inputAlignment: IQ-Tree's checkpoint shows a previous run already finished successfully - treating as done, not as a failure." >&2
 	status=0
+	if [ -n "$logBackup" ]
+	then
+		mv "$logBackup" "$logFile"
+		logBackup=""
+	fi
 fi
 
-rm -f "$iqtreeStderr"
+rm -f "$iqtreeStderr" "$logBackup"
 exit $status
