@@ -67,6 +67,13 @@ fi
 # Make the alignment directory if it does not exist
 mkdir -p $alignmentDir
 
+# Announce this round is actively being worked on before the aligner
+# runs, so IsRoundRunning.sh's live-log grep for "$aligner$suffix/
+# RogueIter_" always finds something, rather than relying on PASTA's
+# own verbose status messages happening to mention it - see
+# 09_AlignWithClustalO.sh's own comment on this line for the full story.
+echo "Aligning into $alignmentDir.." >&2
+
 # Drop extreme length outliers (e.g. a bacterial contamination/fusion
 # artifact) before PASTA ever sees them - its internal MAFFT subalignment
 # step scales badly with one. This is a retrofit for chunks that were

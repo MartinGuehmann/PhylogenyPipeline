@@ -46,6 +46,12 @@ fi
 # Make the alignment directory if it does not exist
 mkdir -p $alignmentDir
 
+# Announce this round is actively being worked on before the aligner
+# runs, so IsRoundRunning.sh's live-log grep for "$aligner$suffix/
+# RogueIter_" always finds something - see 09_AlignWithClustalO.sh's
+# own comment on this line for the full story.
+echo "Aligning into $alignmentDir.." >&2
+
 # Align the sequences with Muscle5 and the Super5 algorithm
 muscle5 -threads $numTreads -super5 $inputSequences -output $outFile >&2 # In case this puts something to stdout
 

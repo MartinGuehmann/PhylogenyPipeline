@@ -46,6 +46,13 @@ fi
 # Make the alignment directory if it does not exist
 mkdir -p $alignmentDir
 
+# Announce this round is actively being worked on before the aligner
+# runs, so IsRoundRunning.sh's live-log grep for "$aligner$suffix/
+# RogueIter_" always finds something - see 09_AlignWithClustalO.sh's
+# own comment on this line for the full story (confirmed this exact
+# script was one of the two that genuinely wasn't being detected).
+echo "Aligning into $alignmentDir.." >&2
+
 # Drop extreme length outliers (e.g. a bacterial contamination/fusion
 # artifact) before MAFFT's L-INS-i mode ever sees them - it scales badly
 # with one. This is a retrofit for chunks that were already split before

@@ -21,6 +21,13 @@ fi
 
 numTreads=$(nproc)
 
+# Announce this round is actively being worked on before IQ-Tree runs,
+# so IsRoundRunning.sh's live-log grep for "$aligner$suffix/RogueIter_"
+# always finds something explicitly, rather than relying on IQ-Tree's
+# own "Command:" line in the .out file happening to mention it - see
+# 09_AlignWithClustalO.sh's own comment on this line for the full story.
+echo "Building tree for $inputAlignment.." >&2
+
 # IQ-Tree truncates "$inputAlignment.log" the moment it starts, before it
 # even checks its own checkpoint - so a resubmit of an already-finished
 # alignment (e.g. this array task got resubmitted after a sibling task in

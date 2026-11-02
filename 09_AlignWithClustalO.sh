@@ -47,6 +47,19 @@ fi
 # Make the alignment directory if it does not exist
 mkdir -p $alignmentDir
 
+# Announce this round is actively being worked on, before the aligner
+# itself runs - IsRoundRunning.sh greps a live job's own log for
+# "$aligner$suffix/RogueIter_" to tell "still running" apart from "never
+# started", and can only find it if something actually prints it while
+# the job is mid-run. Relying on the aligner's own verbosity for that
+# is incidental, not guaranteed - confirmed 2026-11-02 it genuinely
+# wasn't there for LINSI/MUSCLE5 (their wrappers only echo $outFile at
+# the very end, on success), causing 16_TreeBuildScheduler.sh to submit
+# a real duplicate array on top of one still actively running. Added
+# here uniformly so detection never again depends on which tool happens
+# to mention its own paths.
+echo "Aligning into $alignmentDir.." >&2
+
 # Align the sequences with ClustalO
 #
 # --force: the only thing guarding against a rerun here is $outFile
