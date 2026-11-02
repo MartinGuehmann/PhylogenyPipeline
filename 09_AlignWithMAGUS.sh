@@ -45,6 +45,21 @@ then
 	exit 0
 fi
 
+# Wipe any work directory left behind by a previous, non-TIMEOUT attempt
+# (crash, OOM-kill, or - as confirmed 2026-11-02 - a resubmit after fixing
+# the input) before making a fresh one. MAGUS caches its own decomposition
+# (decomposition/subset_N.txt) under here and silently reuses it on a
+# rerun instead of recomputing it from whatever input is given now -
+# confirmed via a real incident: after filtering a length outlier out of
+# the input, MAGUS still OOM-killed on the same subset, and the log showed
+# "Decomposed ... in 0.06 sec" (vs. ~15.7 minutes for a genuine
+# decomposition) with a wall of "Detected existing subset file" lines -
+# i.e. it reused the stale subset still containing the outlier instead of
+# ever seeing the filtered input. Same class of problem
+# 09_AlignWithPASTA.sh already wipes its own output for, just not caught
+# here until now.
+rm -rf $workDir
+
 # Make the alignment and work directories if they do not exist
 mkdir -p $alignmentDir
 mkdir -p $workDir
@@ -75,6 +90,29 @@ python3 "$DIR/FilterLengthOutliers.py" --input "$inputSequences" --output "$leng
 # post-alignment sanitization in 09a_PostProcessAlignment.sh ever runs),
 # so fixed narrowly here rather than earlier in the pipeline for every
 # aligner.
+# Confirmed 2026-11-02, reproduced directly against a local MAFFT build:
+# MAFFT silently truncates FASTA headers over ~245 characters when it
+# writes its own output (cut a 516-char header down to 245, mid-word).
+# MAGUS keeps the untruncated header in its own bookkeeping but then
+# looks a taxon up by that same string in the dict it builds from
+# reading MAFFT's (truncated) output back in - a mismatch that throws
+# KeyError in magus/align/alignment_context.py's
+# initializeBackboneSequenceMapping() and aborts the whole chunk. Only
+# a few sequences in a typical chunk are long enough to hit this (a
+# verbose description with many alternate protein/gene names chained
+# together, e.g. "Angiopoietin-related_protein_1Ficolin-1-A..."), but
+# whether a given one actually triggers the crash depends on MAGUS's
+# own guide-tree-driven decomposition (which taxa get sampled as
+# "backbone"), not just the length - so trimming to a safe length here
+# rather than leaving it to chance. 200 is comfortably under MAFFT's
+# observed ~245-char truncation point (allowing for a harmless version-
+# to-version difference in the exact limit) while every ordinary
+# sequence ID in this pipeline is already well under 150 chars, so this
+# never touches normal input. This only affects what MAGUS itself sees
+# internally for this one chunk - the pipeline's real record of each
+# sequence (SequencesOfInterest.fasta) keeps the full original header
+# regardless, and losing the tail of an oversized description (usually
+# the species name) here is an accepted tradeoff, not a data-loss risk.
 sed -e 's/[],[{}]//g' \
     -e 's/[);(]//g' \
     -e "s/[']//g" \
@@ -83,7 +121,8 @@ sed -e 's/[],[{}]//g' \
     -e 's/[=: /\]/_/g' \
     $lengthFiltered | \
 sed -e 's/__/_/g' \
-    -e 's/_$//g' > $cleanedInputSequences
+    -e 's/_$//g' | \
+sed -e '/^>/ s/^\(.\{1,200\}\).*/\1/' > $cleanedInputSequences
 
 ###########################################################
 # Align the sequences with MAGUS
