@@ -46,8 +46,17 @@ fi
 # Make the alignment directory if it does not exist
 mkdir -p $alignmentDir
 
+# Drop extreme length outliers (e.g. a bacterial contamination/fusion
+# artifact) before MAFFT's L-INS-i mode ever sees them - it scales badly
+# with one. This is a retrofit for chunks that were already split before
+# 04_MakeNonRedundant.sh started filtering the full pool upstream; see
+# FilterLengthOutliers.py for the method.
+lengthFiltered="$alignmentDir/$base.LengthFiltered.fasta"
+lengthOutliersDropped="$alignmentDir/$base.LengthOutliers.dropped.fasta"
+python3 "$DIR/FilterLengthOutliers.py" --input "$inputSequences" --output "$lengthFiltered" --dropped "$lengthOutliersDropped"
+
 # Align the sequences with MAFFT-LINSI
-mafft --maxiterate 1000 --localpair --thread $numTreads $inputSequences > $outFile
+mafft --maxiterate 1000 --localpair --thread $numTreads $lengthFiltered > $outFile
 
 # This must be the only stuff that goes to stdout here, since we use this as a return value
 echo "$outFile"

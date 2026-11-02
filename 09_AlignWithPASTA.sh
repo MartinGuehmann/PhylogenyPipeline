@@ -67,6 +67,15 @@ fi
 # Make the alignment directory if it does not exist
 mkdir -p $alignmentDir
 
+# Drop extreme length outliers (e.g. a bacterial contamination/fusion
+# artifact) before PASTA ever sees them - its internal MAFFT subalignment
+# step scales badly with one. This is a retrofit for chunks that were
+# already split before 04_MakeNonRedundant.sh started filtering the full
+# pool upstream; see FilterLengthOutliers.py for the method.
+lengthFiltered="$alignmentDir/$base.LengthFiltered.fasta"
+lengthOutliersDropped="$alignmentDir/$base.LengthOutliers.dropped.fasta"
+python3 "$DIR/FilterLengthOutliers.py" --input "$inputSequences" --output "$lengthFiltered" --dropped "$lengthOutliersDropped"
+
 ###########################################################
 # Copy sequences and replace Js by Ls
 # Since PASTA cannot cope with that
@@ -80,7 +89,7 @@ sed -e '/^>/!s/J/L/g' \
     -e "s/[&]//g" \
     -e 's/ $//g' \
     -e 's/[=: /]/_/g' \
-    $inputSequences | \
+    $lengthFiltered | \
 sed -e 's/__/_/g' \
     -e 's/_$//g' > $cleanedInputSequences
 
