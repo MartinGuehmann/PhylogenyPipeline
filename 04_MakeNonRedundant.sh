@@ -25,6 +25,8 @@ sequencesToKeep="$DIR/$gene/MustKeepSequences"
 speciesForSeqReps="$DIR/$gene/SpeciesForSeqReps.csv"
 nrSequenceFile="$sequences/NonRedundantSequences.fasta"
 nrSequenceFile90="$sequences/NonRedundantSequences90.fasta"
+nrSequenceFileLengthFiltered="$sequences/NonRedundantSequences.LengthFiltered.fasta"
+nrSequenceFileLengthOutliers="$sequences/NonRedundantSequences.LengthOutliers.dropped.fasta"
 
 # Rebuilding this from scratch reshuffles which sequence cd-hit picks as
 # each cluster's representative (its clustering isn't guaranteed
@@ -45,6 +47,8 @@ fi
 # So that we do not include it in the analysis.
 rm -f $nrSequenceFile
 rm -f $nrSequenceFile90
+rm -f $nrSequenceFileLengthFiltered
+rm -f $nrSequenceFileLengthOutliers
 
 seqFiles=$sequences/*.fasta
 
@@ -67,7 +71,15 @@ speciesListArg=""
 
 python3 "$DIR/PrepareSequencesForDedup.py" $seqFiles $speciesListArg | seqkit rmdup -s -j $numTreads > $nrSequenceFile
 
-cd-hit -i $nrSequenceFile -o $nrSequenceFile90 -c 0.9 -M 0 -d 0 -T $numTreads
+# Drop extreme length outliers (e.g. a bacterial contamination/fusion
+# artifact) before cd-hit ever sees them, so one freak-length sequence
+# can't skew clustering or later OOM-crash an aligner's internal
+# iterative refinement on whichever chunk it lands in after shuffling -
+# see FilterLengthOutliers.py for the method. $nrSequenceFile itself is
+# left as the complete, unfiltered dedup'd record.
+python3 "$DIR/FilterLengthOutliers.py" --input "$nrSequenceFile" --output "$nrSequenceFileLengthFiltered" --dropped "$nrSequenceFileLengthOutliers"
+
+cd-hit -i $nrSequenceFileLengthFiltered -o $nrSequenceFile90 -c 0.9 -M 0 -d 0 -T $numTreads
 
 # Replace cd-hit's own (longest-sequence-wins) representative for a cluster
 # with a higher-priority one by species, wherever a cluster happens to
