@@ -53,8 +53,23 @@ mkdir -p $alignmentDir
 # script was one of the two that genuinely wasn't being detected).
 echo "Aligning into $alignmentDir.." >&2
 
+# Drop extreme length outliers (e.g. a bacterial contamination/fusion
+# artifact) before MUSCLE5 ever sees them. Confirmed 2026-11-04: a
+# NuclearReceptors chunk containing one ran the full walltime budget
+# (34h, nowhere near a timeout) and then hit MUSCLE5's own internal
+# guard - "---Fatal error--- Memory object >4Gb, probably due to long
+# seqences" - a second, separate failure mode from the plain walltime
+# issue this chunk also has (see Resources.cfg's own walltime-bump
+# comment for that one). Same contaminant already fixed for PASTA/
+# MAGUS/LINSI; this aligner was missed in that retrofit since the
+# chunk that exposed walltime sizing (a different chunk, no outlier)
+# was investigated first. See FilterLengthOutliers.py for the method.
+lengthFiltered="$alignmentDir/$base.LengthFiltered.fasta"
+lengthOutliersDropped="$alignmentDir/$base.LengthOutliers.dropped.fasta"
+python3 "$DIR/FilterLengthOutliers.py" --input "$inputSequences" --output "$lengthFiltered" --dropped "$lengthOutliersDropped"
+
 # Align the sequences with Muscle5
-muscle5 -threads $numTreads -align $inputSequences -output $outFile >&2 # In case this puts something to stdout
+muscle5 -threads $numTreads -align $lengthFiltered -output $outFile >&2 # In case this puts something to stdout
 
 # This must be the only stuff that goes to stdout here, since we use this as a return value
 echo "$outFile"
